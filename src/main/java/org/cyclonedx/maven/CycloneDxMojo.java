@@ -271,21 +271,4 @@ public class CycloneDxMojo extends AbstractMojo {
         return hashes;
     }
 
-    public static void main(String[] args) throws Exception {
-        CycloneDxMojo mojo = new CycloneDxMojo();
-        mojo.bomVersion = 1;
-        mojo.componentType = "application";
-        mojo.publisher = "ACME International";
-        mojo.group = "org.acme";
-        mojo.name = "awesome-util";
-        mojo.version = "1.0.0";
-        mojo.description = "The most awesome utility";
-        mojo.cpe = "cpe:/a:example:xmlutil:1.0.0";
-        mojo.modified = false;
-
-        mojo.licenses = new String[] { "Apache-2.0" };
-
-        mojo.execute();
-    }
-
 }

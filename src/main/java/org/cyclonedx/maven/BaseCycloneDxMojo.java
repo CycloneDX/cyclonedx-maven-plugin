@@ -204,6 +204,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setVersion(artifact.getVersion());
         component.setType("library");
         component.setHashes(calculateHashes(artifact.getFile()));
+        component.setModified(isModified(artifact));
 
         try {
             PackageURL purl = new PackageURL("maven", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), null, null);
@@ -398,6 +399,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         String bomString = writer.toString();
         getLog().debug(bomString);
         return bomString;
+    }
+
+    private boolean isModified(Artifact artifact) {
+        //todo: compare hashes + GAV with what the artifact says against Maven Central to determine if component has been modified.
+        return false;
     }
 
     protected boolean validateBom(File file) {

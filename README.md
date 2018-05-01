@@ -42,3 +42,12 @@ Maven Usage
     </plugin>
 </plugins>
 ```
+
+Copyright & License
+-------------------
+
+CycloneDX Maven Plugin is Copyright (c) Steve Springett. All Rights Reserved.
+
+Permission to modify and redistribute is granted under the terms of the Apache 2.0 license. See the [LICENSE] [Apache 2.0] file for the full license.
+
+[Apache 2.0]: https://github.com/stevespringett/nist-data-mirror/blob/master/LICENSE

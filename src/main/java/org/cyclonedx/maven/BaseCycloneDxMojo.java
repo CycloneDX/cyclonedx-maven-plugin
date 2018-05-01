@@ -20,11 +20,13 @@ package org.cyclonedx.maven;
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
@@ -59,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -71,13 +74,28 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private static final String NS_BOM = "http://cyclonedx.org/schema/bom/1.0";
 
     @Parameter(property = "session", readonly = true, required = true)
-    protected MavenSession session;
+    private MavenSession session;
 
     @Parameter(property = "project", readonly = true, required = true)
-    protected MavenProject project;
+    private MavenProject project;
 
     @Parameter(property = "reactorProjects", readonly = true, required = true)
-    protected List<MavenProject> reactorProjects;
+    private List<MavenProject> reactorProjects;
+
+    @Parameter(property = "includeCompileScope", defaultValue = "true", required = false)
+    private Boolean includeCompileScope;
+
+    @Parameter(property = "includeProvidedScope", defaultValue = "true", required = false)
+    private Boolean includeProvidedScope;
+
+    @Parameter(property = "includeRuntimeScope", defaultValue = "true", required = false)
+    private Boolean includeRuntimeScope;
+
+    @Parameter(property = "includeTestScope", defaultValue = "false", required = false)
+    private Boolean includeTestScope;
+
+    @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
+    private Boolean includeSystemScope;
 
 
     /**
@@ -113,6 +131,69 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected List<MavenProject> getReactorProjects() {
         return reactorProjects;
+    }
+
+    /**
+     * Returns if compile scoped artifacts should be included in bom.
+     *
+     * @return true if artifact should be included, otherwise false
+     */
+    protected Boolean getIncludeCompileScope() {
+        return includeCompileScope;
+    }
+
+    /**
+     * Returns if provided scoped artifacts should be included in bom.
+     *
+     * @return true if artifact should be included, otherwise false
+     */
+    protected Boolean getIncludeProvidedScope() {
+        return includeProvidedScope;
+    }
+
+    /**
+     * Returns if runtime scoped artifacts should be included in bom.
+     *
+     * @return true if artifact should be included, otherwise false
+     */
+    protected Boolean getIncludeRuntimeScope() {
+        return includeRuntimeScope;
+    }
+
+    /**
+     * Returns if test scoped artifacts should be included in bom.
+     *
+     * @return true if artifact should be included, otherwise false
+     */
+    protected Boolean getIncludeTestScope() {
+        return includeTestScope;
+    }
+
+    /**
+     * Returns if system scoped artifacts should be included in bom.
+     *
+     * @return true if artifact should be included, otherwise false
+     */
+    protected Boolean getIncludeSystemScope() {
+        return includeSystemScope;
+    }
+
+    protected boolean shouldInclude(Artifact artifact) {
+        if (artifact.getScope() == null) {
+            return false;
+        }
+        if (includeCompileScope && "compile".equals(artifact.getScope())) {
+            return true;
+        } else if (includeProvidedScope && "provided".equals(artifact.getScope())) {
+            return true;
+        } else if (includeRuntimeScope && "runtime".equals(artifact.getScope())) {
+            return true;
+        } else if (includeTestScope && "test".equals(artifact.getScope())) {
+            return true;
+        } else if (includeSystemScope && "system".equals(artifact.getScope())) {
+            return true;
+        }
+        return false;
     }
 
     protected Component convert(Artifact artifact) {
@@ -178,6 +259,23 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return null;
     }
 
+    protected void execute(Set<Component> components) throws MojoExecutionException{
+        try {
+            Document doc = createBom(components);
+            String bomString = toString(doc);
+            File bomFile = new File(project.getBasedir(), "target/bom.xml");
+            getLog().info(MESSAGE_WRITING_BOM);
+            FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
+
+            boolean isValid = validateBom(bomFile);
+            if (!isValid) {
+                throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
+            }
+
+        } catch (ParserConfigurationException | IOException e) {
+            throw new MojoExecutionException("An error occurred executing " + this.getClass().getName(), e);
+        }
+    }
 
     protected Document createBom(Set<Component> components) throws ParserConfigurationException {
         getLog().info(MESSAGE_CREATING_BOM);
@@ -349,19 +447,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (getLog().isInfoEnabled()) {
             getLog().info("CycloneDX: Parameters");
             getLog().info("------------------------------------------------------------------------");
+            getLog().info("includeCompileScope   : " + includeCompileScope);
+            getLog().info("includeProvidedScope  : " + includeProvidedScope);
+            getLog().info("includeRuntimeScope   : " + includeRuntimeScope);
+            getLog().info("includeTestScope      : " + includeTestScope);
+            getLog().info("includeSystemScope    : " + includeSystemScope);
+
             /*
-            getLog().info("artifact      : " + artifact);
-            getLog().info("bomVersion    : " + bomVersion);
-            getLog().info("componentType : " + componentType);
-            getLog().info("publisher     : " + publisher);
-            getLog().info("group         : " + group);
-            getLog().info("name          : " + name);
-            getLog().info("version       : " + version);
-            getLog().info("description   : " + description);
-            getLog().info("licenses      : " + license);
-            getLog().info("cpe           : " + cpe);
-            getLog().info("purl          : " + purl);
-            getLog().info("modified      : " + modified);
+            getLog().info("artifact              : " + artifact);
+            getLog().info("bomVersion            : " + bomVersion);
+            getLog().info("componentType         : " + componentType);
+            getLog().info("publisher             : " + publisher);
+            getLog().info("group                 : " + group);
+            getLog().info("name                  : " + name);
+            getLog().info("version               : " + version);
+            getLog().info("description           : " + description);
+            getLog().info("licenses              : " + license);
+            getLog().info("cpe                   : " + cpe);
+            getLog().info("purl                  : " + purl);
+            getLog().info("modified              : " + modified);
             */
             getLog().info("------------------------------------------------------------------------");
         }

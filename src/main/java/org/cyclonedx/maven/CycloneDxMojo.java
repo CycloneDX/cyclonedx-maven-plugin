@@ -17,23 +17,17 @@
  */
 package org.cyclonedx.maven;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.cyclonedx.maven.model.Component;
-import org.w3c.dom.Document;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Mojo(
-        name = "writeBom",
+        name = "makeBom",
         defaultPhase = LifecyclePhase.VERIFY,
         requiresOnline = true,
         requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME
@@ -41,7 +35,7 @@ import java.util.Set;
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     public void execute() throws MojoExecutionException {
-        if ("pom".equals(project.getPackaging())) {
+        if ("pom".equals(getProject().getPackaging())) {
             getLog().info(MESSAGE_SKIPPING_POM);
             return;
         }
@@ -49,27 +43,15 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
 
         Set<Component> components = new LinkedHashSet<>();
         getLog().info(MESSAGE_RESOLVING_DEPS);
-        if (project != null && project.getDependencyArtifacts() != null) {
-            for (Artifact artifact : project.getDependencyArtifacts()) {
-                components.add(convert(artifact));
+        if (getProject() != null && getProject().getArtifacts() != null) {
+            for (Artifact artifact : getProject().getArtifacts()) {
+                if (shouldInclude(artifact)) {
+                    components.add(convert(artifact));
+                }
             }
         }
 
-        try {
-            Document doc = createBom(components);
-            String bomString = toString(doc);
-            File bomFile = new File(project.getBasedir(), "target/bom.xml");
-            getLog().info(MESSAGE_WRITING_BOM);
-            FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
-
-            boolean isValid = validateBom(bomFile);
-            if (!isValid) {
-                throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
-            }
-
-        } catch (ParserConfigurationException | IOException e) {
-            throw new MojoExecutionException("An error occurred executing " + this.getClass().getName(), e);
-        }
+        super.execute(components);
     }
 
 }

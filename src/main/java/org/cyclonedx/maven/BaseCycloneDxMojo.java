@@ -63,10 +63,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -207,7 +204,17 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setModified(isModified(artifact));
 
         try {
-            PackageURL purl = new PackageURL("maven", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), null, null);
+            TreeMap<String, String> qualifiers = null;
+            if (artifact.getType() != null || artifact.getClassifier() != null) {
+                qualifiers = new TreeMap<>();
+                if (artifact.getType() != null) {
+                    qualifiers.put("type", artifact.getType());
+                }
+                if (artifact.getClassifier() != null) {
+                    qualifiers.put("classifier", artifact.getClassifier());
+                }
+            }
+            PackageURL purl = new PackageURL("maven", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
             component.setPurl(purl.canonicalize());
         } catch (MalformedPackageURLException e) {
             // throw it away

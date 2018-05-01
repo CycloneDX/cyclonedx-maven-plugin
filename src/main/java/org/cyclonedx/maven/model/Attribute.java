@@ -15,24 +15,24 @@
  *
  * Copyright (c) Steve Springett. All Rights Reserved.
  */
-package org.cyclonedx.maven;
+package org.cyclonedx.maven.model;
 
-public class Hash {
+public class Attribute {
 
-    private String algorithm;
+    private String key;
     private String value;
 
-    public Hash(String algorithm, String value) {
-        this.algorithm = algorithm;
+    public Attribute(String key, String value) {
+        this.key = key;
         this.value = value;
     }
 
-    public String getAlgorithm() {
-        return algorithm;
+    public String getKey() {
+        return this.key;
     }
 
     public String getValue() {
-        return value;
+        return this.value;
     }
 
 }

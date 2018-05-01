@@ -54,8 +54,8 @@
     </developers>
 
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -84,6 +84,27 @@
             <artifactId>maven-plugin-annotations</artifactId>
             <version>3.4</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>xml-apis</groupId>
+            <artifactId>xml-apis</artifactId>
+            <version>1.4.01</version>
+        </dependency>
+        <dependency>
+            <groupId>xml-resolver</groupId>
+            <artifactId>xml-resolver</artifactId>
+            <version>1.2</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.rackspace.eclipse.webtools.sourceediting</groupId>
+            <artifactId>org.eclipse.wst.xml.xpath2.processor</artifactId>
+            <version>2.1.100</version>
+        </dependency>
+        <dependency>
+            <groupId>xerces</groupId>
+            <artifactId>xercesImpl</artifactId>
+            <version>2.11.0</version>
         </dependency>
     </dependencies>
 
@@ -129,5 +150,15 @@
             </plugin>
         </plugins>
     </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>3.5</version>
+            </plugin>
+        </plugins>
+    </reporting>
 
 </project>

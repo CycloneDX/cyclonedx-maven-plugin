@@ -20,6 +20,7 @@ package org.cyclonedx.maven;
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.MessageDigestAlgorithms;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
@@ -490,6 +491,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             fis = new FileInputStream(file);
             hashes.add(new Hash("SHA-256", DigestUtils.sha256Hex(fis)));
+            fis.close();
+
+            fis = new FileInputStream(file);
+            hashes.add(new Hash("SHA-384", DigestUtils.sha256Hex(fis)));
             fis.close();
 
             fis = new FileInputStream(file);

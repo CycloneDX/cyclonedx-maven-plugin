@@ -494,7 +494,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             fis.close();
 
             fis = new FileInputStream(file);
-            hashes.add(new Hash("SHA-384", DigestUtils.sha256Hex(fis)));
+            hashes.add(new Hash("SHA-384", DigestUtils.sha384Hex(fis)));
             fis.close();
 
             fis = new FileInputStream(file);

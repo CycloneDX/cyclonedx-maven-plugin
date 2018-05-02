@@ -26,6 +26,8 @@
     <version>1.0.1-SNAPSHOT</version>
 
     <name>CycloneDX</name>
+    <description>The CycloneDX Maven plugin creates an aggregate of all dependencies and transitive dependencies of a project and creates a valid CycloneDX bill-of-material document from the results. CycloneDX is a lightweight BoM specification that is easily created, human readable, and simple to parse.</description>
+    <url>https://github.com/CycloneDX/cyclonedx-maven-plugin</url>
     <inceptionYear>2017</inceptionYear>
     <organization>
         <name>CycloneDX</name>

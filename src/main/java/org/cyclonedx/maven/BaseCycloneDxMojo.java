@@ -218,7 +218,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     qualifiers.put("classifier", artifact.getClassifier());
                 }
             }
-            PackageURL purl = new PackageURL("maven", artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
+            PackageURL purl = new PackageURL(PackageURL.StandardTypes.MAVEN, artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
             component.setPurl(purl.canonicalize());
         } catch (MalformedPackageURLException e) {
             // throw it away

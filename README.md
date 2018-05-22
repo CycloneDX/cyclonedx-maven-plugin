@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/CycloneDX/cyclonedx-maven-plugin.svg?branch=master)](https://travis-ci.org/CycloneDX/cyclonedx-maven-plugin)
-[![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)][Apache 2.0]
+[![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)][License]
 
 
 CycloneDX Maven Plugin
@@ -48,6 +48,6 @@ Copyright & License
 
 CycloneDX Maven Plugin is Copyright (c) Steve Springett. All Rights Reserved.
 
-Permission to modify and redistribute is granted under the terms of the Apache 2.0 license. See the [LICENSE] [Apache 2.0] file for the full license.
+Permission to modify and redistribute is granted under the terms of the Apache 2.0 license. See the [LICENSE] file for the full license.
 
-[Apache 2.0]: https://github.com/CycloneDX/cyclonedx-maven-plugin/blob/master/LICENSE
+[License]: https://github.com/CycloneDX/cyclonedx-maven-plugin/blob/master/LICENSE

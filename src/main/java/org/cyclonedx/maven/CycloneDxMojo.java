@@ -35,12 +35,7 @@ import java.util.Set;
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     public void execute() throws MojoExecutionException {
-        if ("pom".equals(getProject().getPackaging())) {
-            getLog().info(MESSAGE_SKIPPING_POM);
-            return;
-        }
         logParameters();
-
         Set<Component> components = new LinkedHashSet<>();
         getLog().info(MESSAGE_RESOLVING_DEPS);
         if (getProject() != null && getProject().getArtifacts() != null) {

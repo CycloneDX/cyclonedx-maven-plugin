@@ -111,6 +111,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected static final String MESSAGE_VALIDATING_BOM = "CycloneDX: Validating BOM";
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
 
+    public MavenSession getSession() {
+        return session;
+    }
 
     /**
      * Returns a reference to the current project. This method is used instead

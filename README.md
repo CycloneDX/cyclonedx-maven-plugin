@@ -19,7 +19,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </plugin>
 </plugins>
 ```
@@ -31,7 +31,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
         <configuration>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>

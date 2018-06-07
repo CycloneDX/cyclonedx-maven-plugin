@@ -43,6 +43,11 @@ Maven Usage
 </plugins>
 ```
 
+### Goals
+The CycloneDX Maven plugin contains the following two goals:
+* makeBom
+* makeAggregateBom
+
 Copyright & License
 -------------------
 

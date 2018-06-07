@@ -22,7 +22,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.cyclonedx.maven.model.Component;
+import org.cyclonedx.model.Component;
 import java.util.LinkedHashSet;
 import java.util.Set;
 

@@ -19,7 +19,6 @@ package org.cyclonedx.maven;
 
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
@@ -30,41 +29,18 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.cyclonedx.maven.model.Attribute;
-import org.cyclonedx.maven.model.Component;
-import org.cyclonedx.maven.model.Hash;
-import org.cyclonedx.maven.model.License;
+import org.cyclonedx.model.Component;
+import org.cyclonedx.model.License;
+import org.cyclonedx.util.BomUtils;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringWriter;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -104,7 +80,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * Various messages sent to console.
      */
     protected static final String MESSAGE_RESOLVING_DEPS = "CycloneDX: Resolving Dependencies";
-    protected static final String MESSAGE_SKIPPING_POM = "CycloneDX: Skipping pom package";
     protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM";
     protected static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
     protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM";
@@ -207,7 +182,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setName(artifact.getArtifactId());
         component.setVersion(artifact.getVersion());
         component.setType("library");
-        component.setHashes(calculateHashes(artifact.getFile()));
+        try {
+            getLog().debug(MESSAGE_CALCULATING_HASHES);
+            component.setHashes(BomUtils.calculateHashes(artifact.getFile()));
+        } catch (IOException e) {
+            getLog().error("Error encountered calculating hashes", e);
+        }
         component.setModified(isModified(artifact));
 
         try {
@@ -277,191 +257,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     protected void execute(Set<Component> components) throws MojoExecutionException{
         try {
-            Document doc = createBom(components);
-            String bomString = toString(doc);
+            getLog().info(MESSAGE_CREATING_BOM);
+            Document doc = BomUtils.createBom(components);
+            String bomString = BomUtils.toString(doc);
             File bomFile = new File(project.getBasedir(), "target/bom.xml");
             getLog().info(MESSAGE_WRITING_BOM);
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
-            boolean isValid = validateBom(bomFile);
-            if (!isValid) {
+            getLog().info(MESSAGE_VALIDATING_BOM);
+            if (BomUtils.validateBom(getClass().getClassLoader(), bomFile).size() != 0) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
 
-        } catch (ParserConfigurationException | IOException e) {
+        } catch (ParserConfigurationException | TransformerException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName(), e);
         }
     }
 
-    protected Document createBom(Set<Component> components) throws ParserConfigurationException {
-        getLog().info(MESSAGE_CREATING_BOM);
-        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        docFactory.setNamespaceAware(true);
-        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-        Document doc = docBuilder.newDocument();
-        doc.setXmlStandalone(true);
-
-        // Create root <bom> node
-        Element bomNode = createRootElement(doc, "bom", null,
-                new Attribute("xmlns", NS_BOM),
-                new Attribute("version", "1"));
-
-        Element componentsNode = createElement(doc, bomNode, "components");
-
-        if (components != null) {
-            for (Component component : components) {
-                Element componentNode = createElement(doc, componentsNode, "component", null, new Attribute("type", component.getType()));
-
-                createElement(doc, componentNode, "publisher", stripBreaks(component.getPublisher()));
-                createElement(doc, componentNode, "group", stripBreaks(component.getGroup()));
-                createElement(doc, componentNode, "name", stripBreaks(component.getName()));
-                createElement(doc, componentNode, "version", stripBreaks(component.getVersion()));
-                createElement(doc, componentNode, "description", stripBreaks(component.getDescription()));
-
-                if (component.getHashes() != null) {
-                    // Create the hashes node
-                    Element hashesNode = createElement(doc, componentNode, "hashes");
-                    for (Hash hash : component.getHashes()) {
-                        createElement(doc, hashesNode, "hash", hash.getValue(), new Attribute("alg", hash.getAlgorithm()));
-                    }
-                }
-
-                if (component.getLicenses() != null) {
-                    // Create the licenses node
-                    Element licensesNode = doc.createElementNS(NS_BOM, "licenses");
-                    componentNode.appendChild(licensesNode);
-                    for (License license : component.getLicenses()) {
-                        // Create individual license node
-                        Element licenseNode = doc.createElementNS(NS_BOM, "license");
-                        if (license.getId() != null) {
-                            Element licenseIdNode = doc.createElementNS(NS_BOM, "id");
-                            licenseIdNode.appendChild(doc.createTextNode(license.getId()));
-                            licenseNode.appendChild(licenseIdNode);
-                        } else if (license.getName() != null) {
-                            Element licenseNameNode = doc.createElementNS(NS_BOM, "name");
-                            licenseNameNode.appendChild(doc.createTextNode(license.getName()));
-                            licenseNode.appendChild(licenseNameNode);
-                        }
-                        licensesNode.appendChild(licenseNode);
-                    }
-                }
-
-                createElement(doc, componentNode, "cpe", stripBreaks(component.getCpe()));
-                createElement(doc, componentNode, "purl", stripBreaks(component.getPurl()));
-                createElement(doc, componentNode, "modified", String.valueOf(component.isModified()));
-            }
-        }
-        return doc;
-    }
-
-    protected Element createElement(Document doc, Node parent, String name) {
-        Element node = doc.createElementNS(NS_BOM, name);
-        parent.appendChild(node);
-        return node;
-    }
-
-    protected Element createElement(Document doc, Node parent, String name, Object value) {
-        return createElement(doc, parent, name, value, new Attribute[0]);
-    }
-
-    protected Element createElement(Document doc, Node parent, String name, Object value, Attribute... attributes) {
-        Element node = null;
-        if (value != null || attributes.length > 0) {
-            node = doc.createElementNS(NS_BOM, name);
-            for (Attribute attribute: attributes) {
-                node.setAttribute(attribute.getKey(), attribute.getValue());
-            }
-            if (value != null) {
-                node.appendChild(doc.createTextNode(value.toString()));
-            }
-            parent.appendChild(node);
-        }
-        return node;
-    }
-
-    protected Element createRootElement(Document doc, String name, Object value, Attribute... attributes) {
-        Element node = null;
-        if (value != null || attributes.length > 0) {
-            node = doc.createElementNS(NS_BOM, name);
-            node.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-            node.setAttribute("xsi:schemaLocation", NS_BOM + " " + NS_BOM);
-            for (Attribute attribute: attributes) {
-                node.setAttribute(attribute.getKey(), attribute.getValue());
-            }
-            if (value != null) {
-                node.appendChild(doc.createTextNode(value.toString()));
-            }
-            doc.appendChild(node);
-        }
-        return node;
-    }
-
-    protected String toString(Document doc) {
-        DOMSource domSource = new DOMSource(doc);
-        StringWriter writer = new StringWriter();
-        StreamResult result = new StreamResult(writer);
-        TransformerFactory tf = TransformerFactory.newInstance();
-        try {
-            Transformer transformer = tf.newTransformer();
-            transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, "yes");
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-            transformer.transform(domSource, result);
-        } catch (TransformerException e) {
-            getLog().error(e.getMessage());
-        }
-        String bomString = writer.toString();
-        getLog().debug(bomString);
-        return bomString;
-    }
-
     private boolean isModified(Artifact artifact) {
         //todo: compare hashes + GAV with what the artifact says against Maven Central to determine if component has been modified.
-        return false;
-    }
-
-    protected boolean validateBom(File file) {
-        getLog().info(MESSAGE_VALIDATING_BOM);
-        SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-
-        // Use local copies of schemas rather than resolving from the net. It's faster, and less prone to errors.
-        Source[] schemaFiles = {
-                new StreamSource(getClass().getClassLoader().getResourceAsStream("spdx.xsd")),
-                new StreamSource(getClass().getClassLoader().getResourceAsStream("bom-1.0.xsd"))
-        };
-
-        Source xmlFile = new StreamSource(file);
-        try {
-            Schema schema = schemaFactory.newSchema(schemaFiles);
-            Validator validator = schema.newValidator();
-            final List<SAXParseException> exceptions = new LinkedList<>();
-            validator.setErrorHandler(new ErrorHandler() {
-                @Override
-                public void warning(SAXParseException exception) throws SAXException {
-                    exceptions.add(exception);
-                }
-                @Override
-                public void fatalError(SAXParseException exception) throws SAXException {
-                    exceptions.add(exception);
-                }
-                @Override
-                public void error(SAXParseException exception) throws SAXException {
-                    exceptions.add(exception);
-                }
-            });
-            validator.validate(xmlFile);
-            if (exceptions.size() > 0) {
-                getLog().error("One or more errors encountered while parsing bom");
-                for (SAXParseException exception: exceptions) {
-                    getLog().error(exception.getMessage());
-                }
-                return false;
-            }
-            return true;
-        } catch (IOException | SAXException e) {
-            getLog().error("An error occurred validating the BOM: " + e.getMessage());
-        }
         return false;
     }
 
@@ -474,64 +288,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeRuntimeScope   : " + includeRuntimeScope);
             getLog().info("includeTestScope      : " + includeTestScope);
             getLog().info("includeSystemScope    : " + includeSystemScope);
-
-            /*
-            getLog().info("artifact              : " + artifact);
-            getLog().info("bomVersion            : " + bomVersion);
-            getLog().info("componentType         : " + componentType);
-            getLog().info("publisher             : " + publisher);
-            getLog().info("group                 : " + group);
-            getLog().info("name                  : " + name);
-            getLog().info("version               : " + version);
-            getLog().info("description           : " + description);
-            getLog().info("licenses              : " + license);
-            getLog().info("cpe                   : " + cpe);
-            getLog().info("purl                  : " + purl);
-            getLog().info("modified              : " + modified);
-            */
             getLog().info("------------------------------------------------------------------------");
         }
-    }
-
-    private List<Hash> calculateHashes(File file) {
-        if (file == null || !file.exists() || !file.canRead()) {
-            return null;
-        }
-        getLog().debug(MESSAGE_CALCULATING_HASHES);
-        getLog().debug(file.getAbsolutePath());
-        List<Hash> hashes = new ArrayList<>();
-
-        try {
-            FileInputStream fis = new FileInputStream(file);
-            hashes.add(new Hash("MD5", DigestUtils.md5Hex(fis)));
-            fis.close();
-
-            fis = new FileInputStream(file);
-            hashes.add(new Hash("SHA-1", DigestUtils.sha1Hex(fis)));
-            fis.close();
-
-            fis = new FileInputStream(file);
-            hashes.add(new Hash("SHA-256", DigestUtils.sha256Hex(fis)));
-            fis.close();
-
-            fis = new FileInputStream(file);
-            hashes.add(new Hash("SHA-384", DigestUtils.sha384Hex(fis)));
-            fis.close();
-
-            fis = new FileInputStream(file);
-            hashes.add(new Hash("SHA-512", DigestUtils.sha512Hex(fis)));
-            fis.close();
-        } catch (IOException e) {
-            getLog().error(e.getMessage());
-        }
-        return hashes;
-    }
-
-    private String stripBreaks(String in) {
-        if (in == null) {
-            return null;
-        }
-        return in.trim().replace("\r\n", " ").replace("\n", " ").replace("\t", " ").replace("\r", " ").replaceAll(" +", " ");
     }
 
 }

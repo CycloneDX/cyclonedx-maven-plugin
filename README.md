@@ -26,12 +26,21 @@ Maven Usage
 
 
 ```xml
-<!-- uses custom configuration -->
+<!-- uses custom execution and configuration -->
 <plugins>
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <version>1.1.0</version>
+        <executions>
+            <execution>
+                <id>cyclonedx-aggregate</id>
+                <phase>verify</phase>
+                <goals>
+                    <goal>makeAggregateBom</goal>
+                </goals>
+            </execution>
+        </executions>
         <configuration>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>

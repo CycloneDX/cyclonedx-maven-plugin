@@ -23,7 +23,7 @@
     <groupId>org.cyclonedx</groupId>
     <artifactId>cyclonedx-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.1.0</version>
 
     <name>CycloneDX</name>
     <description>The CycloneDX Maven plugin creates an aggregate of all dependencies and transitive dependencies of a project and creates a valid CycloneDX bill-of-material document from the results. CycloneDX is a lightweight BoM specification that is easily created, human readable, and simple to parse.</description>
@@ -70,7 +70,7 @@
         <connection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</connection>
         <url>https://github.com/CycloneDX/cyclonedx-maven-plugin.git</url>
         <developerConnection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>cyclonedx-maven-plugin-1.1.0</tag>
     </scm>
 
     <issueManagement>

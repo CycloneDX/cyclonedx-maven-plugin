@@ -49,8 +49,6 @@ import java.util.jar.JarFile;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
-    private static final String NS_BOM = "http://cyclonedx.org/schema/bom/1.0";
-
     @Parameter(property = "session", readonly = true, required = true)
     private MavenSession session;
 

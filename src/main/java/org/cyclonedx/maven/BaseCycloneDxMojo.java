@@ -73,6 +73,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private Boolean includeSystemScope;
 
+    @SuppressWarnings("CanBeFinal")
+    @Parameter(property = "cyclonedx.skip", defaultValue = "false", required = false)
+    private boolean skip = false;
+
 
     /**
      * Various messages sent to console.
@@ -154,6 +158,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected Boolean getIncludeSystemScope() {
         return includeSystemScope;
+    }
+
+    /**
+     * Returns if CycloneDX execution should be skipped.
+     *
+     * @return true if execution should be skipped, otherwise false
+     */
+    protected Boolean getSkip() {
+        return skip;
     }
 
     protected boolean shouldInclude(Artifact artifact) {

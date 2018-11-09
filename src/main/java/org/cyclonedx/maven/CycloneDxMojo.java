@@ -35,6 +35,11 @@ import java.util.Set;
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     public void execute() throws MojoExecutionException {
+        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
+        if (shouldSkip) {
+            getLog().info("Skipping CycloneDX");
+            return;
+        }
         logParameters();
         Set<Component> components = new LinkedHashSet<>();
         getLog().info(MESSAGE_RESOLVING_DEPS);

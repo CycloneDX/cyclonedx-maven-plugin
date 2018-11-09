@@ -35,7 +35,11 @@ import java.util.stream.Collectors;
 public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
 
     public void execute() throws MojoExecutionException{
-
+        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
+        if (shouldSkip) {
+            getLog().info("Skipping CycloneDX");
+            return;
+        }
         final Set<Component> components = getReactorProjects().stream()
                 .flatMap(mavenProject -> mavenProject.getArtifacts().stream())
                 .filter(this::shouldInclude)

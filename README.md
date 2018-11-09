@@ -21,7 +21,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.1.2</version>
+        <version>1.1.3</version>
     </plugin>
 </plugins>
 ```
@@ -33,7 +33,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.1.2</version>
+        <version>1.1.3</version>
         <executions>
             <execution>
                 <id>cyclonedx-aggregate</id>

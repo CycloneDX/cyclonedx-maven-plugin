@@ -27,8 +27,9 @@ Maven Usage
 ```
 
 
+Default Values
+-------------------
 ```xml
-<!-- uses custom execution and configuration -->
 <plugins>
     <plugin>
         <groupId>org.cyclonedx</groupId>
@@ -36,7 +37,6 @@ Maven Usage
         <version>1.1.3</version>
         <executions>
             <execution>
-                <id>cyclonedx-aggregate</id>
                 <phase>verify</phase>
                 <goals>
                     <goal>makeAggregateBom</goal>
@@ -48,7 +48,7 @@ Maven Usage
             <includeProvidedScope>true</includeProvidedScope>
             <includeRuntimeScope>true</includeRuntimeScope>
             <includeSystemScope>true</includeSystemScope>
-            <includeTestScope>true</includeTestScope>
+            <includeTestScope>false</includeTestScope>
         </configuration>
     </plugin>
 </plugins>
@@ -58,6 +58,8 @@ Maven Usage
 The CycloneDX Maven plugin contains the following two goals:
 * makeBom
 * makeAggregateBom
+
+makeBom and makeAggregateBom can optionally be skipped by setting `cyclonedx.skip` to true.
 
 Copyright & License
 -------------------

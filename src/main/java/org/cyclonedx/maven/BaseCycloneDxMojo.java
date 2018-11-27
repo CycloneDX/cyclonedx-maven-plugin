@@ -29,10 +29,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.cyclonedx.BomGenerator;
+import org.cyclonedx.BomParser;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.License;
 import org.cyclonedx.util.BomUtils;
-import org.w3c.dom.Document;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.File;
@@ -269,14 +270,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected void execute(Set<Component> components) throws MojoExecutionException{
         try {
             getLog().info(MESSAGE_CREATING_BOM);
-            Document doc = BomUtils.createBom(components);
-            String bomString = BomUtils.toString(doc);
+            BomGenerator bomGenerator = new BomGenerator(components);
+            bomGenerator.generate();
+            String bomString = bomGenerator.toXmlString();
             File bomFile = new File(project.getBasedir(), "target/bom.xml");
             getLog().info(MESSAGE_WRITING_BOM);
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
             getLog().info(MESSAGE_VALIDATING_BOM);
-            if (BomUtils.validateBom(getClass().getClassLoader(), bomFile).size() != 0) {
+            BomParser bomParser = new BomParser();
+            if (!bomParser.isValid(bomFile)) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
 

@@ -8,7 +8,7 @@ CycloneDX Maven Plugin
 =========
 
 The CycloneDX Maven plugin creates an aggregate of all dependencies and transitive dependencies of a project 
-and creates a valid CycloneDX bill-of-material document from the results. CycloneDX is a lightweight BoM 
+and creates a valid CycloneDX bill-of-material document from the results. CycloneDX is a lightweight BOM 
 specification that is easily created, human readable, and simple to parse. The resulting bom.xml can be used
 with tools such as [OWASP Dependency-Track](https://dependencytrack.org/) for the continuous analysis of components.
 
@@ -21,7 +21,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.1.3</version>
+        <version>1.2.0</version>
     </plugin>
 </plugins>
 ```
@@ -34,7 +34,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.1.3</version>
+        <version>1.2.0</version>
         <executions>
             <execution>
                 <phase>verify</phase>

@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -37,6 +38,7 @@ import org.cyclonedx.util.BomUtils;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -188,6 +190,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return false;
     }
 
+    /**
+     * Converts a Maven artifact (dependency or transitive dependency) into a
+     * CycloneDX component./
+     * @param artifact the artifact to convert
+     * @return a CycloneDX component
+     */
     protected Component convert(Artifact artifact) {
         Component component = new Component();
         component.setGroup(artifact.getGroupId());
@@ -221,10 +229,52 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         MavenProject project = extractPom(artifact);
         if (project != null) {
+            getClosestMetadata(artifact, project, component);
+        }
+        return component;
+    }
+
+    /**
+     * Resolves meta for an artifact. This method essentially does what an 'effective pom' would do,
+     * but for an artifact instead of a project. This method will attempt to resolve metadata at
+     * the lowest level of the inheritance tree and work its way up.
+     * @param artifact the artifact to resolve metadata for
+     * @param project the associated project for the artifact
+     * @param component the component to populate data for
+     */
+    private void getClosestMetadata(Artifact artifact, MavenProject project, Component component) {
+        extractMetadata(artifact, project, component);
+        if (project.getParent() != null) {
+            // Recursively loop through parent poms until there's nothing left
+            // and hopefully populate evidence in the process.
+            getClosestMetadata(artifact, project.getParent(), component);
+        } else if (project.getModel().getParent() != null) {
+            final MavenProject parentProject = retrieveParentProject(artifact, project, component);
+            if (parentProject != null) {
+                extractMetadata(artifact, parentProject, component);
+            }
+        }
+    }
+
+    /**
+     * Extracts data from a project and adds the data to the component.
+     * @param artifact the artifact - this is a pass thru
+     * @param project the project to extract data from
+     * @param component the component to add data to
+     */
+    private void extractMetadata(Artifact artifact, MavenProject project, Component component) {
+        if (component.getPublisher() == null) {
+            // If we don't already have publisher information, retrieve it.
             if (project.getOrganization() != null) {
                 component.setPublisher(project.getOrganization().getName());
             }
+        }
+        if (component.getDescription() == null) {
+            // If we don't already have description information, retrieve it.
             component.setDescription(project.getDescription());
+        }
+        if (component.getLicenses() == null || component.getLicenses().size() == 0) {
+            // If we don't already have license information, retrieve it.
             if (project.getLicenses() != null) {
                 List<License> licenses = new ArrayList<>();
                 for (org.apache.maven.model.License artifactLicense : project.getLicenses()) {
@@ -244,25 +294,86 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 }
             }
         }
-        return component;
     }
 
+    /**
+     * Retrieves the parent pom for an artifact (if any). The parent pom may contain license,
+     * description, and other metadata whereas the artifact itself may not.
+     * @param artifact the artifact to retrieve the parent pom for
+     * @param project the maven project the artifact is part of
+     */
+    private MavenProject retrieveParentProject(Artifact artifact, MavenProject project, Component component) {
+        if (artifact.getFile() == null || artifact.getFile().getParentFile() == null) {
+            return null;
+        }
+        final Model model = project.getModel();
+        if (model.getParent() != null) {
+            final Parent parent = model.getParent();
+            String getout = "../../../"; // out of version, artifactId, and first (possibly only) level of groupId
+            int periods = artifact.getGroupId().length() - artifact.getGroupId().replace(".", "").length();
+            for (int i= 0; i< periods; i++) {
+                getout += "../";
+            }
+            final File parentFile = new File(artifact.getFile().getParentFile(), getout + parent.getGroupId().replace(".", "/") + "/" + parent.getArtifactId() + "/" + parent.getVersion() + "/" + parent.getArtifactId() + "-" + parent.getVersion() + ".pom");
+            if (parentFile.exists() && parentFile.isFile()) {
+                try {
+                    return readPom(parentFile.getCanonicalFile());
+                } catch (Exception e) {
+
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extracts a pom from an artifacts jar file and creates a MavenProject from it.
+     * @param artifact the artifact to extract the pom from
+     * @return a Maven project
+     */
     private MavenProject extractPom(Artifact artifact) {
         if (artifact.getFile() != null) {
             try {
                 JarFile jarFile = new JarFile(artifact.getFile());
                 JarEntry entry = jarFile.getJarEntry("META-INF/maven/"+ artifact.getGroupId() + "/" + artifact.getArtifactId() + "/pom.xml");
                 if (entry != null) {
-                    MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-                    try (InputStream input = jarFile.getInputStream(entry);
-                         InputStreamReader reader = new InputStreamReader(input)) {
-                        Model model = mavenreader.read(reader);
-                        return new MavenProject(model);
+                    try (final InputStream input = jarFile.getInputStream(entry)) {
+                        return readPom(input);
                     }
                 }
-            } catch (XmlPullParserException | IOException e) {
+            } catch (IOException e) {
                 // throw it away
             }
+        }
+        return null;
+    }
+
+    /**
+     * Reads a POM and creates a MavenProject from it.
+     * @param file the file object of the POM to read
+     * @return a MavenProject
+     * @throws IOException oops
+     */
+    private MavenProject readPom(File file) throws IOException {
+        try (final FileInputStream in = new FileInputStream(file)) {
+            return readPom(in);
+        }
+    }
+
+    /**
+     * Reads a POM and creates a MavenProject from it.
+     * @param in the inputstream to read from
+     * @return a MavenProject
+     */
+    private MavenProject readPom(InputStream in) {
+        try {
+            final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
+            try (final InputStreamReader reader = new InputStreamReader(in)) {
+                final Model model = mavenreader.read(reader);
+                return new MavenProject(model);
+            }
+        } catch (XmlPullParserException | IOException e) {
+            // throw it away
         }
         return null;
     }

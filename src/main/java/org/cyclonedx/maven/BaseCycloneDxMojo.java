@@ -197,7 +197,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @return a CycloneDX component
      */
     protected Component convert(Artifact artifact) {
-        Component component = new Component();
+        final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
         component.setVersion(artifact.getVersion());
@@ -221,13 +221,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     qualifiers.put("classifier", artifact.getClassifier());
                 }
             }
-            PackageURL purl = new PackageURL(PackageURL.StandardTypes.MAVEN, artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
+            final PackageURL purl = new PackageURL(PackageURL.StandardTypes.MAVEN,
+                    artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
             component.setPurl(purl.canonicalize());
         } catch (MalformedPackageURLException e) {
             // throw it away
         }
 
-        MavenProject project = extractPom(artifact);
+        final MavenProject project = extractPom(artifact);
         if (project != null) {
             getClosestMetadata(artifact, project, component);
         }
@@ -243,7 +244,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @param component the component to populate data for
      */
     private void getClosestMetadata(Artifact artifact, MavenProject project, Component component) {
-        extractMetadata(artifact, project, component);
+        extractMetadata(project, component);
         if (project.getParent() != null) {
             getClosestMetadata(artifact, project.getParent(), component);
         } else if (project.getModel().getParent() != null) {
@@ -256,11 +257,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     /**
      * Extracts data from a project and adds the data to the component.
-     * @param artifact the artifact - this is a pass thru
      * @param project the project to extract data from
      * @param component the component to add data to
      */
-    private void extractMetadata(Artifact artifact, MavenProject project, Component component) {
+    private void extractMetadata(MavenProject project, Component component) {
         if (component.getPublisher() == null) {
             // If we don't already have publisher information, retrieve it.
             if (project.getOrganization() != null) {
@@ -274,7 +274,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (component.getLicenses() == null || component.getLicenses().size() == 0) {
             // If we don't already have license information, retrieve it.
             if (project.getLicenses() != null) {
-                List<License> licenses = new ArrayList<>();
+                final List<License> licenses = new ArrayList<>();
                 for (org.apache.maven.model.License artifactLicense : project.getLicenses()) {
                     License license = new License();
                     // todo: possible resolution to SPDX license ID. Without resolution, we are forced to use only the license
@@ -307,10 +307,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         final Model model = project.getModel();
         if (model.getParent() != null) {
             final Parent parent = model.getParent();
-            String getout = "../../../"; // out of version, artifactId, and first (possibly only) level of groupId
-            int periods = artifact.getGroupId().length() - artifact.getGroupId().replace(".", "").length();
+            // Navigate out of version, artifactId, and first (possibly only) level of groupId
+            final StringBuilder getout = new StringBuilder("../../../");
+            final int periods = artifact.getGroupId().length() - artifact.getGroupId().replace(".", "").length();
             for (int i= 0; i< periods; i++) {
-                getout += "../";
+                getout.append("../");
             }
             final File parentFile = new File(artifact.getFile().getParentFile(), getout + parent.getGroupId().replace(".", "/") + "/" + parent.getArtifactId() + "/" + parent.getVersion() + "/" + parent.getArtifactId() + "-" + parent.getVersion() + ".pom");
             if (parentFile.exists() && parentFile.isFile()) {
@@ -332,8 +333,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private MavenProject extractPom(Artifact artifact) {
         if (artifact.getFile() != null) {
             try {
-                JarFile jarFile = new JarFile(artifact.getFile());
-                JarEntry entry = jarFile.getJarEntry("META-INF/maven/"+ artifact.getGroupId() + "/" + artifact.getArtifactId() + "/pom.xml");
+                final JarFile jarFile = new JarFile(artifact.getFile());
+                final JarEntry entry = jarFile.getJarEntry("META-INF/maven/"+ artifact.getGroupId() + "/" + artifact.getArtifactId() + "/pom.xml");
                 if (entry != null) {
                     try (final InputStream input = jarFile.getInputStream(entry)) {
                         return readPom(input);
@@ -379,15 +380,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected void execute(Set<Component> components) throws MojoExecutionException{
         try {
             getLog().info(MESSAGE_CREATING_BOM);
-            BomGenerator bomGenerator = new BomGenerator(components);
+            final BomGenerator bomGenerator = new BomGenerator(components);
             bomGenerator.generate();
-            String bomString = bomGenerator.toXmlString();
-            File bomFile = new File(project.getBasedir(), "target/bom.xml");
+            final String bomString = bomGenerator.toXmlString();
+            final File bomFile = new File(project.getBasedir(), "target/bom.xml");
             getLog().info(MESSAGE_WRITING_BOM);
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
             getLog().info(MESSAGE_VALIDATING_BOM);
-            BomParser bomParser = new BomParser();
+            final BomParser bomParser = new BomParser();
             if (!bomParser.isValid(bomFile)) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }

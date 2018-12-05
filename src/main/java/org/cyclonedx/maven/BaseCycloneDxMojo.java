@@ -245,8 +245,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private void getClosestMetadata(Artifact artifact, MavenProject project, Component component) {
         extractMetadata(artifact, project, component);
         if (project.getParent() != null) {
-            // Recursively loop through parent poms until there's nothing left
-            // and hopefully populate evidence in the process.
             getClosestMetadata(artifact, project.getParent(), component);
         } else if (project.getModel().getParent() != null) {
             final MavenProject parentProject = retrieveParentProject(artifact, project, component);

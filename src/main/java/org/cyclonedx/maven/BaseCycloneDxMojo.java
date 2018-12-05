@@ -251,7 +251,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         } else if (project.getModel().getParent() != null) {
             final MavenProject parentProject = retrieveParentProject(artifact, project, component);
             if (parentProject != null) {
-                extractMetadata(artifact, parentProject, component);
+                getClosestMetadata(artifact, parentProject, component);
             }
         }
     }

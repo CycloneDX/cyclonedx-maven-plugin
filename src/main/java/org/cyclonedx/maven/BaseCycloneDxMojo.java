@@ -225,7 +225,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
             component.setPurl(purl.canonicalize());
         } catch (MalformedPackageURLException e) {
-            // throw it away
+            getLog().warn("An unexpected issue occurred attempting to create a PackageURL for " + component.getName(), e);
         }
 
         final MavenProject project = extractPom(artifact);
@@ -248,7 +248,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (project.getParent() != null) {
             getClosestMetadata(artifact, project.getParent(), component);
         } else if (project.getModel().getParent() != null) {
-            final MavenProject parentProject = retrieveParentProject(artifact, project, component);
+            final MavenProject parentProject = retrieveParentProject(artifact, project);
             if (parentProject != null) {
                 getClosestMetadata(artifact, parentProject, component);
             }
@@ -300,7 +300,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @param artifact the artifact to retrieve the parent pom for
      * @param project the maven project the artifact is part of
      */
-    private MavenProject retrieveParentProject(Artifact artifact, MavenProject project, Component component) {
+    private MavenProject retrieveParentProject(Artifact artifact, MavenProject project) {
         if (artifact.getFile() == null || artifact.getFile().getParentFile() == null) {
             return null;
         }
@@ -318,7 +318,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 try {
                     return readPom(parentFile.getCanonicalFile());
                 } catch (Exception e) {
-
+                    getLog().error("An error occurred retrieving an artifacts parent pom", e);
                 }
             }
         }
@@ -341,7 +341,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     }
                 }
             } catch (IOException e) {
-                // throw it away
+                getLog().error("An error occurred attempting to extract POM from artifact", e);
             }
         }
         return null;
@@ -372,7 +372,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 return new MavenProject(model);
             }
         } catch (XmlPullParserException | IOException e) {
-            // throw it away
+            getLog().error("An error occurred attempting to read POM", e);
         }
         return null;
     }

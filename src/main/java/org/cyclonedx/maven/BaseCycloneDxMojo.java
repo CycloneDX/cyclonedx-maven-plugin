@@ -228,9 +228,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().warn("An unexpected issue occurred attempting to create a PackageURL for " + component.getName(), e);
         }
 
-        final MavenProject project = extractPom(artifact);
-        if (project != null) {
-            getClosestMetadata(artifact, project, component);
+        if (isDescribedArtifact(artifact)) {
+            final MavenProject project = extractPom(artifact);
+            if (project != null) {
+                getClosestMetadata(artifact, project, component);
+            }
         }
         return component;
     }
@@ -301,7 +303,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @param project the maven project the artifact is part of
      */
     private MavenProject retrieveParentProject(Artifact artifact, MavenProject project) {
-        if (artifact.getFile() == null || artifact.getFile().getParentFile() == null) {
+        if (artifact.getFile() == null || artifact.getFile().getParentFile() == null || !isDescribedArtifact(artifact)) {
             return null;
         }
         final Model model = project.getModel();
@@ -331,6 +333,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @return a Maven project
      */
     private MavenProject extractPom(Artifact artifact) {
+        if (!isDescribedArtifact(artifact)) {
+            return null;
+        }
         if (artifact.getFile() != null) {
             try {
                 final JarFile jarFile = new JarFile(artifact.getFile());
@@ -401,6 +406,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean isModified(Artifact artifact) {
         //todo: compare hashes + GAV with what the artifact says against Maven Central to determine if component has been modified.
         return false;
+    }
+
+    /**
+     * Returns true for any artifact type which will positively have a POM that
+     * describes the artifact.
+     * @param artifact the artifact
+     * @return true if artifact will have a POM, false if not
+     */
+    private boolean isDescribedArtifact(Artifact artifact) {
+        return artifact.getType().equalsIgnoreCase("jar");
     }
 
     protected void logParameters() {

@@ -31,10 +31,15 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.cyclonedx.BomGenerator;
+import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.BomParser;
+import org.cyclonedx.CycloneDxSchema;
+import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.License;
+import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.util.BomUtils;
+import org.cyclonedx.util.LicenseResolver;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.File;
@@ -47,6 +52,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -60,6 +66,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     @Parameter(property = "reactorProjects", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
+
+    @Parameter(property = "schemaVersion", defaultValue = "1.1", required = false)
+    private String schemaVersion;
+
+    @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
+    private Boolean includeBomSerialNumber;
 
     @Parameter(property = "includeCompileScope", defaultValue = "true", required = false)
     private Boolean includeCompileScope;
@@ -116,6 +128,24 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected List<MavenProject> getReactorProjects() {
         return reactorProjects;
+    }
+
+    /**
+     * Returns the CycloneDX schema version the BOM will comply with.
+     *
+     * @return the CycloneDX schema version
+     */
+    public String getSchemaVersion() {
+        return schemaVersion;
+    }
+
+    /**
+     * Returns if the resulting BOM should contain a unique serial number.
+     *
+     * @return true if serial number should be included, otherwise false
+     */
+    public Boolean getIncludeBomSerialNumber() {
+        return includeBomSerialNumber;
     }
 
     /**
@@ -201,14 +231,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
         component.setVersion(artifact.getVersion());
-        component.setType("library");
+        component.setType(Component.Type.LIBRARY);
         try {
             getLog().debug(MESSAGE_CALCULATING_HASHES);
             component.setHashes(BomUtils.calculateHashes(artifact.getFile()));
         } catch (IOException e) {
             getLog().error("Error encountered calculating hashes", e);
         }
-        component.setModified(isModified(artifact));
+        if (CycloneDxSchema.Version.VERSION_10 == schemaVersion()) {
+            component.setModified(isModified(artifact));
+        }
 
         try {
             TreeMap<String, String> qualifiers = null;
@@ -273,27 +305,49 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             // If we don't already have description information, retrieve it.
             component.setDescription(project.getDescription());
         }
-        if (component.getLicenses() == null || component.getLicenses().size() == 0) {
+        if (component.getLicenseChoice() == null || component.getLicenseChoice().getLicenses() == null || component.getLicenseChoice().getLicenses().isEmpty()) {
             // If we don't already have license information, retrieve it.
             if (project.getLicenses() != null) {
-                final List<License> licenses = new ArrayList<>();
-                for (org.apache.maven.model.License artifactLicense : project.getLicenses()) {
-                    License license = new License();
-                    // todo: possible resolution to SPDX license ID. Without resolution, we are forced to use only the license
-                    // name since Maven doesn't enforce (or officially recommend) use of SPDX license IDs (stupid Maven)....
-                    if (artifactLicense.getName() != null) {
-                        license.setName(artifactLicense.getName());
-                        licenses.add(license);
-                    } else if (artifactLicense.getUrl() != null) {
-                        license.setName(artifactLicense.getUrl());
-                        licenses.add(license);
-                    }
-                }
-                if (licenses.size() > 0) {
-                    component.setLicenses(licenses);
-                }
+                component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
             }
         }
+    }
+
+    private LicenseChoice resolveMavenLicenses(final List<org.apache.maven.model.License> projectLicenses) {
+        final LicenseChoice licenseChoice = new LicenseChoice();
+        for (org.apache.maven.model.License artifactLicense : projectLicenses) {
+            boolean resolved = false;
+            if (artifactLicense.getName() != null) {
+                final LicenseChoice resolvedByName = LicenseResolver.resolve(artifactLicense.getName());
+                if (resolvedByName != null) {
+                    if (resolvedByName.getLicenses() != null && !resolvedByName.getLicenses().isEmpty()) {
+                        resolved = true;
+                        licenseChoice.addLicense(resolvedByName.getLicenses().get(0));
+                    } else if (resolvedByName.getExpression() != null && CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
+                        resolved = true;
+                        licenseChoice.setExpression(resolvedByName.getExpression());
+                    }
+                }
+            }
+            if (artifactLicense.getUrl() != null && !resolved) {
+                final LicenseChoice resolvedByUrl = LicenseResolver.resolve(artifactLicense.getUrl());
+                if (resolvedByUrl != null) {
+                    if (resolvedByUrl.getLicenses() != null && !resolvedByUrl.getLicenses().isEmpty()) {
+                        resolved = true;
+                        licenseChoice.addLicense(resolvedByUrl.getLicenses().get(0));
+                    } else if (resolvedByUrl.getExpression() != null && CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
+                        resolved = true;
+                        licenseChoice.setExpression(resolvedByUrl.getExpression());
+                    }
+                }
+            }
+            if (artifactLicense.getName() != null && !resolved) {
+                final License license = new License();;
+                license.setName(artifactLicense.getName());
+                licenseChoice.addLicense(license);
+            }
+        }
+        return licenseChoice;
     }
 
     /**
@@ -385,7 +439,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected void execute(Set<Component> components) throws MojoExecutionException{
         try {
             getLog().info(MESSAGE_CREATING_BOM);
-            final BomGenerator bomGenerator = new BomGenerator(components);
+            final Bom bom = new Bom();
+            if (CycloneDxSchema.Version.VERSION_10 != schemaVersion() && includeBomSerialNumber) {
+                bom.setSerialNumber("urn:uuid:" + UUID.randomUUID().toString());
+            }
+            bom.setComponents(new ArrayList<>(components));
+            final BomGenerator bomGenerator = BomGeneratorFactory.create(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
             final File bomFile = new File(project.getBasedir(), "target/bom.xml");
@@ -394,7 +453,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             getLog().info(MESSAGE_VALIDATING_BOM);
             final BomParser bomParser = new BomParser();
-            if (!bomParser.isValid(bomFile)) {
+            if (!bomParser.isValid(bomFile, schemaVersion())) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
 
@@ -418,15 +477,29 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return artifact.getType().equalsIgnoreCase("jar");
     }
 
+    /**
+     * Resolves the CycloneDX schema the mojo has been requested to use.
+     * @return the CycloneDX schema to use
+     */
+    private CycloneDxSchema.Version schemaVersion() {
+        if (schemaVersion != null && schemaVersion.equals("1.0")) {
+            return CycloneDxSchema.Version.VERSION_10;
+        } else {
+            return CycloneDxSchema.Version.VERSION_11;
+        }
+    }
+
     protected void logParameters() {
         if (getLog().isInfoEnabled()) {
             getLog().info("CycloneDX: Parameters");
             getLog().info("------------------------------------------------------------------------");
-            getLog().info("includeCompileScope   : " + includeCompileScope);
-            getLog().info("includeProvidedScope  : " + includeProvidedScope);
-            getLog().info("includeRuntimeScope   : " + includeRuntimeScope);
-            getLog().info("includeTestScope      : " + includeTestScope);
-            getLog().info("includeSystemScope    : " + includeSystemScope);
+            getLog().info("schemaVersion          : " + schemaVersion().name());
+            getLog().info("includeBomSerialNumber : " + includeBomSerialNumber);
+            getLog().info("includeCompileScope    : " + includeCompileScope);
+            getLog().info("includeProvidedScope   : " + includeProvidedScope);
+            getLog().info("includeRuntimeScope    : " + includeRuntimeScope);
+            getLog().info("includeTestScope       : " + includeTestScope);
+            getLog().info("includeSystemScope     : " + includeSystemScope);
             getLog().info("------------------------------------------------------------------------");
         }
     }

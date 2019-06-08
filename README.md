@@ -58,6 +58,11 @@ Default Values
 </plugins>
 ```
 
+Notes
+-------------------
+As of v1.4.0, the default CycloneDX BOM format is v1.1 with included serial number. 
+
+
 ### Goals
 The CycloneDX Maven plugin contains the following two goals:
 * makeBom

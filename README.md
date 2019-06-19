@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.4.0</version>
+        <version>1.4.1</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.4.0</version>
+        <version>1.4.1</version>
         <executions>
             <execution>
                 <phase>verify</phase>
@@ -60,7 +60,7 @@ Default Values
 
 Notes
 -------------------
-As of v1.4.0, the default CycloneDX BOM format is v1.1 with included serial number. 
+As of v1.4.1, the default CycloneDX BOM format is v1.1 with included serial number. 
 
 Goals
 -------------------

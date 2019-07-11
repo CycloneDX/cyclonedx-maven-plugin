@@ -48,6 +48,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -397,6 +400,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 if (entry != null) {
                     try (final InputStream input = jarFile.getInputStream(entry)) {
                         return readPom(input);
+                    }
+                } else {
+                    // Read the pom.xml directly from the filesystem as a fallback
+                    Path artifactPath = Paths.get(artifact.getFile().getPath());
+                    String pomFilename = artifactPath.getFileName().toString().replace("jar", "pom");
+                    Path pomPath = artifactPath.resolveSibling(pomFilename);
+                    if (Files.exists(pomPath)) {
+                       try (final InputStream input = Files.newInputStream(pomPath)) {
+                          return readPom(input);
+                       }
                     }
                 }
             } catch (IOException e) {

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) Steve Springett. All Rights Reserved.
  */
 package org.cyclonedx.maven;
@@ -21,14 +22,23 @@ import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
+import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.MailingList;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.ProjectBuildingRequest;
+import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
+import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
+import org.apache.maven.shared.dependency.graph.DependencyNode;
+import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.cyclonedx.BomGenerator;
 import org.cyclonedx.BomGeneratorFactory;
@@ -36,8 +46,10 @@ import org.cyclonedx.BomParser;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
+import org.cyclonedx.model.ext.dependencyGraph.Dependency;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import javax.xml.parsers.ParserConfigurationException;
@@ -47,11 +59,17 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -90,6 +108,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private Boolean includeSystemScope;
+
+    @Parameter(property = "includeDependencyGraph", defaultValue = "true", required = false)
+    private Boolean includeDependencyGraph;
+
+    @org.apache.maven.plugins.annotations.Component(hint = "default")
+    private DependencyGraphBuilder dependencyGraphBuilder;
 
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skip", defaultValue = "false", required = false)
@@ -197,6 +221,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
+     * Returns if dependency graph should be included in bom.
+     *
+     * @return true if dependency graph should be included, otherwise false
+     */
+    public Boolean getIncludeDependencyGraph() {
+        return includeDependencyGraph;
+    }
+
+    /**
      * Returns if CycloneDX execution should be skipped.
      *
      * @return true if execution should be skipped, otherwise false
@@ -244,7 +277,17 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (CycloneDxSchema.Version.VERSION_10 == schemaVersion()) {
             component.setModified(isModified(artifact));
         }
+        component.setPurl(generatePackageUrl(artifact));
+        if (isDescribedArtifact(artifact)) {
+            final MavenProject project = extractPom(artifact);
+            if (project != null) {
+                getClosestMetadata(artifact, project, component);
+            }
+        }
+        return component;
+    }
 
+    private String generatePackageUrl(final Artifact artifact) {
         try {
             TreeMap<String, String> qualifiers = null;
             if (artifact.getType() != null || artifact.getClassifier() != null) {
@@ -256,20 +299,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     qualifiers.put("classifier", artifact.getClassifier());
                 }
             }
-            final PackageURL purl = new PackageURL(PackageURL.StandardTypes.MAVEN,
-                    artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
-            component.setPurl(purl.canonicalize());
+            return new PackageURL(PackageURL.StandardTypes.MAVEN,
+                    artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null).canonicalize();
         } catch (MalformedPackageURLException e) {
-            getLog().warn("An unexpected issue occurred attempting to create a PackageURL for " + component.getName(), e);
+            getLog().warn("An unexpected issue occurred attempting to create a PackageURL for "
+                    + artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion(), e);
         }
-
-        if (isDescribedArtifact(artifact)) {
-            final MavenProject project = extractPom(artifact);
-            if (project != null) {
-                getClosestMetadata(artifact, project, component);
-            }
-        }
-        return component;
+        return null;
     }
 
     /**
@@ -314,6 +350,72 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
             }
         }
+        if (project.getOrganization() != null && project.getOrganization().getUrl() != null) {
+            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.WEBSITE)) {
+                addExternalReference(ExternalReference.Type.WEBSITE, project.getOrganization().getUrl(), component);
+            }
+        }
+        if (project.getCiManagement() != null && project.getCiManagement().getUrl() != null) {
+            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.BUILD_SYSTEM)) {
+                addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
+            }
+        }
+        if (project.getDistributionManagement() != null && project.getDistributionManagement().getDownloadUrl() != null) {
+            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
+                addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
+            }
+        }
+        if (project.getDistributionManagement() != null && project.getDistributionManagement().getRepository() != null) {
+            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
+                addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
+            }
+        }
+        if (project.getIssueManagement() != null && project.getIssueManagement().getUrl() != null) {
+            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.ISSUE_TRACKER)) {
+                addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
+            }
+        }
+        if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
+            for (MailingList list: project.getMailingLists()) {
+                if (list.getArchive() != null) {
+                    if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
+                        addExternalReference(ExternalReference.Type.MAILING_LIST, list.getArchive(), component);
+                    }
+                } else if (list.getSubscribe() != null) {
+                    if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
+                        addExternalReference(ExternalReference.Type.MAILING_LIST, list.getSubscribe(), component);
+                    }
+                }
+            }
+        }
+        if (project.getScm() != null && project.getScm().getUrl() != null) {
+            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.VCS)) {
+                addExternalReference(ExternalReference.Type.VCS, project.getScm().getUrl(), component);
+            }
+        }
+    }
+
+    private void addExternalReference(final ExternalReference.Type referenceType, final String url, final Component component) {
+        final ExternalReference ref = new ExternalReference();
+        ref.setType(referenceType);
+        ref.setUrl(url);
+        try {
+            new URL(ref.getUrl());
+            component.addExternalReference(ref);
+        } catch (MalformedURLException e) {
+            // throw it away
+        }
+    }
+
+    private boolean doesComponentHaveExternalReference(final Component component, final ExternalReference.Type type) {
+        if (component.getExternalReferences() != null && !component.getExternalReferences().isEmpty()) {
+            for (final ExternalReference ref : component.getExternalReferences()) {
+                if (type == ref.getType()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private LicenseChoice resolveMavenLicenses(final List<org.apache.maven.model.License> projectLicenses) {
@@ -359,7 +461,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @param artifact the artifact to retrieve the parent pom for
      * @param project the maven project the artifact is part of
      */
-    private MavenProject retrieveParentProject(Artifact artifact, MavenProject project) {
+    private MavenProject retrieveParentProject(final Artifact artifact, final MavenProject project) {
         if (artifact.getFile() == null || artifact.getFile().getParentFile() == null || !isDescribedArtifact(artifact)) {
             return null;
         }
@@ -449,7 +551,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return null;
     }
 
-    protected void execute(Set<Component> components) throws MojoExecutionException{
+    protected void execute(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException{
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();
@@ -457,6 +559,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID().toString());
             }
             bom.setComponents(new ArrayList<>(components));
+            if (getIncludeDependencyGraph() && dependencies != null && !dependencies.isEmpty()) {
+                bom.setDependencies(new ArrayList<>(dependencies));
+            }
             final BomGenerator bomGenerator = BomGeneratorFactory.create(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
@@ -502,11 +607,58 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
+    protected Set<Dependency> buildDependencyGraph(HashMap<Artifact, Component> correlatedComponentMap) throws MojoExecutionException {
+        final Set<Dependency> dependencies = new LinkedHashSet<>();
+        final Collection<String> scope = new HashSet<>();
+        if (includeCompileScope) scope.add("compile");
+        if (includeProvidedScope) scope.add("provided");
+        if (includeRuntimeScope) scope.add("runtime");
+        if (includeSystemScope) scope.add("system");
+        if (includeTestScope) scope.add("test");
+        final ArtifactFilter artifactFilter = new CumulativeScopeArtifactFilter(scope);
+        final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
+        buildingRequest.setProject(this.project);
+        try {
+            final DependencyNode rootNode = dependencyGraphBuilder.buildDependencyGraph(buildingRequest, artifactFilter);
+            buildDependencyGraphNode(dependencies, rootNode, null);
+            final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
+            rootNode.accept(visitor);
+            for (final DependencyNode dependencyNode : visitor.getNodes()) {
+                buildDependencyGraphNode(dependencies, dependencyNode, null);
+            }
+        } catch (DependencyGraphBuilderException e) {
+            throw new MojoExecutionException("An error occurred building dependency graph", e);
+        }
+        return dependencies;
+    }
+
+    private void buildDependencyGraphNode(final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
+        final String purl = generatePackageUrl(artifactNode.getArtifact());
+        final Dependency dependency = new Dependency(purl);
+        final String parentRef = (parent != null) ? parent.getRef() : null;
+        addDependencyToGraph(dependencies, parentRef, dependency);
+        for (final DependencyNode childrenNode : artifactNode.getChildren()) {
+            buildDependencyGraphNode(dependencies, childrenNode, dependency);
+        }
+    }
+
+    private void addDependencyToGraph(final Set<Dependency> dependencies, final String parentRef, final Dependency dependency) {
+        if (parentRef == null) {
+            dependencies.add(dependency);
+        } else {
+            for (final Dependency d : dependencies) {
+                if (d.getRef().equals(parentRef) && !parentRef.equals(dependency.getRef())) {
+                    d.addDependency(dependency);
+                }
+            }
+        }
+    }
+
     protected void logParameters() {
         if (getLog().isInfoEnabled()) {
             getLog().info("CycloneDX: Parameters");
             getLog().info("------------------------------------------------------------------------");
-            getLog().info("schemaVersion          : " + schemaVersion().name());
+            getLog().info("schemaVersion          : " + schemaVersion().getVersionString());
             getLog().info("includeBomSerialNumber : " + includeBomSerialNumber);
             getLog().info("includeCompileScope    : " + includeCompileScope);
             getLog().info("includeProvidedScope   : " + includeProvidedScope);

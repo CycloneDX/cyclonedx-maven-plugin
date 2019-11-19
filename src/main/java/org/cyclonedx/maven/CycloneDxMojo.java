@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * SPDX-License-Identifier: Apache-2.0
  * Copyright (c) Steve Springett. All Rights Reserved.
  */
 package org.cyclonedx.maven;
@@ -23,6 +24,8 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.ext.dependencyGraph.Dependency;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -30,6 +33,7 @@ import java.util.Set;
         name = "makeBom",
         defaultPhase = LifecyclePhase.VERIFY,
         requiresOnline = true,
+        requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME,
         requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME
 )
 public class CycloneDxMojo extends BaseCycloneDxMojo {
@@ -41,17 +45,23 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
             return;
         }
         logParameters();
-        Set<Component> components = new LinkedHashSet<>();
+        final Set<Component> components = new LinkedHashSet<>();
+        final HashMap<Artifact, Component> correlatedComponentMap = new HashMap<>();
+        Set<Dependency> dependencies = new LinkedHashSet<>();
         getLog().info(MESSAGE_RESOLVING_DEPS);
         if (getProject() != null && getProject().getArtifacts() != null) {
-            for (Artifact artifact : getProject().getArtifacts()) {
+            for (final Artifact artifact : getProject().getArtifacts()) {
                 if (shouldInclude(artifact)) {
-                    components.add(convert(artifact));
+                    final Component component = convert(artifact);
+                    correlatedComponentMap.put(artifact, component);
+                    components.add(component);
                 }
             }
         }
-
-        super.execute(components);
+        if (getIncludeDependencyGraph()) {
+            dependencies = buildDependencyGraph(correlatedComponentMap);
+        }
+        super.execute(components, dependencies);
     }
 
 }

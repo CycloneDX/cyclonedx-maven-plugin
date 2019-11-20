@@ -65,15 +65,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -278,6 +270,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             component.setModified(isModified(artifact));
         }
         component.setPurl(generatePackageUrl(artifact));
+        if (CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
+            component.setBomRef(component.getPurl());
+        }
         if (isDescribedArtifact(artifact)) {
             final MavenProject project = extractPom(artifact);
             if (project != null) {
@@ -350,47 +345,49 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
             }
         }
-        if (project.getOrganization() != null && project.getOrganization().getUrl() != null) {
-            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.WEBSITE)) {
-                addExternalReference(ExternalReference.Type.WEBSITE, project.getOrganization().getUrl(), component);
+        if (CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
+            if (project.getOrganization() != null && project.getOrganization().getUrl() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.WEBSITE)) {
+                    addExternalReference(ExternalReference.Type.WEBSITE, project.getOrganization().getUrl(), component);
+                }
             }
-        }
-        if (project.getCiManagement() != null && project.getCiManagement().getUrl() != null) {
-            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.BUILD_SYSTEM)) {
-                addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
+            if (project.getCiManagement() != null && project.getCiManagement().getUrl() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.BUILD_SYSTEM)) {
+                    addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
+                }
             }
-        }
-        if (project.getDistributionManagement() != null && project.getDistributionManagement().getDownloadUrl() != null) {
-            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
-                addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
+            if (project.getDistributionManagement() != null && project.getDistributionManagement().getDownloadUrl() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
+                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
+                }
             }
-        }
-        if (project.getDistributionManagement() != null && project.getDistributionManagement().getRepository() != null) {
-            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
-                addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
+            if (project.getDistributionManagement() != null && project.getDistributionManagement().getRepository() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
+                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
+                }
             }
-        }
-        if (project.getIssueManagement() != null && project.getIssueManagement().getUrl() != null) {
-            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.ISSUE_TRACKER)) {
-                addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
+            if (project.getIssueManagement() != null && project.getIssueManagement().getUrl() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.ISSUE_TRACKER)) {
+                    addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
+                }
             }
-        }
-        if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
-            for (MailingList list: project.getMailingLists()) {
-                if (list.getArchive() != null) {
-                    if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
-                        addExternalReference(ExternalReference.Type.MAILING_LIST, list.getArchive(), component);
-                    }
-                } else if (list.getSubscribe() != null) {
-                    if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
-                        addExternalReference(ExternalReference.Type.MAILING_LIST, list.getSubscribe(), component);
+            if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
+                for (MailingList list : project.getMailingLists()) {
+                    if (list.getArchive() != null) {
+                        if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
+                            addExternalReference(ExternalReference.Type.MAILING_LIST, list.getArchive(), component);
+                        }
+                    } else if (list.getSubscribe() != null) {
+                        if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
+                            addExternalReference(ExternalReference.Type.MAILING_LIST, list.getSubscribe(), component);
+                        }
                     }
                 }
             }
-        }
-        if (project.getScm() != null && project.getScm().getUrl() != null) {
-            if (!doesComponentHaveExternalReference(component, ExternalReference.Type.VCS)) {
-                addExternalReference(ExternalReference.Type.VCS, project.getScm().getUrl(), component);
+            if (project.getScm() != null && project.getScm().getUrl() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.VCS)) {
+                    addExternalReference(ExternalReference.Type.VCS, project.getScm().getUrl(), component);
+                }
             }
         }
     }
@@ -607,7 +604,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected Set<Dependency> buildDependencyGraph(HashMap<Artifact, Component> correlatedComponentMap) throws MojoExecutionException {
+    protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs) throws MojoExecutionException {
         final Set<Dependency> dependencies = new LinkedHashSet<>();
         final Collection<String> scope = new HashSet<>();
         if (includeCompileScope) scope.add("compile");
@@ -620,11 +617,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         buildingRequest.setProject(this.project);
         try {
             final DependencyNode rootNode = dependencyGraphBuilder.buildDependencyGraph(buildingRequest, artifactFilter);
-            buildDependencyGraphNode(dependencies, rootNode, null);
+            buildDependencyGraphNode(componentRefs, dependencies, rootNode, null);
             final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
             rootNode.accept(visitor);
             for (final DependencyNode dependencyNode : visitor.getNodes()) {
-                buildDependencyGraphNode(dependencies, dependencyNode, null);
+                buildDependencyGraphNode(componentRefs, dependencies, dependencyNode, null);
             }
         } catch (DependencyGraphBuilderException e) {
             throw new MojoExecutionException("An error occurred building dependency graph", e);
@@ -632,13 +629,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return dependencies;
     }
 
-    private void buildDependencyGraphNode(final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
+    private void buildDependencyGraphNode(final Set<String> componentRefs, final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
         final String purl = generatePackageUrl(artifactNode.getArtifact());
         final Dependency dependency = new Dependency(purl);
         final String parentRef = (parent != null) ? parent.getRef() : null;
-        addDependencyToGraph(dependencies, parentRef, dependency);
+        componentRefs.stream().filter(s -> s != null && s.equals(purl))
+                .forEach(s -> addDependencyToGraph(dependencies, parentRef, dependency));
         for (final DependencyNode childrenNode : artifactNode.getChildren()) {
-            buildDependencyGraphNode(dependencies, childrenNode, dependency);
+            buildDependencyGraphNode(componentRefs, dependencies, childrenNode, dependency);
         }
     }
 

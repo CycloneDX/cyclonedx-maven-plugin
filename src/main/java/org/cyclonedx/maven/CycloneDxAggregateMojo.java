@@ -26,7 +26,6 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.ext.dependencyGraph.Dependency;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -48,19 +47,28 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
         }
 
         final Set<Component> components = new LinkedHashSet<>();
-        final HashMap<Artifact, Component> correlatedComponentMap = new HashMap<>();
+        final Set<String> componentRefs = new LinkedHashSet<>();
         Set<Dependency> dependencies = new LinkedHashSet<>();
         for (final MavenProject mavenProject : getReactorProjects()) {
             for (final Artifact artifact : mavenProject.getArtifacts()) {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);
-                    correlatedComponentMap.put(artifact, component);
-                    components.add(component);
+                    // ensure that only one component with the same bom-ref exists in the BOM
+                    boolean found = false;
+                    for (String s : componentRefs) {
+                        if (s != null && s.equals(component.getBomRef())) {
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        componentRefs.add(component.getBomRef());
+                        components.add(component);
+                    }
                 }
             }
         }
-        if (getIncludeDependencyGraph()) {
-            dependencies = buildDependencyGraph(correlatedComponentMap);
+        if (getIncludeDependencyGraph() && !getSchemaVersion().equals("1.0")) {
+            dependencies = buildDependencyGraph(componentRefs);
         }
         super.execute(components, dependencies);
     }

@@ -104,6 +104,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "includeDependencyGraph", defaultValue = "true", required = false)
     private Boolean includeDependencyGraph;
 
+    @Parameter(property = "excludeTypes", required = false)
+    private String[] excludeTypes;
+
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private DependencyGraphBuilder dependencyGraphBuilder;
 
@@ -222,6 +225,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
+     * Returns if excluded types are defined.
+     *
+     * @return an array of excluded types
+     */
+    public String[] getExcludeTypes() {
+        return excludeTypes;
+    }
+
+    /**
      * Returns if CycloneDX execution should be skipped.
      *
      * @return true if execution should be skipped, otherwise false
@@ -233,6 +245,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected boolean shouldInclude(Artifact artifact) {
         if (artifact.getScope() == null) {
             return false;
+        }
+        if (excludeTypes != null) {
+            final boolean shouldExclude = Arrays.stream(excludeTypes).anyMatch(artifact.getType()::equals);
+            if (shouldExclude) {
+                return false;
+            }
         }
         if (includeCompileScope && "compile".equals(artifact.getScope())) {
             return true;

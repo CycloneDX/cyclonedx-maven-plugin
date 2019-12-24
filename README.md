@@ -53,6 +53,7 @@ Default Values
             <includeSystemScope>true</includeSystemScope>
             <includeTestScope>false</includeTestScope>
             <includeDependencyGraph>true</includeDependencyGraph>
+            <includeLicenses>true</includeLicenses>
         </configuration>
     </plugin>
 </plugins>

@@ -104,6 +104,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "includeDependencyGraph", defaultValue = "true", required = false)
     private Boolean includeDependencyGraph;
 
+    @Parameter(property = "includeLicenses", defaultValue = "true", required = false)
+    private Boolean includeLicenses;
+
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
@@ -357,10 +360,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             // If we don't already have description information, retrieve it.
             component.setDescription(project.getDescription());
         }
-        if (component.getLicenseChoice() == null || component.getLicenseChoice().getLicenses() == null || component.getLicenseChoice().getLicenses().isEmpty()) {
-            // If we don't already have license information, retrieve it.
-            if (project.getLicenses() != null) {
-                component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
+        if (includeLicenses) {
+            if (component.getLicenseChoice() == null || component.getLicenseChoice().getLicenses() == null || component.getLicenseChoice().getLicenses().isEmpty()) {
+                // If we don't already have license information, retrieve it.
+                if (project.getLicenses() != null) {
+                    component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
+                }
             }
         }
         if (CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
@@ -681,6 +686,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeRuntimeScope    : " + includeRuntimeScope);
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
+            getLog().info("includeLicenses        : " + includeLicenses);
             getLog().info("------------------------------------------------------------------------");
         }
     }

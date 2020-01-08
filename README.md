@@ -68,7 +68,11 @@ The CycloneDX Maven plugin contains the following two goals:
 * makeBom
 * makeAggregateBom
 
-makeBom and makeAggregateBom can optionally be skipped by setting `cyclonedx.skip` to true.
+By default the BOM will be attached as additional artifact and thereby installed resp.
+uploaded/deployed as `${project.artifactId}-${project.version}-cyclonedx.xml`. This
+may be switched of by setting `cyclonedx.skipAttach` to true.
+
+makeBom and makeAggregateBom can optionally be skipped completely by setting `cyclonedx.skip` to true.
 
 Copyright & License
 -------------------

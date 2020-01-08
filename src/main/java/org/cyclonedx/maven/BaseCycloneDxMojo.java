@@ -34,6 +34,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
@@ -107,12 +108,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
+    @org.apache.maven.plugins.annotations.Component(hint="default")
+    private MavenProjectHelper mavenProjectHelper;
+
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private DependencyGraphBuilder dependencyGraphBuilder;
 
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skip", defaultValue = "false", required = false)
     private boolean skip = false;
+
+    @SuppressWarnings("CanBeFinal")
+    @Parameter(property = "cyclonedx.skipAttach", defaultValue = "false", required = false)
+    private boolean skipAttach = false;
 
 
     /**
@@ -589,7 +597,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (!bomParser.isValid(bomFile, schemaVersion())) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
-
+            if (!skipAttach) {
+                mavenProjectHelper.attachArtifact(project, "xml", "cyclonedx", bomFile);
+            }
         } catch (ParserConfigurationException | TransformerException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName(), e);
         }

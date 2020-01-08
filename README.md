@@ -22,7 +22,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.5.1</version>
+        <version>1.6.0</version>
     </plugin>
 </plugins>
 ```
@@ -35,7 +35,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.5.1</version>
+        <version>1.6.0</version>
         <executions>
             <execution>
                 <phase>verify</phase>
@@ -68,9 +68,9 @@ The CycloneDX Maven plugin contains the following two goals:
 * makeBom
 * makeAggregateBom
 
-By default the BOM will be attached as additional artifact and thereby installed resp.
-uploaded/deployed as `${project.artifactId}-${project.version}-cyclonedx.xml`. This
-may be switched of by setting `cyclonedx.skipAttach` to true.
+By default (as of v1.6.0) the BOM will be attached as an additional artifact and thereby 
+installed, uploaded, or deployed as `${project.artifactId}-${project.version}-cyclonedx.xml`. 
+This may be switched off by setting `cyclonedx.skipAttach` to true.
 
 makeBom and makeAggregateBom can optionally be skipped completely by setting `cyclonedx.skip` to true.
 

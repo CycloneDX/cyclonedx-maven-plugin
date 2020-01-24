@@ -186,19 +186,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.cyclonedx</groupId>
-                <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>${project.version}</version>
-                <executions>
-                    <execution>
-                        <phase>deploy</phase>
-                        <goals>
-                            <goal>makeBom</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>de.jutzig</groupId>
                 <artifactId>github-release-plugin</artifactId>
                 <version>${maven.github.release.plugin.version}</version>

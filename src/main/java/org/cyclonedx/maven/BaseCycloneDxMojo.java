@@ -53,6 +53,7 @@ import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.ext.dependencyGraph.Dependency;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
+import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.File;
@@ -600,8 +601,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (!skipAttach) {
                 mavenProjectHelper.attachArtifact(project, "xml", "cyclonedx", bomFile);
             }
-        } catch (ParserConfigurationException | TransformerException | IOException e) {
-            throw new MojoExecutionException("An error occurred executing " + this.getClass().getName(), e);
+        } catch (ParserConfigurationException | TransformerException | IOException | SAXException e) {
+            throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
     }
 

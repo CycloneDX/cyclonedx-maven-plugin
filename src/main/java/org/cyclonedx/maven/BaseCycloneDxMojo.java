@@ -21,6 +21,7 @@ package org.cyclonedx.maven;
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
@@ -472,7 +473,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
             if (artifactLicense.getName() != null && !resolved) {
                 final License license = new License();;
-                license.setName(artifactLicense.getName());
+                license.setName(artifactLicense.getName().trim());
+                if (StringUtils.isNotBlank(artifactLicense.getUrl())) {
+                    try {
+                        new URL(artifactLicense.getUrl());
+                        license.setUrl(artifactLicense.getUrl().trim());
+                    } catch (MalformedURLException e) {
+                        // throw it away
+                    }
+                }
                 licenseChoice.addLicense(license);
             }
         }

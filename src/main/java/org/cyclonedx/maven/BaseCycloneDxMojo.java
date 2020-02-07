@@ -107,6 +107,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "includeDependencyGraph", defaultValue = "true", required = false)
     private Boolean includeDependencyGraph;
 
+    @Parameter(property = "includeLicenseText", defaultValue = "true", required = false)
+    private Boolean includeLicenseText;
+
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
@@ -233,6 +236,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     public Boolean getIncludeDependencyGraph() {
         return includeDependencyGraph;
     }
+
+    /**
+     * Returns if license text should be included in bom.
+     *
+     * @return true if license text should be included, otherwise false
+     */
+    public Boolean getIncludeLicenseText() {
+        return includeLicenseText;
+    }
+
 
     /**
      * Returns if excluded types are defined.
@@ -448,7 +461,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         for (org.apache.maven.model.License artifactLicense : projectLicenses) {
             boolean resolved = false;
             if (artifactLicense.getName() != null) {
-                final LicenseChoice resolvedByName = LicenseResolver.resolve(artifactLicense.getName());
+                final LicenseChoice resolvedByName = LicenseResolver.resolve(artifactLicense.getName(), includeLicenseText);
                 if (resolvedByName != null) {
                     if (resolvedByName.getLicenses() != null && !resolvedByName.getLicenses().isEmpty()) {
                         resolved = true;
@@ -460,7 +473,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 }
             }
             if (artifactLicense.getUrl() != null && !resolved) {
-                final LicenseChoice resolvedByUrl = LicenseResolver.resolve(artifactLicense.getUrl());
+                final LicenseChoice resolvedByUrl = LicenseResolver.resolve(artifactLicense.getUrl(), includeLicenseText);
                 if (resolvedByUrl != null) {
                     if (resolvedByUrl.getLicenses() != null && !resolvedByUrl.getLicenses().isEmpty()) {
                         resolved = true;
@@ -701,6 +714,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeRuntimeScope    : " + includeRuntimeScope);
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
+            getLog().info("includeLicenseText     : " + includeLicenseText);
+            getLog().info("includeDependencyGraph : " + includeDependencyGraph);
             getLog().info("------------------------------------------------------------------------");
         }
     }

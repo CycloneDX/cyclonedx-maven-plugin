@@ -110,7 +110,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private Boolean includeSystemScope;
 
-    @Parameter(property = "includeLicenseText", defaultValue = "true", required = false)
+    @Parameter(property = "includeLicenseText", defaultValue = "false", required = false)
     private Boolean includeLicenseText;
 
     @Parameter(property = "excludeTypes", required = false)

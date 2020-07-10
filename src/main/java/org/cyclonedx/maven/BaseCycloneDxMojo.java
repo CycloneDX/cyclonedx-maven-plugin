@@ -42,16 +42,19 @@ import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-import org.cyclonedx.BomGenerator;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.BomParser;
 import org.cyclonedx.CycloneDxSchema;
+import org.cyclonedx.generators.json.BomJsonGenerator;
+import org.cyclonedx.generators.xml.BomXmlGenerator;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
-import org.cyclonedx.model.ext.dependencyGraph.Dependency;
+import org.cyclonedx.model.Metadata;
+import org.cyclonedx.model.Tool;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import org.xml.sax.SAXException;
@@ -83,8 +86,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "reactorProjects", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
 
-    @Parameter(property = "schemaVersion", defaultValue = "1.1", required = false)
+    @Parameter(property = "schemaVersion", defaultValue = "1.2", required = false)
     private String schemaVersion;
+
+    @Parameter(property = "outputFormat", defaultValue = "all", required = false)
+    private String outputFormat;
 
     @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
     private Boolean includeBomSerialNumber;
@@ -104,16 +110,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private Boolean includeSystemScope;
 
-    @Parameter(property = "includeDependencyGraph", defaultValue = "true", required = false)
-    private Boolean includeDependencyGraph;
-
     @Parameter(property = "includeLicenseText", defaultValue = "true", required = false)
     private Boolean includeLicenseText;
 
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
-    @org.apache.maven.plugins.annotations.Component(hint="default")
+    @org.apache.maven.plugins.annotations.Component(hint = "default")
     private MavenProjectHelper mavenProjectHelper;
 
     @org.apache.maven.plugins.annotations.Component(hint = "default")
@@ -175,6 +178,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
+     * Returns the CycloneDX output format that should be generated.
+     *
+     * @return the CycloneDX output format
+     */
+    public String getOutputFormat() {
+        return outputFormat;
+    }
+
+    /**
      * Returns if the resulting BOM should contain a unique serial number.
      *
      * @return true if serial number should be included, otherwise false
@@ -226,15 +238,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected Boolean getIncludeSystemScope() {
         return includeSystemScope;
-    }
-
-    /**
-     * Returns if dependency graph should be included in bom.
-     *
-     * @return true if dependency graph should be included, otherwise false
-     */
-    public Boolean getIncludeDependencyGraph() {
-        return includeDependencyGraph;
     }
 
     /**
@@ -290,8 +293,47 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
+     * Converts a MavenProject into a Metadata object.
+     *
+     * @param project the MavenProject to convert
+     * @return a CycloneDX Metadata object
+     */
+    protected Metadata convert(final MavenProject project, final Component.Type type) {
+        final Properties properties = readPluginProperties();
+        final Metadata metadata = new Metadata();
+        final Tool tool = new Tool();
+        tool.setVendor("CycloneDX");
+        tool.setName("Maven plugin");
+        tool.setVersion(properties.getProperty("version"));
+        metadata.addTool(tool);
+        final Component component = new Component();
+        component.setGroup(project.getGroupId());
+        component.setName(project.getArtifactId());
+        component.setVersion(project.getVersion());
+        component.setType(type);
+        component.setPurl(generatePackageUrl(project.getGroupId(), project.getArtifactId(), project.getVersion(), null, null));
+        component.setBomRef(component.getPurl());
+        if (project.getLicenses() != null) {
+            component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
+        }
+        metadata.setComponent(component);
+        return metadata;
+    }
+
+    private Properties readPluginProperties() {
+        final Properties props = new Properties();
+        try {
+            props.load(this.getClass().getClassLoader().getResourceAsStream("plugin.properties"));
+        } catch (NullPointerException | IOException e) {
+            getLog().warn("Unable to load plugin.properties", e);
+        }
+        return props;
+    }
+
+    /**
      * Converts a Maven artifact (dependency or transitive dependency) into a
      * CycloneDX component./
+     *
      * @param artifact the artifact to convert
      * @return a CycloneDX component
      */
@@ -324,22 +366,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     private String generatePackageUrl(final Artifact artifact) {
-        try {
-            TreeMap<String, String> qualifiers = null;
-            if (artifact.getType() != null || artifact.getClassifier() != null) {
-                qualifiers = new TreeMap<>();
-                if (artifact.getType() != null) {
-                    qualifiers.put("type", artifact.getType());
-                }
-                if (artifact.getClassifier() != null) {
-                    qualifiers.put("classifier", artifact.getClassifier());
-                }
+        TreeMap<String, String> qualifiers = null;
+        if (artifact.getType() != null || artifact.getClassifier() != null) {
+            qualifiers = new TreeMap<>();
+            if (artifact.getType() != null) {
+                qualifiers.put("type", artifact.getType());
             }
-            return new PackageURL(PackageURL.StandardTypes.MAVEN,
-                    artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null).canonicalize();
-        } catch (MalformedPackageURLException e) {
+            if (artifact.getClassifier() != null) {
+                qualifiers.put("classifier", artifact.getClassifier());
+            }
+        }
+        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
+    }
+
+    private String generatePackageUrl(String groupId, String artifactId, String version, TreeMap<String, String> qualifiers, String subpath) {
+        try {
+            return new PackageURL(PackageURL.StandardTypes.MAVEN, groupId, artifactId, version, qualifiers, subpath).canonicalize();
+        } catch(MalformedPackageURLException e) {
             getLog().warn("An unexpected issue occurred attempting to create a PackageURL for "
-                    + artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion(), e);
+                    + groupId + ":" + artifactId + ":" + version, e);
         }
         return null;
     }
@@ -601,14 +646,36 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();
-            if (CycloneDxSchema.Version.VERSION_10 != schemaVersion() && includeBomSerialNumber) {
+            if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID().toString());
             }
+            if (schemaVersion().getVersion() >= 1.2) {
+                final Metadata metadata = convert(this.project, Component.Type.APPLICATION);
+                bom.setMetadata(metadata);
+            }
             bom.setComponents(new ArrayList<>(components));
-            if (getIncludeDependencyGraph() && dependencies != null && !dependencies.isEmpty()) {
+            if (schemaVersion().getVersion() >= 1.2 && dependencies != null && !dependencies.isEmpty()) {
                 bom.setDependencies(new ArrayList<>(dependencies));
             }
-            final BomGenerator bomGenerator = BomGeneratorFactory.create(schemaVersion(), bom);
+
+            if (!outputFormat.trim().equalsIgnoreCase("all")
+                    && !outputFormat.trim().equalsIgnoreCase("xml")
+                    && !outputFormat.trim().equalsIgnoreCase("json")) {
+                getLog().error("Unsupported output format. Valid options are XML and JSON");
+                return;
+            }
+
+            createBom(bom);
+
+        } catch (ParserConfigurationException | TransformerException | IOException | SAXException e) {
+            throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
+        }
+    }
+
+    private void createBom(Bom bom) throws ParserConfigurationException, IOException, SAXException,
+            TransformerException, MojoExecutionException {
+        if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
+            final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
             final File bomFile = new File(project.getBasedir(), "target/bom.xml");
@@ -623,8 +690,23 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (!skipAttach) {
                 mavenProjectHelper.attachArtifact(project, "xml", "cyclonedx", bomFile);
             }
-        } catch (ParserConfigurationException | TransformerException | IOException | SAXException e) {
-            throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
+        }
+        if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("json")) {
+            final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
+            bomGenerator.generate();
+            final String bomString = bomGenerator.toJsonString();
+            final File bomFile = new File(project.getBasedir(), "target/bom.json");
+            getLog().info(MESSAGE_WRITING_BOM);
+            FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
+
+            getLog().info(MESSAGE_VALIDATING_BOM);
+            final BomParser bomParser = new BomParser();
+            if (!bomParser.isValidJson(bomFile, schemaVersion(), false)) {
+                throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
+            }
+            if (!skipAttach) {
+                mavenProjectHelper.attachArtifact(project, "json", "cyclonedx", bomFile);
+            }
         }
     }
 
@@ -647,11 +729,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * Resolves the CycloneDX schema the mojo has been requested to use.
      * @return the CycloneDX schema to use
      */
-    private CycloneDxSchema.Version schemaVersion() {
+    protected CycloneDxSchema.Version schemaVersion() {
         if (schemaVersion != null && schemaVersion.equals("1.0")) {
             return CycloneDxSchema.Version.VERSION_10;
-        } else {
+        } else if (schemaVersion != null && schemaVersion.equals("1.1")) {
             return CycloneDxSchema.Version.VERSION_11;
+        } else {
+            return CycloneDxSchema.Version.VERSION_12;
         }
     }
 
@@ -715,7 +799,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
             getLog().info("includeLicenseText     : " + includeLicenseText);
-            getLog().info("includeDependencyGraph : " + includeDependencyGraph);
+            getLog().info("outputFormat           : " + outputFormat);
             getLog().info("------------------------------------------------------------------------");
         }
     }

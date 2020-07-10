@@ -25,7 +25,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.cyclonedx.model.Component;
-import org.cyclonedx.model.ext.dependencyGraph.Dependency;
+import org.cyclonedx.model.Dependency;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -67,7 +67,7 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                 }
             }
         }
-        if (getIncludeDependencyGraph() && !getSchemaVersion().equals("1.0")) {
+        if (schemaVersion().getVersion() >= 1.2) {
             dependencies = buildDependencyGraph(componentRefs);
         }
         super.execute(components, dependencies);

@@ -23,6 +23,8 @@ import com.github.packageurl.PackageURL;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DefaultArtifact;
+import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
 import org.apache.maven.execution.MavenSession;
@@ -71,9 +73,20 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
@@ -302,9 +315,21 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         final Properties properties = readPluginProperties();
         final Metadata metadata = new Metadata();
         final Tool tool = new Tool();
-        tool.setVendor("CycloneDX");
-        tool.setName("Maven plugin");
+        tool.setVendor(properties.getProperty("vendor"));
+        tool.setName(properties.getProperty("name"));
         tool.setVersion(properties.getProperty("version"));
+        // Attempt to add hash values from the current mojo
+        final Artifact self = new DefaultArtifact(properties.getProperty("groupId"), properties.getProperty("artifactId"),
+                properties.getProperty("version"), SCOPE_COMPILE, "jar", null, new DefaultArtifactHandler());
+        final Artifact resolved = this.getSession().getLocalRepository().find(self);
+        if (resolved != null) {
+            try {
+                resolved.setFile(new File(resolved.getFile() + ".jar"));
+                tool.setHashes(BomUtils.calculateHashes(resolved.getFile()));
+            } catch (IOException e) {
+                getLog().warn("Unable to calculate hashes of self", e);
+            }
+        }
         metadata.addTool(tool);
         final Component component = new Component();
         component.setGroup(project.getGroupId());

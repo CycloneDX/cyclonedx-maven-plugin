@@ -66,9 +66,9 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                     }
                 }
             }
-        }
-        if (schemaVersion().getVersion() >= 1.2) {
-            dependencies = buildDependencyGraph(componentRefs);
+            if (schemaVersion().getVersion() >= 1.2) {
+                dependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
+            }
         }
         super.execute(components, dependencies);
     }

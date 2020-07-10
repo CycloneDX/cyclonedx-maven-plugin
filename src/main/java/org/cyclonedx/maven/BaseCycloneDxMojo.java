@@ -739,7 +739,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs) throws MojoExecutionException {
+    protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs, final MavenProject mavenProject) throws MojoExecutionException {
         final Set<Dependency> dependencies = new LinkedHashSet<>();
         final Collection<String> scope = new HashSet<>();
         if (includeCompileScope) scope.add("compile");
@@ -749,7 +749,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (includeTestScope) scope.add("test");
         final ArtifactFilter artifactFilter = new CumulativeScopeArtifactFilter(scope);
         final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
-        buildingRequest.setProject(this.project);
+        if (mavenProject != null) {
+            buildingRequest.setProject(mavenProject);
+        } else {
+            buildingRequest.setProject(this.project);
+        }
         try {
             final DependencyNode rootNode = dependencyGraphBuilder.buildDependencyGraph(buildingRequest, artifactFilter);
             buildDependencyGraphNode(componentRefs, dependencies, rootNode, null);

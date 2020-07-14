@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.6.4</version>
+        <version>2.0.0</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>1.6.4</version>
+        <version>2.0.0</version>
         <executions>
             <execution>
                 <phase>verify</phase>
@@ -46,15 +46,16 @@ Default Values
             </execution>
         </executions>
         <configuration>
-            <schemaVersion>1.1</schemaVersion>
+            <projectType>library</projectType>
+            <schemaVersion>1.2</schemaVersion>
             <includeBomSerialNumber>true</includeBomSerialNumber>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>
             <includeRuntimeScope>true</includeRuntimeScope>
             <includeSystemScope>true</includeSystemScope>
             <includeTestScope>false</includeTestScope>
-            <includeLicenseText>true</includeLicenseText>
-            <includeDependencyGraph>true</includeDependencyGraph>
+            <includeLicenseText>false</includeLicenseText>
+            <outputFormat>all</outputFormat>
         </configuration>
     </plugin>
 </plugins>
@@ -62,7 +63,7 @@ Default Values
 
 Notes
 -------------------
-As of v1.4.0, the default CycloneDX BOM format is v1.1 with included serial number. 
+As of v2.0.0, the default CycloneDX BOM format is v1.2 and will produce both XML and JSON. 
 
 Goals
 -------------------
@@ -70,11 +71,26 @@ The CycloneDX Maven plugin contains the following two goals:
 * makeBom
 * makeAggregateBom
 
-By default (as of v1.6.0) the BOM will be attached as an additional artifact and thereby 
-installed, uploaded, or deployed as `${project.artifactId}-${project.version}-cyclonedx.xml`. 
+By default, the BOM(s) will be attached as an additional artifacts during a Maven install or deploy.
+
+* `${project.artifactId}-${project.version}-cyclonedx.xml`
+* `${project.artifactId}-${project.version}-cyclonedx.json`
+
 This may be switched off by setting `cyclonedx.skipAttach` to true.
 
 makeBom and makeAggregateBom can optionally be skipped completely by setting `cyclonedx.skip` to true.
+
+## CycloneDX Schema Support
+
+The following table provides information on the version of this node module, the CycloneDX schema version supported, 
+as well as the output format options. Use the latest possible version of this node module that is the compatible with 
+the CycloneDX version supported by the target system.
+
+| Version | Schema Version | Format(s) |
+| ------- | ----------------- | --------- |
+| 2.0.x | CycloneDX v1.2 | XML/JSON |
+| 1.4.x | CycloneDX v1.1 | XML |
+| 1.0x | CycloneDX v1.0 | XML |
 
 Copyright & License
 -------------------

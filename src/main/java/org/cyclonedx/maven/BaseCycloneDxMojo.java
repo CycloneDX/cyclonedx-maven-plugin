@@ -45,7 +45,6 @@ import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.cyclonedx.BomGeneratorFactory;
-import org.cyclonedx.BomParser;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.generators.xml.BomXmlGenerator;
@@ -57,6 +56,8 @@ import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
+import org.cyclonedx.parsers.JsonParser;
+import org.cyclonedx.parsers.XmlParser;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import org.xml.sax.SAXException;
@@ -98,6 +99,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     @Parameter(property = "reactorProjects", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
+
+    @Parameter(property = "projectType", defaultValue = "library", required = false)
+    private String projectType;
 
     @Parameter(property = "schemaVersion", defaultValue = "1.2", required = false)
     private String schemaVersion;
@@ -311,7 +315,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @param project the MavenProject to convert
      * @return a CycloneDX Metadata object
      */
-    protected Metadata convert(final MavenProject project, final Component.Type type) {
+    protected Metadata convert(final MavenProject project) {
         final Properties properties = readPluginProperties();
         final Metadata metadata = new Metadata();
         final Tool tool = new Tool();
@@ -335,7 +339,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setGroup(project.getGroupId());
         component.setName(project.getArtifactId());
         component.setVersion(project.getVersion());
-        component.setType(type);
+        component.setType(resolveProjectType());
         component.setPurl(generatePackageUrl(project.getGroupId(), project.getArtifactId(), project.getVersion(), null, null));
         component.setBomRef(component.getPurl());
         if (project.getLicenses() != null) {
@@ -675,7 +679,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID().toString());
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                final Metadata metadata = convert(this.project, Component.Type.APPLICATION);
+                final Metadata metadata = convert(this.project);
                 bom.setMetadata(metadata);
             }
             bom.setComponents(new ArrayList<>(components));
@@ -708,7 +712,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
             getLog().info(MESSAGE_VALIDATING_BOM);
-            final BomParser bomParser = new BomParser();
+            final XmlParser bomParser = new XmlParser();
             if (!bomParser.isValid(bomFile, schemaVersion())) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
@@ -725,8 +729,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
             getLog().info(MESSAGE_VALIDATING_BOM);
-            final BomParser bomParser = new BomParser();
-            if (!bomParser.isValidJson(bomFile, schemaVersion(), false)) {
+            final JsonParser bomParser = new JsonParser();
+            if (!bomParser.isValid(bomFile, schemaVersion(), false)) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
             if (!skipAttach) {
@@ -762,6 +766,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         } else {
             return CycloneDxSchema.Version.VERSION_12;
         }
+    }
+
+    private Component.Type resolveProjectType() {
+        for (Component.Type type: Component.Type.values()) {
+            if (type.getTypeName().equalsIgnoreCase(this.projectType)) {
+                return type;
+            }
+        }
+        getLog().warn("Invalid project type. Defaulting to 'library'");
+        getLog().warn("Valid types are:");
+        for (Component.Type type: Component.Type.values()) {
+            getLog().warn("  " + type.getTypeName());
+        }
+        return Component.Type.LIBRARY;
     }
 
     protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs, final MavenProject mavenProject) throws MojoExecutionException {

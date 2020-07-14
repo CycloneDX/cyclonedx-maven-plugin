@@ -191,9 +191,9 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>${project.artifactId}</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>1.6.4</version>
                 <executions>
                     <execution>
                         <id>cyclonedx-makeBom</id>

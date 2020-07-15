@@ -806,7 +806,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 buildDependencyGraphNode(componentRefs, dependencies, dependencyNode, null);
             }
         } catch (DependencyGraphBuilderException e) {
-            throw new MojoExecutionException("An error occurred building dependency graph", e);
+            if (mavenProject != null) {
+                // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
+                // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
+                getLog().warn("An error occurred building dependency graph: " + e.getMessage());
+            } else {
+                throw new MojoExecutionException("An error occurred building dependency graph", e);
+            }
         }
         return dependencies;
     }

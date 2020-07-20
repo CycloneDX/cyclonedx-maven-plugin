@@ -329,7 +329,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (resolved != null) {
             try {
                 resolved.setFile(new File(resolved.getFile() + ".jar"));
-                tool.setHashes(BomUtils.calculateHashes(resolved.getFile()));
+                tool.setHashes(BomUtils.calculateHashes(resolved.getFile(), schemaVersion()));
             } catch (IOException e) {
                 getLog().warn("Unable to calculate hashes of self", e);
             }
@@ -374,7 +374,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setType(Component.Type.LIBRARY);
         try {
             getLog().debug(MESSAGE_CALCULATING_HASHES);
-            component.setHashes(BomUtils.calculateHashes(artifact.getFile()));
+            component.setHashes(BomUtils.calculateHashes(artifact.getFile(), schemaVersion()));
         } catch (IOException e) {
             getLog().error("Error encountered calculating hashes", e);
         }

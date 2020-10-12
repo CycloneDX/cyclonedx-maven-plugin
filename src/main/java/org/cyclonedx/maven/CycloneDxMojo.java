@@ -23,6 +23,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import java.util.LinkedHashSet;
@@ -47,8 +48,16 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         final Set<Component> components = new LinkedHashSet<>();
         final Set<String> componentRefs = new LinkedHashSet<>();
         Set<Dependency> dependencies = new LinkedHashSet<>();
+        // Use default dependency analyzer
+        dependencyAnalyzer = createProjectDependencyAnalyzer();
         getLog().info(MESSAGE_RESOLVING_DEPS);
         if (getProject() != null && getProject().getArtifacts() != null) {
+            ProjectDependencyAnalysis dependencyAnalysis = null;
+            try {
+                dependencyAnalysis = dependencyAnalyzer.analyze(getProject());
+            } catch (Exception e) {
+                getLog().debug(e);
+            }
             for (final Artifact artifact : getProject().getArtifacts()) {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);
@@ -60,6 +69,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
                         }
                     }
                     if (!found) {
+                        component.setScope(getComponentScope(component, artifact, dependencyAnalysis));
                         componentRefs.add(component.getBomRef());
                         components.add(component);
                     }

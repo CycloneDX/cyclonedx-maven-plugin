@@ -39,10 +39,17 @@ import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectBuildingRequest;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
+import org.codehaus.plexus.context.Context;
+import org.codehaus.plexus.context.ContextException;
+import org.codehaus.plexus.PlexusConstants;
+import org.codehaus.plexus.PlexusContainer;
+import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
@@ -61,6 +68,7 @@ import org.cyclonedx.parsers.XmlParser;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import org.xml.sax.SAXException;
+
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.File;
@@ -89,7 +97,7 @@ import java.util.jar.JarFile;
 
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
-public abstract class BaseCycloneDxMojo extends AbstractMojo {
+public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextualizable {
 
     @Parameter(property = "session", readonly = true, required = true)
     private MavenSession session;
@@ -147,7 +155,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "cyclonedx.skipAttach", defaultValue = "false", required = false)
     private boolean skipAttach = false;
 
-
     /**
      * Various messages sent to console.
      */
@@ -157,6 +164,28 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM";
     protected static final String MESSAGE_VALIDATING_BOM = "CycloneDX: Validating BOM";
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
+
+    /**
+     * The plexus context to look-up the right {@link ProjectDependencyAnalyzer} implementation depending on the mojo
+     * configuration.
+     */
+    private Context context;
+
+    /**
+     * Specify the project dependency analyzer to use (plexus component role-hint). By default,
+     * <a href="/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare
+     * a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus
+     * role name, and you specify the role name here.
+     *
+     * @since 2.2
+     */
+    @Parameter( property = "analyzer", defaultValue = "default" )
+    private String analyzer;
+
+    /**
+     * DependencyAnalyzer
+     */
+    protected ProjectDependencyAnalyzer dependencyAnalyzer;
 
     public MavenSession getSession() {
         return session;
@@ -857,4 +886,59 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
+    @Override
+    public void contextualize( Context theContext )
+            throws ContextException
+    {
+        this.context = theContext;
+    }
+
+    /**
+     * @return {@link ProjectDependencyAnalyzer}
+     * @throws MojoExecutionException in case of an error.
+     */
+    protected ProjectDependencyAnalyzer createProjectDependencyAnalyzer()
+            throws MojoExecutionException
+    {
+        final String role = ProjectDependencyAnalyzer.ROLE;
+        final String roleHint = analyzer;
+        try
+        {
+            final PlexusContainer container = (PlexusContainer) context.get( PlexusConstants.PLEXUS_KEY );
+            return (ProjectDependencyAnalyzer) container.lookup( role, roleHint );
+        }
+        catch ( Exception exception )
+        {
+            throw new MojoExecutionException( "Failed to instantiate ProjectDependencyAnalyser with role " + role
+                    + " / role-hint " + roleHint, exception );
+        }
+    }
+
+    /**
+     * Method to identify component scope based on dependency analysis
+     *
+     * @param component Component
+     * @param artifact Artifact from maven project
+     * @param dependencyAnalysis Dependency analysis data
+     *
+     * @return Component.Scope - Required: If the component is used. Optional: If it is unused
+     */
+    protected Component.Scope getComponentScope(Component component, Artifact artifact, ProjectDependencyAnalysis dependencyAnalysis) {
+        if (dependencyAnalysis == null) {
+            return null;
+        }
+        Set<Artifact> usedDeclaredArtifacts = dependencyAnalysis.getUsedDeclaredArtifacts();
+        Set<Artifact> usedUndeclaredArtifacts = dependencyAnalysis.getUsedUndeclaredArtifacts();
+        Set<Artifact> unusedDeclaredArtifacts = dependencyAnalysis.getUnusedDeclaredArtifacts();
+        Set<Artifact> testArtifactsWithNonTestScope = dependencyAnalysis.getTestArtifactsWithNonTestScope();
+        // Is the artifact used?
+        if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
+            return Component.Scope.REQUIRED;
+        }
+        // Is the artifact unused or test?
+        if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
+            return Component.Scope.OPTIONAL;
+        }
+        return null;
+    }
 }

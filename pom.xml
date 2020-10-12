@@ -208,12 +208,19 @@
                 <artifactId>github-release-plugin</artifactId>
                 <version>${maven.github.release.plugin.version}</version>
                 <configuration>
-                    <tag>${project.artifactId}-${project.version}</tag>
+                    <releaseName>${project.version}</releaseName>
+                    <tag>${project.version}</tag>
+                    <description>Generates CycloneDX software bill of materials (SBOM) from Maven projects</description>
                     <fileSets>
                         <fileSet>
                             <directory>${project.build.directory}</directory>
                             <includes>
-                                <include>${project.build.finalName}.jar</include>
+                                <include>${build.finalName}.jar</include>
+                                <include>${build.finalName}.pom</include>
+                                <include>${build.finalName}-javadoc.jar</include>
+                                <include>${build.finalName}-sources.jar</include>
+                                <include>bom.json</include>
+                                <include>bom.xml</include>
                             </includes>
                         </fileSet>
                     </fileSets>

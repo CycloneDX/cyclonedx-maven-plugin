@@ -27,7 +27,10 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
+
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Mojo(
@@ -49,16 +52,22 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
 
         final Set<Component> components = new LinkedHashSet<>();
         final Set<String> componentRefs = new LinkedHashSet<>();
+        final Map<String, ProjectDependencyAnalysis> dependencyAnalysisMap = new LinkedHashMap<>();
+
         Set<Dependency> dependencies = new LinkedHashSet<>();
         // Use default dependency analyzer
         dependencyAnalyzer = createProjectDependencyAnalyzer();
+        // Perform dependency analysis for all projects upfront
         for (final MavenProject mavenProject : getReactorProjects()) {
             ProjectDependencyAnalysis dependencyAnalysis = null;
             try {
                 dependencyAnalysis = dependencyAnalyzer.analyze(mavenProject);
+                dependencyAnalysisMap.put(mavenProject.getArtifactId(), dependencyAnalysis);
             } catch (Exception e) {
                 getLog().debug(e);
             }
+        }
+        for (final MavenProject mavenProject : getReactorProjects()) {
             for (final Artifact artifact : mavenProject.getArtifacts()) {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);
@@ -70,7 +79,20 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                         }
                     }
                     if (!found) {
-                        component.setScope(getComponentScope(component, artifact, dependencyAnalysis));
+                        Component.Scope componentScope = null;
+                        for (String projectId : dependencyAnalysisMap.keySet()) {
+                            ProjectDependencyAnalysis dependencyAnalysis = dependencyAnalysisMap.get(projectId);
+                            Component.Scope currentProjectScope = getComponentScope(component, artifact, dependencyAnalysis);
+                            // Set scope to required if the component is used in any project
+                            if (Component.Scope.REQUIRED.equals(currentProjectScope)) {
+                                componentScope = currentProjectScope;
+                                break;
+                            } else if (componentScope == null && currentProjectScope != null) {
+                                // Set optional or excluded scope
+                                componentScope = currentProjectScope;
+                            }
+                        }
+                        component.setScope(componentScope);
                         componentRefs.add(component.getBomRef());
                         components.add(component);
                     }

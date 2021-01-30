@@ -164,8 +164,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     protected static final String MESSAGE_RESOLVING_DEPS = "CycloneDX: Resolving Dependencies";
     protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM";
     protected static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
-    protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM";
-    protected static final String MESSAGE_VALIDATING_BOM = "CycloneDX: Validating BOM";
+    protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM (%s): %s";
+    protected static final String MESSAGE_VALIDATING_BOM = "CycloneDX: Validating BOM (%s): %s";
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
 
     /**
@@ -749,10 +749,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
             final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".xml");
-            getLog().info(MESSAGE_WRITING_BOM);
+            getLog().info(String.format(MESSAGE_WRITING_BOM, "XML", bomFile.getAbsolutePath()));
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
-            getLog().info(MESSAGE_VALIDATING_BOM);
+            getLog().info(String.format(MESSAGE_VALIDATING_BOM, "XML", bomFile.getAbsolutePath()));
             final XmlParser bomParser = new XmlParser();
             if (!bomParser.isValid(bomFile, schemaVersion())) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
@@ -766,10 +766,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             bomGenerator.generate();
             final String bomString = bomGenerator.toJsonString();
             final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".json");
-            getLog().info(MESSAGE_WRITING_BOM);
+            getLog().info(String.format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
-            getLog().info(MESSAGE_VALIDATING_BOM);
+            getLog().info(String.format(MESSAGE_VALIDATING_BOM, "JSON", bomFile.getAbsolutePath()));
             final JsonParser bomParser = new JsonParser();
             if (!bomParser.isValid(bomFile, schemaVersion(), false)) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
@@ -894,6 +894,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             getLog().info("includeSystemScope     : " + includeSystemScope);
             getLog().info("includeLicenseText     : " + includeLicenseText);
             getLog().info("outputFormat           : " + outputFormat);
+            getLog().info("outputName             : " + outputName);
             getLog().info("------------------------------------------------------------------------");
         }
     }

@@ -117,6 +117,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "outputFormat", defaultValue = "all", required = false)
     private String outputFormat;
 
+    @Parameter(property = "outputName", defaultValue = "bom", required = false)
+    private String outputName;
+
     @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
     private Boolean includeBomSerialNumber;
 
@@ -230,6 +233,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     public String getOutputFormat() {
         return outputFormat;
+    }
+
+    /**
+     * Returns the CycloneDX output name that should be generated.
+     *
+     * @return the CycloneDX output name
+     */
+    public String getOutputName() {
+        return outputName;
     }
 
     /**
@@ -736,7 +748,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
-            final File bomFile = new File(project.getBasedir(), "target/bom.xml");
+            final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".xml");
             getLog().info(MESSAGE_WRITING_BOM);
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
@@ -753,7 +765,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toJsonString();
-            final File bomFile = new File(project.getBasedir(), "target/bom.json");
+            final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".json");
             getLog().info(MESSAGE_WRITING_BOM);
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 

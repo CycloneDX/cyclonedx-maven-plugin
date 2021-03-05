@@ -53,6 +53,7 @@ import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
+import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.generators.xml.BomXmlGenerator;
 import org.cyclonedx.model.Bom;
@@ -737,12 +738,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
             createBom(bom);
 
-        } catch (ParserConfigurationException | TransformerException | IOException | SAXException e) {
+        } catch (GeneratorException | ParserConfigurationException | TransformerException | IOException | SAXException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
     }
 
-    private void createBom(Bom bom) throws ParserConfigurationException, IOException, SAXException,
+    private void createBom(Bom bom) throws ParserConfigurationException, IOException, SAXException, GeneratorException,
             TransformerException, MojoExecutionException {
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);

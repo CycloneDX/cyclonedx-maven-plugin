@@ -71,6 +71,7 @@ Goals
 The CycloneDX Maven plugin contains the following two goals:
 * makeBom
 * makeAggregateBom
+* makePackageBom
 
 By default, the BOM(s) will be attached as an additional artifacts during a Maven install or deploy.
 

@@ -28,6 +28,7 @@ import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -42,6 +43,17 @@ import java.util.Set;
         requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME
 )
 public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
+
+    protected boolean shouldExclude(MavenProject mavenProject) {
+        boolean shouldExclude = false;
+        if (excludeArtifactId != null && excludeArtifactId.length > 0) {
+            shouldExclude = Arrays.stream(excludeArtifactId).anyMatch(mavenProject.getArtifactId()::equals);
+        }
+        if (excludeTestProject && mavenProject.getArtifactId().contains("test")) {
+            shouldExclude = true;
+        }
+        return shouldExclude;
+    }
 
     public void execute() throws MojoExecutionException {
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
@@ -59,6 +71,9 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
         dependencyAnalyzer = createProjectDependencyAnalyzer();
         // Perform dependency analysis for all projects upfront
         for (final MavenProject mavenProject : getReactorProjects()) {
+            if (shouldExclude(mavenProject)) {
+                continue;
+            }
             ProjectDependencyAnalysis dependencyAnalysis = null;
             try {
                 dependencyAnalysis = dependencyAnalyzer.analyze(mavenProject);
@@ -68,6 +83,10 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             }
         }
         for (final MavenProject mavenProject : getReactorProjects()) {
+            if (shouldExclude(mavenProject)) {
+                getLog().info("Skipping " + mavenProject.getArtifactId());
+                continue;
+            }
             for (final Artifact artifact : mavenProject.getArtifacts()) {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);

@@ -145,6 +145,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
+    @Parameter(property = "excludeArtifactId", required = false)
+    protected String[] excludeArtifactId;
+
+    @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
+    protected Boolean excludeTestProject;
+
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private MavenProjectHelper mavenProjectHelper;
 
@@ -316,6 +322,24 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     public String[] getExcludeTypes() {
         return excludeTypes;
+    }
+
+    /**
+     * Returns if excluded ArtifactId are defined.
+     *
+     * @return an array of excluded Artifact Id
+     */
+    public String[] getExcludeArtifactId() {
+        return excludeArtifactId;
+    }
+
+    /**
+     * Returns if project artifactId with the word test should be excluded in bom.
+     *
+     * @return true if artifactId should be excluded, otherwise false
+     */
+    protected Boolean getExcludeTestProject() {
+        return excludeTestProject;
     }
 
     /**

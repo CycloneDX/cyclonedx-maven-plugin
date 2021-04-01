@@ -62,6 +62,13 @@ Default Values
 </plugins>
 ```
 
+Excluding Projects
+-------------------
+With `makeAggregateBom` goal it is possible to exclude certain Maven Projects (artifactId) from getting included in bom.
+
+* Pass `-DexcludeTestProject=true` to skip any maven project artifactId containing the word "test"
+* Pass `-DexcludeArtifactId=comma separated id` to skip based on artifactId
+
 Notes
 -------------------
 As of v2.0.0, the default CycloneDX BOM format is v1.2 and will produce both XML and JSON. 

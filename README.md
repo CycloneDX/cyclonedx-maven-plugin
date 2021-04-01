@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.3.0</version>
+        <version>2.4.0</version>
     </plugin>
 </plugins>
 ```
@@ -36,10 +36,10 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.3.0</version>
+        <version>2.4.0</version>
         <executions>
             <execution>
-                <phase>verify</phase>
+                <phase>package</phase>
                 <goals>
                     <goal>makeAggregateBom</goal>
                 </goals>
@@ -75,7 +75,7 @@ As of v2.0.0, the default CycloneDX BOM format is v1.2 and will produce both XML
 
 Goals
 -------------------
-The CycloneDX Maven plugin contains the following two goals:
+The CycloneDX Maven plugin contains the following three goals:
 * makeBom
 * makeAggregateBom
 * makePackageBom

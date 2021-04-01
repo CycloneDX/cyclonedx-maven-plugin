@@ -788,7 +788,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         }
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("json")) {
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
-            bomGenerator.generate();
             final String bomString = bomGenerator.toJsonString();
             final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".json");
             getLog().info(String.format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));

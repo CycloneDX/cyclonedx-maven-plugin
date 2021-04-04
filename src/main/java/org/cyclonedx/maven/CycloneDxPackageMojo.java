@@ -82,6 +82,6 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 dependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
             }
         }
-        super.execute(components, dependencies);
+        super.execute(components, dependencies, getProject());
     }
 }

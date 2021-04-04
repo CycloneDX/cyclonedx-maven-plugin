@@ -737,7 +737,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         return null;
     }
 
-    protected void execute(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException{
+    protected void execute(Set<Component> components, Set<Dependency> dependencies, MavenProject mavenProject) throws MojoExecutionException{
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();
@@ -745,7 +745,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID().toString());
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                final Metadata metadata = convert(this.project);
+                final Metadata metadata = convert(mavenProject);
                 bom.setMetadata(metadata);
             }
             bom.setComponents(new ArrayList<>(components));
@@ -760,20 +760,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 return;
             }
 
-            createBom(bom);
+            createBom(bom, mavenProject);
 
         } catch (GeneratorException | ParserConfigurationException | TransformerException | IOException | SAXException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
     }
 
-    private void createBom(Bom bom) throws ParserConfigurationException, IOException, SAXException, GeneratorException,
+    private void createBom(Bom bom, MavenProject mavenProject) throws ParserConfigurationException, IOException, SAXException, GeneratorException,
             TransformerException, MojoExecutionException {
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
-            final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".xml");
+            final File bomFile = new File(mavenProject.getBasedir(), "target/" + outputName + ".xml");
             getLog().info(String.format(MESSAGE_WRITING_BOM, "XML", bomFile.getAbsolutePath()));
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
@@ -783,13 +783,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
             if (!skipAttach) {
-                mavenProjectHelper.attachArtifact(project, "xml", "cyclonedx", bomFile);
+                mavenProjectHelper.attachArtifact(mavenProject, "xml", "cyclonedx", bomFile);
             }
         }
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("json")) {
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
             final String bomString = bomGenerator.toJsonString();
-            final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".json");
+            final File bomFile = new File(mavenProject.getBasedir(), "target/" + outputName + ".json");
             getLog().info(String.format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
@@ -799,7 +799,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
             if (!skipAttach) {
-                mavenProjectHelper.attachArtifact(project, "json", "cyclonedx", bomFile);
+                mavenProjectHelper.attachArtifact(mavenProject, "json", "cyclonedx", bomFile);
             }
         }
     }

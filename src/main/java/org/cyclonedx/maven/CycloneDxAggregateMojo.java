@@ -82,14 +82,31 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                 getLog().debug(e);
             }
         }
+
+        // Add reference to BOM metadata component.
+        // Without this, direct dependencies of the Maven project cannot be determined.
+        final Component bomComponent = convert(getProject().getArtifact());
+        componentRefs.add(bomComponent.getBomRef());
+
         for (final MavenProject mavenProject : getReactorProjects()) {
             if (shouldExclude(mavenProject)) {
                 getLog().info("Skipping " + mavenProject.getArtifactId());
                 continue;
             }
+
+            final Set<Component> projectComponents = new LinkedHashSet<>();
+            final Set<String> projectComponentRefs = new LinkedHashSet<>();
+            final Set<Dependency> projectDependencies = new LinkedHashSet<>();
+
+            // Add reference to BOM metadata component.
+            // Without this, direct dependencies of the Maven project cannot be determined.
+            final Component projectBomComponent = convert(mavenProject.getArtifact());
+            componentRefs.add(projectBomComponent.getBomRef());
+
             for (final Artifact artifact : mavenProject.getArtifacts()) {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);
+
                     // ensure that only one component with the same bom-ref exists in the BOM
                     boolean found = false;
                     for (String s : componentRefs) {
@@ -114,13 +131,18 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                         component.setScope(componentScope);
                         componentRefs.add(component.getBomRef());
                         components.add(component);
+
+                        projectComponentRefs.add(component.getBomRef());
+                        projectComponents.add(component);
                     }
                 }
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                dependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
+                projectDependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
+                dependencies.addAll(projectDependencies);
             }
+            super.execute(projectComponents, projectDependencies, mavenProject);
         }
-        super.execute(components, dependencies);
+        super.execute(components, dependencies, getProject());
     }
 }

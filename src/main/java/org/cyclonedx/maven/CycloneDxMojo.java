@@ -58,6 +58,12 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
             } catch (Exception e) {
                 getLog().debug(e);
             }
+
+            // Add reference to BOM metadata component.
+            // Without this, direct dependencies of the Maven project cannot be determined.
+            final Component bomComponent = convert(getProject().getArtifact());
+            componentRefs.add(bomComponent.getBomRef());
+
             for (final Artifact artifact : getProject().getArtifacts()) {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);
@@ -79,7 +85,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         if (schemaVersion().getVersion() >= 1.2) {
             dependencies = buildDependencyGraph(componentRefs, null);
         }
-        super.execute(components, dependencies);
+        super.execute(components, dependencies, getProject());
     }
 
 }

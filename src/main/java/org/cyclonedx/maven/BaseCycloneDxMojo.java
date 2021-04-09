@@ -406,7 +406,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         component.setName(project.getArtifactId());
         component.setVersion(project.getVersion());
         component.setType(resolveProjectType());
-        component.setPurl(generatePackageUrl(project.getGroupId(), project.getArtifactId(), project.getVersion(), null, null));
+        component.setPurl(generatePackageUrl(project.getArtifact()));
         component.setBomRef(component.getPurl());
         if (project.getLicenses() != null) {
             component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));

@@ -223,10 +223,10 @@
                         <fileSet>
                             <directory>${project.build.directory}</directory>
                             <includes>
-                                <include>${build.finalName}.jar</include>
-                                <include>${build.finalName}.pom</include>
-                                <include>${build.finalName}-javadoc.jar</include>
-                                <include>${build.finalName}-sources.jar</include>
+                                <include>${project.build.finalName}.jar</include>
+                                <include>${project.build.finalName}.pom</include>
+                                <include>${project.build.finalName}-javadoc.jar</include>
+                                <include>${project.build.finalName}-sources.jar</include>
                                 <include>bom.json</include>
                                 <include>bom.xml</include>
                             </includes>

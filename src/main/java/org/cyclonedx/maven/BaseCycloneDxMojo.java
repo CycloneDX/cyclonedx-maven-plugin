@@ -681,7 +681,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         if (!isDescribedArtifact(artifact)) {
             return null;
         }
-        if (artifact.getFile() != null) {
+        if (artifact.getFile() != null && artifact.getFile().isFile()) {
             try {
                 final JarFile jarFile = new JarFile(artifact.getFile());
                 final JarEntry entry = jarFile.getJarEntry("META-INF/maven/"+ artifact.getGroupId() + "/" + artifact.getArtifactId() + "/pom.xml");

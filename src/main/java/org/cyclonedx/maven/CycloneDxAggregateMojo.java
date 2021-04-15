@@ -101,6 +101,10 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             // Add reference to BOM metadata component.
             // Without this, direct dependencies of the Maven project cannot be determined.
             final Component projectBomComponent = convert(mavenProject.getArtifact());
+            if (! mavenProject.isExecutionRoot()) {
+                // DO NOT include root project as it's already been included as a bom metadata component
+                components.add(projectBomComponent);
+            }
             componentRefs.add(projectBomComponent.getBomRef());
 
             for (final Artifact artifact : mavenProject.getArtifacts()) {
@@ -143,6 +147,7 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             }
             super.execute(projectComponents, projectDependencies, mavenProject);
         }
+        addMavenProjectsAsDependencies(getReactorProjects(), dependencies);
         super.execute(components, dependencies, getProject());
     }
 }

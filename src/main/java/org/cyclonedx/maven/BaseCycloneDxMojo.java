@@ -905,6 +905,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         }
     }
 
+    protected void addMavenProjectsAsDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {
+        for (final Dependency dependency: dependencies) {
+            for (final MavenProject project: reactorProjects) {
+                if (project.hasParent()) {
+                    final String parentRef = generatePackageUrl(project.getParentArtifact());
+                    if (dependency.getRef() != null && dependency.getRef().equals(parentRef)) {
+                        final Dependency child = new Dependency(generatePackageUrl(project.getArtifact()));
+                        dependency.addDependency(child);
+                    }
+                }
+            }
+        }
+    }
+
     protected void logParameters() {
         if (getLog().isInfoEnabled()) {
             getLog().info("CycloneDX: Parameters");

@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.4.0</version>
+        <version>2.5.0</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.4.0</version>
+        <version>2.5.0</version>
         <executions>
             <execution>
                 <phase>package</phase>
@@ -47,7 +47,7 @@ Default Values
         </executions>
         <configuration>
             <projectType>library</projectType>
-            <schemaVersion>1.2</schemaVersion>
+            <schemaVersion>1.3</schemaVersion>
             <includeBomSerialNumber>true</includeBomSerialNumber>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>
@@ -71,7 +71,7 @@ With `makeAggregateBom` goal it is possible to exclude certain Maven Projects (a
 
 Notes
 -------------------
-As of v2.0.0, the default CycloneDX BOM format is v1.2 and will produce both XML and JSON. 
+As of v2.5.0, the default CycloneDX BOM format is v1.3 and will produce both XML and JSON.
 
 Goals
 -------------------
@@ -97,6 +97,7 @@ the CycloneDX version supported by the target system.
 
 | Version | Schema Version | Format(s) |
 | ------- | ----------------- | --------- |
+| 2.5.x | CycloneDX v1.3 | XML/JSON |
 | 2.0.x | CycloneDX v1.2 | XML/JSON |
 | 1.4.x | CycloneDX v1.1 | XML |
 | 1.0x | CycloneDX v1.0 | XML |

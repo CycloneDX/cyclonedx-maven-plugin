@@ -112,7 +112,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "projectType", defaultValue = "library", required = false)
     private String projectType;
 
-    @Parameter(property = "schemaVersion", defaultValue = "1.2", required = false)
+    @Parameter(property = "schemaVersion", defaultValue = "1.3", required = false)
     private String schemaVersion;
 
     @Parameter(property = "outputFormat", defaultValue = "all", required = false)
@@ -828,8 +828,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             return CycloneDxSchema.Version.VERSION_10;
         } else if (schemaVersion != null && schemaVersion.equals("1.1")) {
             return CycloneDxSchema.Version.VERSION_11;
-        } else {
+        } else if (schemaVersion != null && schemaVersion.equals("1.2")) {
             return CycloneDxSchema.Version.VERSION_12;
+        } else {
+            return CycloneDxSchema.Version.VERSION_13;
         }
     }
 

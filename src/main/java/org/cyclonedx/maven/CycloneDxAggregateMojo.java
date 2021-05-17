@@ -103,7 +103,16 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             final Component projectBomComponent = convert(mavenProject.getArtifact());
             if (! mavenProject.isExecutionRoot()) {
                 // DO NOT include root project as it's already been included as a bom metadata component
-                components.add(projectBomComponent);
+                // Also, ensure that only one project component with the same bom-ref exists in the BOM
+                boolean found = false;
+                for (String s : componentRefs) {
+                    if (s != null && s.equals(projectBomComponent.getBomRef())) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    components.add(projectBomComponent);
+                }
             }
             componentRefs.add(projectBomComponent.getBomRef());
 

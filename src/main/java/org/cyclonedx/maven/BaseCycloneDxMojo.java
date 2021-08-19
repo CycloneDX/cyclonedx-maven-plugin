@@ -95,6 +95,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import org.apache.commons.io.input.BOMInputStream;
 
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
@@ -727,10 +728,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     private MavenProject readPom(InputStream in) {
         try {
             final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-            try (final InputStreamReader reader = new InputStreamReader(in)) {
+            try (final InputStreamReader reader = new InputStreamReader(new BOMInputStream(in))) { 
                 final Model model = mavenreader.read(reader);
                 return new MavenProject(model);
-            }
+            } 
+            //if you don't like BOMInputStream you can also escape the error this way:
+//            catch (XmlPullParserException xppe){
+//               if (! xppe.getMessage().startsWith("only whitespace content allowed before start tag")){
+//                   throw xppe;
+//               } else {
+//                   getLog().debug("The pom.xml starts with a Byte Order Marker and MavenXpp3Reader doesn't like it");
+//               }
+//            }
         } catch (XmlPullParserException | IOException e) {
             getLog().error("An error occurred attempting to read POM", e);
         }

@@ -140,6 +140,21 @@
             <version>3.6.1</version>
             <scope>provided</scope>
         </dependency>
+        
+        <dependency>
+            <groupId>io.takari.maven.plugins</groupId>
+            <artifactId>takari-plugin-integration-testing</artifactId>
+            <type>pom</type>
+            <scope>test</scope>
+            <version>2.9.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.takari.maven.plugins</groupId>
+            <artifactId>takari-plugin-testing</artifactId>
+            <scope>test</scope>
+            <version>2.9.2</version>
+        </dependency>
     </dependencies>
 
     <prerequisites>
@@ -148,6 +163,21 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>io.takari.maven.plugins</groupId>
+                <artifactId>takari-lifecycle-plugin</artifactId>
+                <version>1.13.9</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>testProperties</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testProperties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>

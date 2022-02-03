@@ -97,6 +97,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import org.apache.commons.io.input.BOMInputStream;
 
+import static java.lang.String.format;
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextualizable {
@@ -118,6 +119,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     @Parameter(property = "outputFormat", defaultValue = "all", required = false)
     private String outputFormat;
+
+    @Parameter(property = "outputDirectory", defaultValue = "target", required = false)
+    private String outputDirectory;
 
     @Parameter(property = "outputName", defaultValue = "bom", required = false)
     private String outputName;
@@ -780,11 +784,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
-            final File bomFile = new File(mavenProject.getBasedir(), "target/" + outputName + ".xml");
-            getLog().info(String.format(MESSAGE_WRITING_BOM, "XML", bomFile.getAbsolutePath()));
+            final File bomFile = new File(mavenProject.getBasedir(), format("%s/%s.xml", outputDirectory, outputName));
+            getLog().info(format(MESSAGE_WRITING_BOM, "XML", bomFile.getAbsolutePath()));
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
-            getLog().info(String.format(MESSAGE_VALIDATING_BOM, "XML", bomFile.getAbsolutePath()));
+            getLog().info(format(MESSAGE_VALIDATING_BOM, "XML", bomFile.getAbsolutePath()));
             final XmlParser bomParser = new XmlParser();
             if (!bomParser.isValid(bomFile, schemaVersion())) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
@@ -796,11 +800,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("json")) {
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
             final String bomString = bomGenerator.toJsonString();
-            final File bomFile = new File(mavenProject.getBasedir(), "target/" + outputName + ".json");
-            getLog().info(String.format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));
+            final File bomFile = new File(mavenProject.getBasedir(), format("%s/%s.json", outputDirectory, outputName));
+            getLog().info(format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));
             FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
 
-            getLog().info(String.format(MESSAGE_VALIDATING_BOM, "JSON", bomFile.getAbsolutePath()));
+            getLog().info(format(MESSAGE_VALIDATING_BOM, "JSON", bomFile.getAbsolutePath()));
             final JsonParser bomParser = new JsonParser();
             if (!bomParser.isValid(bomFile, schemaVersion(), false)) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);

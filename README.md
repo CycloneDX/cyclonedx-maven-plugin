@@ -56,6 +56,7 @@ Default Values
             <includeTestScope>false</includeTestScope>
             <includeLicenseText>false</includeLicenseText>
             <outputFormat>all</outputFormat>
+            <outputDirectory>target</outputDirectory>
             <outputName>bom</outputName>
         </configuration>
     </plugin>
@@ -88,6 +89,10 @@ By default, the BOM(s) will be attached as an additional artifacts during a Mave
 This may be switched off by setting `cyclonedx.skipAttach` to true.
 
 makeBom and makeAggregateBom can optionally be skipped completely by setting `cyclonedx.skip` to true.
+
+Examples
+-------------------
+`> mvn clean compile cyclonedx:makeBom`
 
 ## CycloneDX Schema Support
 

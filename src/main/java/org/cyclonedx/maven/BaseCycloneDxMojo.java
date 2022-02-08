@@ -39,6 +39,7 @@ import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectBuildingRequest;
+import org.apache.maven.shared.artifact.filter.StrictPatternExcludesArtifactFilter;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
@@ -89,6 +90,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
@@ -151,6 +154,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
     protected Boolean excludeTestProject;
+    
+    @Parameter(property = "excludeComponents", required = false)
+    protected String excludeComponents;
 
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private MavenProjectHelper mavenProjectHelper;
@@ -192,6 +198,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     @Parameter( property = "analyzer", defaultValue = "default" )
     private String analyzer;
+ 
+    private ArtifactFilter excludeComponentsFilter; 
 
     /**
      * DependencyAnalyzer
@@ -352,28 +360,41 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         return skip;
     }
 
+    ArtifactFilter getExcludeComponentsFilter() {
+	    if (excludeComponentsFilter == null) {
+	      excludeComponentsFilter =
+	          Optional.ofNullable(excludeComponents)
+	              .<ArtifactFilter>map(
+	                  pattern ->
+	                      new StrictPatternExcludesArtifactFilter(
+	                          Arrays.asList(excludeComponents.split(","))))
+	              .orElse(null);
+	    }
+	    return excludeComponentsFilter;
+    }
+
     protected boolean shouldInclude(Artifact artifact) {
-        if (artifact.getScope() == null) {
-            return false;
-        }
-        if (excludeTypes != null) {
-            final boolean shouldExclude = Arrays.stream(excludeTypes).anyMatch(artifact.getType()::equals);
-            if (shouldExclude) {
-                return false;
-            }
-        }
-        if (includeCompileScope && "compile".equals(artifact.getScope())) {
-            return true;
-        } else if (includeProvidedScope && "provided".equals(artifact.getScope())) {
-            return true;
-        } else if (includeRuntimeScope && "runtime".equals(artifact.getScope())) {
-            return true;
-        } else if (includeTestScope && "test".equals(artifact.getScope())) {
-            return true;
-        } else if (includeSystemScope && "system".equals(artifact.getScope())) {
-            return true;
-        }
-        return false;
+	    if (artifact.getScope() == null) {
+	      return false;
+	    }
+	    if (excludeTypes != null) {
+	      final boolean shouldExclude =
+	          Arrays.stream(excludeTypes).anyMatch(artifact.getType()::equals);
+	      if (shouldExclude) {
+	        return false;
+	      }
+	    }
+	
+	    ArtifactFilter filter = getExcludeComponentsFilter();
+	
+	    if ((includeCompileScope && Objects.equals(Artifact.SCOPE_COMPILE, artifact.getScope()))
+	        || (includeProvidedScope && Objects.equals(Artifact.SCOPE_PROVIDED, artifact.getScope()))
+	        || (includeRuntimeScope && Objects.equals(Artifact.SCOPE_RUNTIME, artifact.getScope()))
+	        || (includeTestScope && Objects.equals(Artifact.SCOPE_TEST, artifact.getScope()))
+	        || (includeSystemScope && Objects.equals(Artifact.SCOPE_SYSTEM, artifact.getScope()))) {
+	      return filter == null || filter.include(artifact);
+	    }
+	    return filter != null && filter.include(artifact);
     }
 
     /**

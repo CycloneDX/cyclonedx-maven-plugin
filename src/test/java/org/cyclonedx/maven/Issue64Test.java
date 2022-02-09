@@ -64,7 +64,7 @@ public class Issue64Test {
     private static void assertFileContains(File basedir, String expectedFile, String expectedContent) throws IOException {
         assertFilesPresent(basedir, expectedFile);
         String bomContents = fileRead(new File(basedir, expectedFile), true);
-        assertTrue(String.format("%s contains %s", expectedFile, expectedContent), bomContents.contains("junit"));
+        assertTrue(String.format("%s contains %s", expectedFile, expectedContent), bomContents.contains(expectedContent));
     }
 
     // source: https://github.com/takari/takari-plugin-testing-project/blob/master/takari-plugin-testing/src/main/java/io/takari/maven/testing/AbstractTestResources.java#L103

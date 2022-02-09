@@ -100,7 +100,7 @@
         <dependency>
             <groupId>org.cyclonedx</groupId>
             <artifactId>cyclonedx-core-java</artifactId>
-            <version>5.0.4</version>
+            <version>5.0.5</version>
         </dependency>
         <!-- This is already a dependency of CycloneDX Java Core, but due to some Maven configurations,
         an older version may be resolved instead which may lead to sha3 methods not being available. -->
@@ -117,7 +117,7 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
-            <version>3.8.2</version>
+            <version>3.8.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -137,7 +137,7 @@
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.6.1</version>
+            <version>3.6.4</version>
             <scope>provided</scope>
         </dependency>
         
@@ -181,7 +181,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.6.4</version>
                 <configuration>
                     <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
                     <goalPrefix>cyclonedx</goalPrefix>
@@ -346,7 +346,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.6.4</version>
             </plugin>
         </plugins>
     </reporting>

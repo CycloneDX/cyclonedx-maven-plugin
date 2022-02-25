@@ -166,6 +166,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "cyclonedx.skipAttach", defaultValue = "false", required = false)
     private boolean skipAttach = false;
 
+    @SuppressWarnings("CanBeFinal")
+    @Parameter(property = "cyclonedx.verbose", defaultValue = "true", required = false)
+    private boolean verbose = true;
+
     /**
      * Various messages sent to console.
      */
@@ -929,7 +933,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     }
 
     protected void logParameters() {
-        if (getLog().isInfoEnabled()) {
+        if (verbose && getLog().isInfoEnabled()) {
             getLog().info("CycloneDX: Parameters");
             getLog().info("------------------------------------------------------------------------");
             getLog().info("schemaVersion          : " + schemaVersion().getVersionString());

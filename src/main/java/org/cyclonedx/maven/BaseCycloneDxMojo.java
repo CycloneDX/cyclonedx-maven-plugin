@@ -435,7 +435,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
-        component.setVersion(artifact.getVersion());
+        component.setVersion(artifact.getBaseVersion());
         component.setType(Component.Type.LIBRARY);
         try {
             getLog().debug(MESSAGE_CALCULATING_HASHES);
@@ -470,7 +470,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 qualifiers.put("classifier", artifact.getClassifier());
             }
         }
-        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion(), qualifiers, null);
+        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), artifact.getBaseVersion(), qualifiers, null);
     }
 
     private String generatePackageUrl(String groupId, String artifactId, String version, TreeMap<String, String> qualifiers, String subpath) {
@@ -726,10 +726,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     private MavenProject readPom(InputStream in) {
         try {
             final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-            try (final InputStreamReader reader = new InputStreamReader(new BOMInputStream(in))) { 
+            try (final InputStreamReader reader = new InputStreamReader(new BOMInputStream(in))) {
                 final Model model = mavenreader.read(reader);
                 return new MavenProject(model);
-            } 
+            }
             //if you don't like BOMInputStream you can also escape the error this way:
 //            catch (XmlPullParserException xppe){
 //               if (! xppe.getMessage().startsWith("only whitespace content allowed before start tag")){

@@ -20,6 +20,7 @@ package org.cyclonedx.maven;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
@@ -33,9 +34,10 @@ import java.util.Set;
         name = "makeBom",
         defaultPhase = LifecyclePhase.PACKAGE,
         requiresOnline = true,
-        requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME,
-        requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME
+        requiresDependencyCollection = ResolutionScope.TEST,
+        requiresDependencyResolution = ResolutionScope.TEST
 )
+@Execute( phase = LifecyclePhase.TEST_COMPILE )
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     public void execute() throws MojoExecutionException {

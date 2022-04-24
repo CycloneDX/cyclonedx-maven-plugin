@@ -748,7 +748,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         return null;
     }
 
-    protected void execute(Set<Component> components, Set<Dependency> dependencies, MavenProject mavenProject) throws MojoExecutionException{
+    protected void execute(Set<Component> components, Set<Dependency> dependencies, MavenProject mavenProject) throws MojoExecutionException {
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();

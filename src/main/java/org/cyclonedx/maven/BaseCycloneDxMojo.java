@@ -806,7 +806,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
             getLog().info(String.format(MESSAGE_VALIDATING_BOM, "JSON", bomFile.getAbsolutePath()));
             final JsonParser bomParser = new JsonParser();
-            if (!bomParser.isValid(bomFile, schemaVersion(), false)) {
+            if (!bomParser.isValid(bomFile, schemaVersion())) {
                 throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
             }
             if (!skipAttach) {

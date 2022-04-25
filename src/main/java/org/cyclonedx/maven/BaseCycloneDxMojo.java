@@ -113,7 +113,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "projectType", defaultValue = "library", required = false)
     private String projectType;
 
-    @Parameter(property = "schemaVersion", defaultValue = "1.3", required = false)
+    @Parameter(property = "schemaVersion", defaultValue = "1.4", required = false)
     private String schemaVersion;
 
     @Parameter(property = "outputFormat", defaultValue = "all", required = false)
@@ -763,6 +763,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             if (schemaVersion().getVersion() >= 1.2 && dependencies != null && !dependencies.isEmpty()) {
                 bom.setDependencies(new ArrayList<>(dependencies));
             }
+            if (schemaVersion().getVersion() >= 1.3) {
+                //if (excludeArtifactId != null && excludeTypes.length > 0) { // TODO
+                /*
+                    final Composition composition = new Composition();
+                    composition.setAggregate(Composition.Aggregate.INCOMPLETE);
+                    composition.setDependencies(Collections.singletonList(new Dependency(bom.getMetadata().getComponent().getBomRef())));
+                    bom.setCompositions(Collections.singletonList(composition));
+                */
+                //}
+            }
 
             if (!outputFormat.trim().equalsIgnoreCase("all")
                     && !outputFormat.trim().equalsIgnoreCase("xml")
@@ -841,8 +851,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             return CycloneDxSchema.Version.VERSION_11;
         } else if (schemaVersion != null && schemaVersion.equals("1.2")) {
             return CycloneDxSchema.Version.VERSION_12;
-        } else {
+        } else if (schemaVersion != null && schemaVersion.equals("1.3")) {
             return CycloneDxSchema.Version.VERSION_13;
+        } else {
+            return CycloneDxSchema.Version.VERSION_14;
         }
     }
 

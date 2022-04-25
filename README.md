@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>2.6.0</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.5.3</version>
+        <version>2.6.0</version>
         <executions>
             <execution>
                 <phase>package</phase>
@@ -47,7 +47,7 @@ Default Values
         </executions>
         <configuration>
             <projectType>library</projectType>
-            <schemaVersion>1.3</schemaVersion>
+            <schemaVersion>1.4</schemaVersion>
             <includeBomSerialNumber>true</includeBomSerialNumber>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>
@@ -97,6 +97,7 @@ the CycloneDX version supported by the target system.
 
 | Version | Schema Version | Format(s) |
 | ------- | ----------------- | --------- |
+| 2.6.x | CycloneDX v1.4 | XML/JSON |
 | 2.5.x | CycloneDX v1.3 | XML/JSON |
 | 2.0.x | CycloneDX v1.2 | XML/JSON |
 | 1.4.x | CycloneDX v1.1 | XML |

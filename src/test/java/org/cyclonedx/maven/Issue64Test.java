@@ -1,7 +1,6 @@
 package org.cyclonedx.maven;
 
 import io.takari.maven.testing.TestResources;
-import io.takari.maven.testing.executor.MavenExecutionResult;
 import io.takari.maven.testing.executor.MavenRuntime;
 import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
 import io.takari.maven.testing.executor.MavenVersions;
@@ -35,7 +34,7 @@ public class Issue64Test {
     }
 
     @Test
-    public void testPluginWithActiviti() throws IOException, Exception {
+    public void testPluginWithActiviti() throws Exception {
         File projectDirTransformed = new File(
                 "target/test-classes/transformed-projects/issue-64"
         );

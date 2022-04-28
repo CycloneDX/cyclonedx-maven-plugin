@@ -45,7 +45,7 @@ import java.util.Set;
 public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
 
     protected boolean shouldInclude(MavenProject mavenProject) {
-        return Arrays.stream(new String[] {"war", "ear"}).anyMatch(mavenProject.getPackaging()::equals);
+        return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
     public void execute() throws MojoExecutionException {

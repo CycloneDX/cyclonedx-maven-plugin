@@ -46,7 +46,6 @@ import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
 import org.codehaus.plexus.context.Context;
-import org.codehaus.plexus.context.ContextException;
 import org.codehaus.plexus.PlexusConstants;
 import org.codehaus.plexus.PlexusContainer;
 import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
@@ -68,10 +67,8 @@ import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.XmlParser;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
-import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -79,7 +76,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -361,7 +358,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             return false;
         }
         if (excludeTypes != null) {
-            final boolean shouldExclude = Arrays.stream(excludeTypes).anyMatch(artifact.getType()::equals);
+            final boolean shouldExclude = Arrays.asList(excludeTypes).contains(artifact.getType());
             if (shouldExclude) {
                 return false;
             }
@@ -604,31 +601,17 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         for (org.apache.maven.model.License artifactLicense : projectLicenses) {
             boolean resolved = false;
             if (artifactLicense.getName() != null) {
-                final LicenseChoice resolvedByName = LicenseResolver.resolve(artifactLicense.getName(), includeLicenseText);
-                if (resolvedByName != null) {
-                    if (resolvedByName.getLicenses() != null && !resolvedByName.getLicenses().isEmpty()) {
-                        resolved = true;
-                        licenseChoice.addLicense(resolvedByName.getLicenses().get(0));
-                    } else if (resolvedByName.getExpression() != null && CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
-                        resolved = true;
-                        licenseChoice.setExpression(resolvedByName.getExpression());
-                    }
-                }
+                final LicenseChoice resolvedByName =
+                    LicenseResolver.resolve(artifactLicense.getName(), includeLicenseText);
+                resolved = resolveLicenseInfo(licenseChoice, resolvedByName);
             }
             if (artifactLicense.getUrl() != null && !resolved) {
-                final LicenseChoice resolvedByUrl = LicenseResolver.resolve(artifactLicense.getUrl(), includeLicenseText);
-                if (resolvedByUrl != null) {
-                    if (resolvedByUrl.getLicenses() != null && !resolvedByUrl.getLicenses().isEmpty()) {
-                        resolved = true;
-                        licenseChoice.addLicense(resolvedByUrl.getLicenses().get(0));
-                    } else if (resolvedByUrl.getExpression() != null && CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
-                        resolved = true;
-                        licenseChoice.setExpression(resolvedByUrl.getExpression());
-                    }
-                }
+                final LicenseChoice resolvedByUrl =
+                    LicenseResolver.resolve(artifactLicense.getUrl(), includeLicenseText);
+                resolved = resolveLicenseInfo(licenseChoice, resolvedByUrl);
             }
             if (artifactLicense.getName() != null && !resolved) {
-                final License license = new License();;
+                final License license = new License();
                 license.setName(artifactLicense.getName().trim());
                 if (StringUtils.isNotBlank(artifactLicense.getUrl())) {
                     try {
@@ -642,6 +625,24 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             }
         }
         return licenseChoice;
+    }
+
+    private boolean resolveLicenseInfo(
+        final LicenseChoice licenseChoice,
+        final LicenseChoice licenseChoiceToResolve)
+    {
+        if (licenseChoiceToResolve != null) {
+            if (licenseChoiceToResolve.getLicenses() != null && !licenseChoiceToResolve.getLicenses().isEmpty()) {
+                licenseChoice.addLicense(licenseChoiceToResolve.getLicenses().get(0));
+                return true;
+            }
+            else if (licenseChoiceToResolve.getExpression() != null &&
+                CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
+                licenseChoice.setExpression(licenseChoiceToResolve.getExpression());
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -753,7 +754,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
-                bom.setSerialNumber("urn:uuid:" + UUID.randomUUID().toString());
+                bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
             }
             if (schemaVersion().getVersion() >= 1.2) {
                 final Metadata metadata = convert(mavenProject);
@@ -783,20 +784,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
             createBom(bom, mavenProject);
 
-        } catch (GeneratorException | ParserConfigurationException | TransformerException | IOException | SAXException e) {
+        } catch (GeneratorException | ParserConfigurationException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
     }
 
-    private void createBom(Bom bom, MavenProject mavenProject) throws ParserConfigurationException, IOException, SAXException, GeneratorException,
-            TransformerException, MojoExecutionException {
+    private void createBom(Bom bom, MavenProject mavenProject) throws ParserConfigurationException, IOException, GeneratorException,
+            MojoExecutionException {
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
             final File bomFile = new File(mavenProject.getBasedir(), "target/" + outputName + ".xml");
             getLog().info(String.format(MESSAGE_WRITING_BOM, "XML", bomFile.getAbsolutePath()));
-            FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
+            FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
 
             getLog().info(String.format(MESSAGE_VALIDATING_BOM, "XML", bomFile.getAbsolutePath()));
             final XmlParser bomParser = new XmlParser();
@@ -812,7 +813,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             final String bomString = bomGenerator.toJsonString();
             final File bomFile = new File(mavenProject.getBasedir(), "target/" + outputName + ".json");
             getLog().info(String.format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));
-            FileUtils.write(bomFile, bomString, Charset.forName("UTF-8"), false);
+            FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
 
             getLog().info(String.format(MESSAGE_VALIDATING_BOM, "JSON", bomFile.getAbsolutePath()));
             final JsonParser bomParser = new JsonParser();
@@ -964,7 +965,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     @Override
     public void contextualize( Context theContext )
-            throws ContextException
     {
         this.context = theContext;
     }

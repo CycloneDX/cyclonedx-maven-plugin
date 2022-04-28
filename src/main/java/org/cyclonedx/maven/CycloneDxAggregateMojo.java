@@ -49,7 +49,7 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
     protected boolean shouldExclude(MavenProject mavenProject) {
         boolean shouldExclude = false;
         if (excludeArtifactId != null && excludeArtifactId.length > 0) {
-            shouldExclude = Arrays.stream(excludeArtifactId).anyMatch(mavenProject.getArtifactId()::equals);
+            shouldExclude = Arrays.asList(excludeArtifactId).contains(mavenProject.getArtifactId());
         }
         if (excludeTestProject && mavenProject.getArtifactId().contains("test")) {
             shouldExclude = true;
@@ -76,9 +76,8 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             if (shouldExclude(mavenProject)) {
                 continue;
             }
-            ProjectDependencyAnalysis dependencyAnalysis = null;
             try {
-                dependencyAnalysis = dependencyAnalyzer.analyze(mavenProject);
+                ProjectDependencyAnalysis dependencyAnalysis = dependencyAnalyzer.analyze(mavenProject);
                 dependencyAnalysisMap.put(mavenProject.getArtifactId(), dependencyAnalysis);
             } catch (Exception e) {
                 getLog().debug(e);

@@ -6,7 +6,6 @@ import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
 import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 import java.io.File;
-import java.io.IOException;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
@@ -31,7 +30,7 @@ public class Issue117Test {
     }
 
     @Test
-    public void testPluginWithActiviti() throws IOException, Exception {
+    public void testPluginWithActiviti() throws Exception {
         File projectDirTransformed = new File(
                 "target/test-classes/transformed-projects/issue-117"
         );
@@ -45,7 +44,7 @@ public class Issue117Test {
         Properties props = new Properties();
 
         props.load(Issue117Test.class.getClassLoader().getResourceAsStream("test.properties"));
-        String projectVersion = String.class.cast(props.get("project.version"));
+        String projectVersion = (String) props.get("project.version");
         verifier
                 .forProject(projDir) //
                 .withCliOption("-Dtest.input.version=" + projectVersion) // debug

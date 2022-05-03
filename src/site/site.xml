@@ -1,0 +1,25 @@
+<project>
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>1.10.0</version>
+    </skin>
+    <custom>
+        <fluidoSkin>
+            <topBarEnabled>false</topBarEnabled>
+            <sideBarEnabled>true</sideBarEnabled>
+            <navBarStyle>navbar-inverse</navBarStyle>
+            <twitter>
+                <user>CycloneDX_Spec</user>
+                <showUser>true</showUser>
+                <showFollowers>false</showFollowers>
+            </twitter>
+        </fluidoSkin>
+    </custom>
+    <body>
+        <links>
+            <item name="OWASP CycloneDX" href="https://www.cyclonedx.org/"/>
+        </links>
+        <menu ref="reports"/>
+    </body>
+</project>

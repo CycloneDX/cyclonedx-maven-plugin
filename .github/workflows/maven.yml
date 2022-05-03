@@ -15,4 +15,11 @@ jobs:
         distribution: 'adopt'
         java-version: '8'
     - name: Build with Maven
-      run: mvn package --file pom.xml
+      run: mvn package --file pom.xml site
+        -
+    - name: Deploy documentation
+      uses: JamesIves/github-pages-deploy-action@releases/v3
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: gh-pages
+        FOLDER: target/site

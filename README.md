@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.6.0</version>
+        <version>2.6.1</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.6.0</version>
+        <version>2.6.1</version>
         <executions>
             <execution>
                 <phase>package</phase>

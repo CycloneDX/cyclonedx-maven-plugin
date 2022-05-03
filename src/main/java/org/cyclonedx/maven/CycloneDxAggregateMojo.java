@@ -43,7 +43,6 @@ import java.util.Set;
         requiresDependencyCollection = ResolutionScope.TEST,
         requiresDependencyResolution = ResolutionScope.TEST
 )
-@Execute( phase = LifecyclePhase.TEST_COMPILE )
 public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
 
     protected boolean shouldExclude(MavenProject mavenProject) {

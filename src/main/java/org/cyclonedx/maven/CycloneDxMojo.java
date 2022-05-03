@@ -37,7 +37,6 @@ import java.util.Set;
         requiresDependencyCollection = ResolutionScope.TEST,
         requiresDependencyResolution = ResolutionScope.TEST
 )
-@Execute( phase = LifecyclePhase.TEST_COMPILE )
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     public void execute() throws MojoExecutionException {

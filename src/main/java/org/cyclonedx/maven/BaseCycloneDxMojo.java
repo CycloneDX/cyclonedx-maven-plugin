@@ -119,6 +119,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "outputName", defaultValue = "bom", required = false)
     private String outputName;
 
+    @Parameter(property = "outputReactorProjects", defaultValue = "true", required = false)
+    private Boolean outputReactorProjects;
+
     @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
     private Boolean includeBomSerialNumber;
 
@@ -351,6 +354,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     protected Boolean getSkip() {
         return skip;
+    }
+
+    /**
+     * Returns if reactor projects should be included or not.
+     *
+     * @return true if reactor projects should be included, otherwise false
+     */
+    protected Boolean getOutputReactorProjects() {
+        return outputReactorProjects;
     }
 
     protected boolean shouldInclude(Artifact artifact) {

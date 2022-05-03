@@ -154,7 +154,7 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                 projectDependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
                 dependencies.addAll(projectDependencies);
             }
-            if (! mavenProject.isExecutionRoot()) {
+            if (! mavenProject.isExecutionRoot() && getOutputReactorProjects()) {
                 super.execute(projectComponents, projectDependencies, mavenProject);
             }
         }

@@ -16,7 +16,6 @@ jobs:
         java-version: '8'
     - name: Build with Maven
       run: mvn package plugin:report site --file pom.xml
-        -
     - name: Deploy documentation
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:

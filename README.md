@@ -104,6 +104,10 @@ the CycloneDX version supported by the target system.
 | 1.4.x | CycloneDX v1.1 | XML |
 | 1.0x | CycloneDX v1.0 | XML |
 
+## Maven Plugin Documentation
+
+The Maven plugin documentation can be viewed online at [https://cyclonedx.github.io/cyclonedx-maven-plugin/](https://cyclonedx.github.io/cyclonedx-maven-plugin/).
+
 Copyright & License
 -------------------
 

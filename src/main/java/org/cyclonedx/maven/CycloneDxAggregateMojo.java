@@ -62,7 +62,7 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             getLog().info("Skipping CycloneDX");
             return;
         }
-
+        logParameters();
         final Set<Component> components = new LinkedHashSet<>();
         final Set<String> componentRefs = new LinkedHashSet<>();
         final Map<String, ProjectDependencyAnalysis> dependencyAnalysisMap = new LinkedHashMap<>();

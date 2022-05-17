@@ -28,14 +28,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.activemq</groupId>
-            <artifactId>activemq-broker</artifactId>
-            <version>5.16.2</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.cassandra</groupId>
-            <artifactId>cassandra-all</artifactId>
-            <version>4.0.0</version>
+            <groupId>org.activiti</groupId>
+            <artifactId>activiti-engine</artifactId>
+            <version>5.14</version>
         </dependency>
     </dependencies>
     <build>
@@ -43,7 +38,7 @@
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>2.5.1</version>
+                <version>${test.input.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>

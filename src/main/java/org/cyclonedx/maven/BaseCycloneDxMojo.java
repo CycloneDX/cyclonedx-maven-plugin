@@ -41,8 +41,8 @@ import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
-import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
-import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
+import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
+import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
 import org.codehaus.plexus.context.Context;
@@ -156,7 +156,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     private MavenProjectHelper mavenProjectHelper;
 
     @org.apache.maven.plugins.annotations.Component(hint = "default")
-    private DependencyGraphBuilder dependencyGraphBuilder;
+    private DependencyCollectorBuilder dependencyCollectorBuilder;
 
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skip", defaultValue = "false", required = false)
@@ -901,14 +901,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             buildingRequest.setProject(this.project);
         }
         try {
-            final DependencyNode rootNode = dependencyGraphBuilder.buildDependencyGraph(buildingRequest, artifactFilter);
+            final DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, artifactFilter);
             buildDependencyGraphNode(componentRefs, dependencies, rootNode, null);
             final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
             rootNode.accept(visitor);
             for (final DependencyNode dependencyNode : visitor.getNodes()) {
                 buildDependencyGraphNode(componentRefs, dependencies, dependencyNode, null);
             }
-        } catch (DependencyGraphBuilderException e) {
+        } catch (DependencyCollectorBuilderException e) {
             if (mavenProject != null) {
                 // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
                 // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55

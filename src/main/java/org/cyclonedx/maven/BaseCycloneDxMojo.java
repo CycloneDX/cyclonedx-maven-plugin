@@ -968,6 +968,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             getLog().info("includeRuntimeScope    : " + includeRuntimeScope);
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
+            getLog().info("outputReactorProjects  : " + outputReactorProjects);
             getLog().info("includeLicenseText     : " + includeLicenseText);
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);

@@ -10,9 +10,9 @@
 CycloneDX Maven Plugin
 =========
 
-The CycloneDX Maven plugin creates an aggregate of all direct and transitive dependencies of a project 
-and creates a valid CycloneDX SBOM. CycloneDX is a lightweight software bill of materials 
-(SBOM) specification designed for use in application security contexts and supply chain component analysis.
+The CycloneDX Maven plugin generates CycloneDX Software Bill of Materials (SBOM) containing the aggregate of all direct 
+and transitive dependencies of a project. CycloneDX is a lightweight software bill of materials 
+(SBOM) standard designed for use in application security contexts and supply chain component analysis.
 
 Maven Usage
 -------------------
@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.6.2</version>
+        <version>2.7.0</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.6.2</version>
+        <version>2.7.0</version>
         <executions>
             <execution>
                 <phase>package</phase>

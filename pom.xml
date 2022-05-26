@@ -27,7 +27,7 @@
     <version>2.7.0-SNAPSHOT</version>
 
     <name>CycloneDX Maven plugin</name>
-    <description>The CycloneDX Maven plugin creates an aggregate of all dependencies and transitive dependencies of a project and creates a valid CycloneDX Software Bill of Material (SBOM) from the results.</description>
+    <description>The CycloneDX Maven plugin generates CycloneDX Software Bill of Materials (SBOM) containing the aggregate of all direct and transitive dependencies of a project.</description>
     <url>https://github.com/CycloneDX/cyclonedx-maven-plugin</url>
     <inceptionYear>2017</inceptionYear>
     <organization>

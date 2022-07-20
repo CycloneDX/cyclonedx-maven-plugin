@@ -23,7 +23,7 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.7.0</version>
+        <version>2.7.1</version>
     </plugin>
 </plugins>
 ```
@@ -36,7 +36,7 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.7.0</version>
+        <version>2.7.1</version>
         <executions>
             <execution>
                 <phase>package</phase>
@@ -69,10 +69,6 @@ With `makeAggregateBom` goal it is possible to exclude certain Maven Projects (a
 
 * Pass `-DexcludeTestProject=true` to skip any maven project artifactId containing the word "test"
 * Pass `-DexcludeArtifactId=comma separated id` to skip based on artifactId
-
-Notes
--------------------
-As of v2.5.0, the default CycloneDX BOM format is v1.3 and will produce both XML and JSON.
 
 Goals
 -------------------

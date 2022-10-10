@@ -63,7 +63,7 @@
         <!-- Maven Plugin Versions -->
         <maven.javadoc.plugin.version>3.4.1</maven.javadoc.plugin.version>
         <maven.source.plugin.version>3.2.1</maven.source.plugin.version>
-        <maven.jar.plugin.version>3.2.2</maven.jar.plugin.version>
+        <maven.jar.plugin.version>3.3.0</maven.jar.plugin.version>
         <maven.github.release.plugin.version>1.4.0</maven.github.release.plugin.version>
         <project.build.outputTimestamp>2022-07-20T04:23:24Z</project.build.outputTimestamp>
     </properties>

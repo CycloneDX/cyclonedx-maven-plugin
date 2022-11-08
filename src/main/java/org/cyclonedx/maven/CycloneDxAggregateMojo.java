@@ -50,6 +50,9 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
         if (excludeArtifactId != null && excludeArtifactId.length > 0) {
             shouldExclude = Arrays.asList(excludeArtifactId).contains(mavenProject.getArtifactId());
         }
+        if (!shouldExclude && excludeGroupId != null && excludeGroupId.length > 0) {
+            shouldExclude = Arrays.asList(excludeGroupId).contains(mavenProject.getGroupId());
+        }
         if (excludeTestProject && mavenProject.getArtifactId().contains("test")) {
             shouldExclude = true;
         }

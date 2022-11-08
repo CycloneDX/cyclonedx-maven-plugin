@@ -69,6 +69,7 @@ With `makeAggregateBom` goal it is possible to exclude certain Maven Projects (a
 
 * Pass `-DexcludeTestProject=true` to skip any maven project artifactId containing the word "test"
 * Pass `-DexcludeArtifactId=comma separated id` to skip based on artifactId
+* Pass `-DexcludeGroupId=comma separated id` to skip based on groupId
 
 Goals
 -------------------

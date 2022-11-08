@@ -149,6 +149,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "excludeArtifactId", required = false)
     protected String[] excludeArtifactId;
 
+    @Parameter(property = "excludeGroupId", required = false)
+    protected String[] excludeGroupId;
+
     @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
     protected Boolean excludeTestProject;
 
@@ -336,6 +339,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     public String[] getExcludeArtifactId() {
         return excludeArtifactId;
+    }
+
+    /**
+     * Returns if excluded GroupId are defined.
+     *
+     * @return an array of excluded Group Id
+     */
+    public String[] getExcludeGroupId() {
+        return excludeGroupId;
     }
 
     /**

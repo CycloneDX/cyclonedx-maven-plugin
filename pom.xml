@@ -169,7 +169,7 @@
             <groupId>io.takari.maven.plugins</groupId>
             <artifactId>takari-plugin-testing</artifactId>
             <scope>test</scope>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
     </dependencies>
 

@@ -54,8 +54,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -309,6 +315,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     private void saveBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,
             MojoExecutionException {
+        validateBom(bom);
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
@@ -339,6 +346,34 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
+    private void validateBom(final Bom bom) {
+        final Set<String> componentRefs = new HashSet<>();
+        componentRefs.add(bom.getMetadata().getComponent().getBomRef());
+        for (Component component: bom.getComponents()) {
+            componentRefs.add(component.getBomRef());
+        }
+        final Set<String> dependencyRefs = new HashSet<>();
+        for (Dependency dependency: bom.getDependencies()) {
+            dependencyRefs.add(dependency.getRef());
+            List<Dependency> childDependencies = dependency.getDependencies();
+            if (childDependencies != null) {
+                childDependencies.forEach(d -> dependencyRefs.add(d.getRef()));
+            }
+        }
+        // Check all components have a top level dependency
+        for (String componentRef: componentRefs) {
+            if (!dependencyRefs.contains(componentRef)) {
+                getLog().warn("CycloneDX: Component missing top level dependency entry: " + componentRef);
+            }
+        }
+        // Check all transitive dependencies have a component
+        for (String dependencyRef: dependencyRefs) {
+            if (!componentRefs.contains(dependencyRef)) {
+                getLog().warn("CycloneDX: Dependency missing component entry: " + dependencyRef);
+            }
+        }
+    }
+
     /**
      * Resolves the CycloneDX schema the mojo has been requested to use.
      * @return the CycloneDX schema to use
@@ -358,7 +393,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs, final MavenProject mavenProject) throws MojoExecutionException {
-        final Set<Dependency> dependencies = new LinkedHashSet<>();
+        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
         final Collection<String> scope = new HashSet<>();
         if (includeCompileScope) scope.add("compile");
         if (includeProvidedScope) scope.add("provided");
@@ -366,12 +401,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (includeSystemScope) scope.add("system");
         if (includeTestScope) scope.add("test");
         final ArtifactFilter artifactFilter = new CumulativeScopeArtifactFilter(scope);
-        final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
-        if (mavenProject != null) {
-            buildingRequest.setProject(mavenProject);
-        } else {
-            buildingRequest.setProject(this.project);
-        }
+
+        final ProjectBuildingRequest buildingRequest = getProjectBuildingRequest(mavenProject);
+
         try {
             final DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, artifactFilter);
             buildDependencyGraphNode(componentRefs, dependencies, rootNode, null);
@@ -379,6 +411,49 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             rootNode.accept(visitor);
             for (final DependencyNode dependencyNode : visitor.getNodes()) {
                 buildDependencyGraphNode(componentRefs, dependencies, dependencyNode, null);
+            }
+
+            /*
+             Test and Runtime scope artifacts may conceal transitive compile dependencies.
+             Test artifacts will conceal other artifacts if includeTestScope is false, whereas Runtime artifacs
+             will conceal other artifacts if both incldueTestScope and includeRuntimeScope are false.
+             */
+            if (includeCompileScope && !includeTestScope) {
+                final ProjectBuildingRequest testBuildingRequest = getProjectBuildingRequest(mavenProject);
+                final DependencyNode testRootNode = dependencyCollectorBuilder.collectDependencyGraph(testBuildingRequest, null);
+                final Map<String, DependencyNode> concealedNodes = new HashMap<>();
+                final Map<String, DependencyNode> concealedEmptyNodes = new HashMap<>();
+                for (DependencyNode child: testRootNode.getChildren()) {
+                    if (Artifact.SCOPE_TEST.equals(child.getArtifact().getScope())) {
+                        collectNodes(concealedNodes, concealedEmptyNodes, child);
+                    }
+                }
+                if (!includeRuntimeScope) {
+                    collectRuntimeNodes(concealedNodes, concealedEmptyNodes, testRootNode);
+                }
+
+                final Deque<Dependency> toProcess = new LinkedList<>(dependencies.values());
+                while (!toProcess.isEmpty()) {
+                    final Dependency dependency = toProcess.remove();
+                    if ((dependency.getDependencies() == null) || dependency.getDependencies().isEmpty()) {
+                        final String purl = dependency.getRef();
+                        DependencyNode concealedNode = concealedNodes.get(purl);
+                        if (concealedNode == null) {
+                            concealedNode = concealedEmptyNodes.get(purl);
+                        }
+                        if (concealedNode != null) {
+                            getLog().info("CycloneDX: Populating concealed node: " + purl);
+                            for (DependencyNode child: concealedNode.getChildren()) {
+                                buildDependencyGraphNode(componentRefs, dependencies, child, dependency);
+                                buildDependencyGraphNode(componentRefs, dependencies, child, null);
+                            }
+                            final Dependency topLevelDependency = dependencies.get(dependency);
+                            if (topLevelDependency.getDependencies() != null) {
+                                toProcess.addAll(topLevelDependency.getDependencies());
+                            }
+                        }
+                    }
+                }
             }
         } catch (DependencyCollectorBuilderException e) {
             if (mavenProject != null) {
@@ -389,28 +464,70 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 throw new MojoExecutionException("An error occurred building dependency graph", e);
             }
         }
-        return dependencies;
+
+        return dependencies.keySet();
     }
 
-    private void buildDependencyGraphNode(final Set<String> componentRefs, final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
+    /**
+     * Add all runtime nodes with children into the map.  Key is purl, value is the node.
+     * @param concealedNodes The map of references to concealed nodes with children
+     * @param concealedEmptyNodes The map of references to concealed nodes without children
+     * @param node The node to add
+     */
+    private void collectRuntimeNodes(Map<String, DependencyNode> concealedNodes, Map<String, DependencyNode> concealedEmptyNodes, DependencyNode node) {
+        if (!node.getChildren().isEmpty()) {
+            if (Artifact.SCOPE_RUNTIME.equals(node.getArtifact().getScope())) {
+                final String purl = generatePackageUrl(node.getArtifact());
+                concealedNodes.put(purl, node) ;
+                for (DependencyNode child: node.getChildren()) {
+                    collectNodes(concealedNodes, concealedEmptyNodes, child);
+                }
+            } else {
+                for (DependencyNode child: node.getChildren()) {
+                    collectRuntimeNodes(concealedNodes, concealedEmptyNodes, child);
+                }
+            }
+        }
+    }
+
+    /**
+     * Add all nodes with children into the map.  Key is purl, value is the node.
+     * @param concealedNodes The map of references to concealed nodes with children
+     * @param concealedEmptyNodes The map of references to concealed nodes without children
+     * @param node The node to add
+     */
+    private void collectNodes(Map<String, DependencyNode> concealedNodes, Map<String, DependencyNode> concealedEmptyNodes, DependencyNode node) {
+        final String purl = generatePackageUrl(node.getArtifact());
+        if (!node.getChildren().isEmpty()) {
+            concealedNodes.put(purl, node) ;
+            for (DependencyNode child: node.getChildren()) {
+                collectNodes(concealedNodes, concealedEmptyNodes, child);
+            }
+        } else {
+            concealedEmptyNodes.put(purl, node);
+        }
+    }
+
+    private void buildDependencyGraphNode(final Set<String> componentRefs, final Map<Dependency, Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
         final String purl = modelConverter.generatePackageUrl(artifactNode.getArtifact());
         final Dependency dependency = new Dependency(purl);
-        final String parentRef = (parent != null) ? parent.getRef() : null;
-        componentRefs.stream().filter(s -> s != null && s.equals(purl))
-                .forEach(s -> addDependencyToGraph(dependencies, parentRef, dependency));
+        if (componentRefs.contains(purl)) {
+            addDependencyToGraph(dependencies, parent, dependency);
+        } else {
+            getLog().warn("CycloneDX: Could not locate component " + purl + " in componentRefs");
+        }
         for (final DependencyNode childrenNode : artifactNode.getChildren()) {
             buildDependencyGraphNode(componentRefs, dependencies, childrenNode, dependency);
         }
     }
 
-    private void addDependencyToGraph(final Set<Dependency> dependencies, final String parentRef, final Dependency dependency) {
-        if (parentRef == null) {
-            dependencies.add(dependency);
-        } else {
-            for (final Dependency d : dependencies) {
-                if (d.getRef().equals(parentRef) && !parentRef.equals(dependency.getRef())) {
-                    d.addDependency(dependency);
-                }
+    private void addDependencyToGraph(final Map<Dependency, Dependency> dependencies, final Dependency parent, final Dependency dependency) {
+        if (parent == null) {
+            dependencies.putIfAbsent(dependency, dependency);
+        } else if (!parent.getRef().equals(dependency.getRef())) {
+            final Dependency topLevelParent = dependencies.get(parent);
+            if (topLevelParent != null) {
+                topLevelParent.addDependency(dependency);
             }
         }
     }
@@ -436,5 +553,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
+    }
+
+    /**
+     * Create a project building request
+     * @param mavenProject The maven project associated with this build request
+     * @return The project building request
+     */
+    private ProjectBuildingRequest getProjectBuildingRequest(final MavenProject mavenProject) {
+        final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
+        if (mavenProject != null) {
+            buildingRequest.setProject(mavenProject);
+        } else {
+            buildingRequest.setProject(this.project);
+        }
+        return buildingRequest;
     }
 }

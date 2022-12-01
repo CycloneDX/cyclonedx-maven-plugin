@@ -117,7 +117,6 @@ public class IssueTrustification1Test {
         assertEquals("Invalid dependency count for test_nested_dependency3", 0, testNestedDependency3Dependencies.size());
     }
 
-
     /**
      * This test ensures that any dependencies obscured by <i>runtime</i> scope are discovered and present in the dependency graph
      * @throws Exception
@@ -158,6 +157,43 @@ public class IssueTrustification1Test {
         assertEquals("Invalid dependency count for shared_runtime_dependency2", 0, testSharedDependency2Dependencies.size());
     }
 
+    /**
+     * This test ensures that the Components and Dependencies are consistent, and that all sub-dependencies exist at the top level.
+     * @throws Exception
+     */
+    @Test
+    public void testExtraneousComponents() throws Exception {
+        final File projDir = cleanAndBuild();
+
+        final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
+
+        final NodeList metadataList = bom.getElementsByTagName("metadata");
+        assertEquals("Expected a single metadata element", 1, metadataList.getLength());
+        final Node metadata = metadataList.item(0);
+        final Set<String> metadataComponentReferences = getComponentReferences(metadata);
+
+        final NodeList componentsList = bom.getElementsByTagName("components");
+        assertEquals("Expected a single components element", 1, componentsList.getLength());
+        final Node components = componentsList.item(0);
+        final Set<String> componentReferences = getComponentReferences(components);
+
+        final NodeList dependenciesList = bom.getElementsByTagName("dependencies");
+        assertEquals("Expected a single dependencies element", 1, dependenciesList.getLength());
+        final Node dependencies = dependenciesList.item(0);
+        final Set<String> dependencyReferences = getDependencyReferences(dependencies);
+
+        // Each dependency reference should have a component
+        for (String dependencyRef: dependencyReferences) {
+            assertTrue("Missing component for dependency reference " + dependencyRef,
+                componentReferences.contains(dependencyRef) || metadataComponentReferences.contains(dependencyRef));
+        }
+
+        // Each component reference should have a top level dependency
+        for (String componentRef: componentReferences) {
+            assertNotNull("Missing top level dependency for component reference " + componentRef, getDependencyNode(dependencies, componentRef));
+        }
+    }
+
     private File cleanAndBuild() throws Exception {
         File projectDirTransformed = new File(
                 "target/test-classes/transformed-projects/issue-trustification1"
@@ -184,12 +220,20 @@ public class IssueTrustification1Test {
     }
 
     private static Node getDependencyNode(final Node dependencies, final String ref) {
-        final NodeList children = dependencies.getChildNodes();
+        return getChildElement(dependencies, ref, "dependency", "ref");
+    }
+
+    private static Node getComponentNode(final Node components, final String ref) {
+        return getChildElement(components, ref, "component", "bom-ref");
+    }
+
+    private static Node getChildElement(final Node parent, final String ref, final String elementName, final String attrName) {
+        final NodeList children = parent.getChildNodes();
         final int numChildNodes = children.getLength();
         for (int index = 0 ; index < numChildNodes ; index++) {
             final Node child = children.item(index);
-            if ((child.getNodeType() == Node.ELEMENT_NODE) && "dependency".equals(child.getNodeName())) {
-                final Node refNode = child.getAttributes().getNamedItem("ref");
+            if ((child.getNodeType() == Node.ELEMENT_NODE) && elementName.equals(child.getNodeName())) {
+                final Node refNode = child.getAttributes().getNamedItem(attrName);
                 if (ref.equals(refNode.getNodeValue())) {
                     return child;
                 }
@@ -198,17 +242,30 @@ public class IssueTrustification1Test {
         return null;
     }
 
-    private static Set<String> getDependencyReferences(final Node dependencies) {
-        final Set<String> references = new HashSet<>();
-        final NodeList children = dependencies.getChildNodes();
+    private static Set<String> getComponentReferences(final Node parent) {
+        return getReferences(null, parent, "component", "bom-ref");
+    }
+
+    private static Set<String> getDependencyReferences(final Node parent) {
+        return getReferences(null, parent, "dependency", "ref");
+    }
+
+    private static Set<String> getReferences(Set<String> references, final Node rootNode, final String elementName, final String attrName) {
+        if (references == null) {
+            references = new HashSet<>();
+        }
+        final NodeList children = rootNode.getChildNodes();
         final int numChildNodes = children.getLength();
         for (int index = 0 ; index < numChildNodes ; index++) {
             final Node child = children.item(index);
-            if ((child.getNodeType() == Node.ELEMENT_NODE) && "dependency".equals(child.getNodeName())) {
-                final Node refNode = child.getAttributes().getNamedItem("ref");
-                if (refNode != null) {
-                    references.add(refNode.getNodeValue());
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+                if (elementName.equals(child.getNodeName())) {
+                    final Node refNode = child.getAttributes().getNamedItem(attrName);
+                    if (refNode != null) {
+                        references.add(refNode.getNodeValue());
+                    }
                 }
+                getReferences(references, child, elementName, attrName);
             }
         }
         return references;

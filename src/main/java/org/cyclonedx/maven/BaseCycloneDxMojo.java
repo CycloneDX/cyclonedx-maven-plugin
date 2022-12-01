@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
@@ -347,10 +348,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     private void validateBom(final Bom bom) {
-        final Set<String> componentRefs = new HashSet<>();
-        componentRefs.add(bom.getMetadata().getComponent().getBomRef());
+        final Map<String, Component> components = new HashMap<>();
+        components.put(bom.getMetadata().getComponent().getBomRef(), bom.getMetadata().getComponent());
         for (Component component: bom.getComponents()) {
-            componentRefs.add(component.getBomRef());
+            components.put(component.getBomRef(), component);
         }
         final Set<String> dependencyRefs = new HashSet<>();
         for (Dependency dependency: bom.getDependencies()) {
@@ -361,14 +362,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
         }
         // Check all components have a top level dependency
-        for (String componentRef: componentRefs) {
+        for (Entry<String, Component> entry: components.entrySet()) {
+            final String componentRef = entry.getKey();
             if (!dependencyRefs.contains(componentRef)) {
-                getLog().warn("CycloneDX: Component missing top level dependency entry: " + componentRef);
+                getLog().info("CycloneDX: Component missing top level dependency entry, pruning component from bom: " + componentRef);
+                final Component component = entry.getValue();
+                if (component != null) {
+                    bom.getComponents().remove(component);
+                }
             }
         }
         // Check all transitive dependencies have a component
         for (String dependencyRef: dependencyRefs) {
-            if (!componentRefs.contains(dependencyRef)) {
+            if (!components.containsKey(dependencyRef)) {
                 getLog().warn("CycloneDX: Dependency missing component entry: " + dependencyRef);
             }
         }

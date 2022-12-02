@@ -163,34 +163,31 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             componentRefs.add(projectBomComponent.getBomRef());
 
             for (final Artifact artifact : mavenProject.getArtifacts()) {
-                if (shouldInclude(artifact)) {
-                    final Component component = convert(artifact);
+                final Component component = convert(artifact);
 
-                    // ensure that only one component with the same bom-ref exists in the BOM
-                    if (!componentRefs.contains(component.getBomRef())) {
-                        Component.Scope componentScope = null;
-                        for (String projectId : dependencyAnalysisMap.keySet()) {
-                            ProjectDependencyAnalysis dependencyAnalysis = dependencyAnalysisMap.get(projectId);
-                            Component.Scope currentProjectScope = getComponentScope(component, artifact, dependencyAnalysis);
-                            // Set scope to required if the component is used in any project
-                            if (Component.Scope.REQUIRED.equals(currentProjectScope)) {
-                                componentScope = currentProjectScope;
-                                break;
-                            } else if (componentScope == null && currentProjectScope != null) {
-                                // Set optional or excluded scope
-                                componentScope = currentProjectScope;
-                            }
+                // ensure that only one component with the same bom-ref exists in the BOM
+                if (!componentRefs.contains(component.getBomRef())) {
+                    Component.Scope componentScope = null;
+                    for (ProjectDependencyAnalysis dependencyAnalysis : dependencyAnalysisMap.values()) {
+                        Component.Scope currentProjectScope = getComponentScope(component, artifact, dependencyAnalysis);
+                        // Set scope to required if the component is used in any project
+                        if (Component.Scope.REQUIRED.equals(currentProjectScope)) {
+                            componentScope = currentProjectScope;
+                            break;
+                        } else if (componentScope == null && currentProjectScope != null) {
+                            // Set optional or excluded scope
+                            componentScope = currentProjectScope;
                         }
-                        component.setScope(componentScope);
-                        componentRefs.add(component.getBomRef());
-                        components.add(component);
-
-                        projectComponentRefs.add(component.getBomRef());
                     }
+                    component.setScope(componentScope);
+                    componentRefs.add(component.getBomRef());
+                    components.add(component);
+
+                    projectComponentRefs.add(component.getBomRef());
                 }
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                projectDependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
+                projectDependencies.addAll(buildDependencyGraph(mavenProject));
                 dependencies.addAll(projectDependencies);
             }
         }

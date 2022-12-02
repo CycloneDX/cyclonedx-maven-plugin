@@ -32,5 +32,11 @@
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>shared_runtime_dependency</artifactId>
+            <version>1.0.0</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 </project>

@@ -19,16 +19,24 @@
         <module>dependency2</module>
 
         <module>test_dependency</module>
+        <module>test_compile_dependency</module>
         <module>test_nested_dependency1</module>
         <module>test_nested_dependency2</module>
         <module>test_nested_dependency3</module>
 
         <module>shared_dependency1</module>
         <module>shared_dependency2</module>
+        <module>shared_runtime_dependency</module>
 
         <module>runtime_dependency</module>
         <module>shared_runtime_dependency1</module>
         <module>shared_runtime_dependency2</module>
+
+        <module>type_dependency</module>
+        <module>shared_type_dependency1</module>
+        <module>shared_type_dependency2</module>
+        <module>shared_type_dependency3</module>
+        <module>shared_type_dependency4</module>
     </modules>
     <build>
         <plugins>

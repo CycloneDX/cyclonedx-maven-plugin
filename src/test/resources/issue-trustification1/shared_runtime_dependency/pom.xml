@@ -13,24 +13,9 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>dependency1</artifactId>
+    <artifactId>shared_runtime_dependency</artifactId>
     <packaging>jar</packaging>
     <version>1.0.0</version>
 
-    <name>Dependency 1</name>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>dependency2</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>test_compile_dependency</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-    </dependencies>
+    <name>Shared Runtime Dependency</name>
 </project>

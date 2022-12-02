@@ -66,17 +66,15 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
             }
             getLog().info("Analyzing " + mavenProject.getArtifactId());
             for (final Artifact artifact : mavenProject.getArtifacts()) {
-                if (shouldInclude(artifact)) {
-                    final Component component = convert(artifact);
-                    // ensure that only one component with the same bom-ref exists in the BOM
-                    if (!componentRefs.contains(component.getBomRef())) {
-                        componentRefs.add(component.getBomRef());
-                        components.add(component);
-                    }
+                final Component component = convert(artifact);
+                // ensure that only one component with the same bom-ref exists in the BOM
+                if (!componentRefs.contains(component.getBomRef())) {
+                    componentRefs.add(component.getBomRef());
+                    components.add(component);
                 }
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                dependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
+                dependencies.addAll(buildDependencyGraph(mavenProject));
             }
         }
         return true;

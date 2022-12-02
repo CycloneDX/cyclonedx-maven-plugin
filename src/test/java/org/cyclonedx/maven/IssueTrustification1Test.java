@@ -1,6 +1,7 @@
 package org.cyclonedx.maven;
 
 import io.takari.maven.testing.TestResources;
+import io.takari.maven.testing.executor.MavenExecution;
 import io.takari.maven.testing.executor.MavenRuntime;
 import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
 import io.takari.maven.testing.executor.MavenVersions;
@@ -37,6 +38,12 @@ public class IssueTrustification1Test {
     private static final String TEST_NESTED_DEPENDENCY3 = "pkg:maven/com.example/test_nested_dependency3@1.0.0?type=jar";
     private static final String SHARED_RUNTIME_DEPENDENCY1 = "pkg:maven/com.example/shared_runtime_dependency1@1.0.0?type=jar";
     private static final String SHARED_RUNTIME_DEPENDENCY2 = "pkg:maven/com.example/shared_runtime_dependency2@1.0.0?type=jar";
+    private static final String TEST_COMPILE_DEPENDENCY = "pkg:maven/com.example/test_compile_dependency@1.0.0?type=jar";
+    private static final String TYPE_DEPENDENCY = "pkg:maven/com.example/type_dependency@1.0.0?classifier=tests&type=test-jar";
+    private static final String SHARED_TYPE_DEPENDENCY1 = "pkg:maven/com.example/shared_type_dependency1@1.0.0?type=jar";
+    private static final String SHARED_TYPE_DEPENDENCY2 = "pkg:maven/com.example/shared_type_dependency2@1.0.0?type=jar";
+    private static final String SHARED_TYPE_DEPENDENCY3 = "pkg:maven/com.example/shared_type_dependency3@1.0.0?type=jar";
+    private static final String SHARED_TYPE_DEPENDENCY4 = "pkg:maven/com.example/shared_type_dependency4@1.0.0?type=jar";
 
     @Rule
     public final TestResources resources = new TestResources(
@@ -52,12 +59,12 @@ public class IssueTrustification1Test {
     }
 
     /**
-     * This test ensures that any dependencies obscured by <i>test</i> scope are discovered and present in the dependency graph
+     * This test ensures that any dependencies obscured by <i>test</i> dependencies are discovered and present in the dependency graph
      * @throws Exception
      */
     @Test
     public void testConcealedTestArtifacts() throws Exception {
-        final File projDir = cleanAndBuild();
+        final File projDir = cleanAndBuild(null);
 
         final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
 
@@ -84,6 +91,7 @@ public class IssueTrustification1Test {
         */
         final Node sharedDependency1Node = getDependencyNode(dependencies, SHARED_DEPENDENCY1);
         assertNotNull("Missing shared_dependency1 dependency", sharedDependency1Node);
+        // Note: there are three dependencies for shared_dependency1, however one has runtime scope and should not be discovered
         final Set<String> testSharedDependency1Dependencies = getDependencyReferences(sharedDependency1Node);
         assertEquals("Invalid dependency count for shared_dependency1", 2, testSharedDependency1Dependencies.size());
         assertTrue("Missing shared_dependency2 dependency for shared_dependency1", testSharedDependency1Dependencies.contains(SHARED_DEPENDENCY2));
@@ -118,12 +126,12 @@ public class IssueTrustification1Test {
     }
 
     /**
-     * This test ensures that any dependencies obscured by <i>runtime</i> scope are discovered and present in the dependency graph
+     * This test ensures that any dependencies obscured by <i>runtime</i> dependencies are discovered and present in the dependency graph
      * @throws Exception
      */
     @Test
     public void testConcealedRuntimeArtifacts() throws Exception {
-        final File projDir = cleanAndBuild();
+        final File projDir = cleanAndBuild(null);
 
         final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
 
@@ -163,7 +171,7 @@ public class IssueTrustification1Test {
      */
     @Test
     public void testExtraneousComponents() throws Exception {
-        final File projDir = cleanAndBuild();
+        final File projDir = cleanAndBuild(null);
 
         final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
 
@@ -194,7 +202,85 @@ public class IssueTrustification1Test {
         }
     }
 
-    private File cleanAndBuild() throws Exception {
+    /**
+     * This test ensures that any <i>compile</i> dependencies matching top level <i>test</i> dependencies are discovered and present in the dependency graph
+     * @throws Exception
+     */
+    @Test
+    public void testTopLevelTestComponentsAsCompile() throws Exception {
+        final File projDir = cleanAndBuild(null);
+
+        final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
+
+        // BOM should contain a component element for pkg:maven/com.example/test_compile_dependency@1.0.0?type=jar
+        final NodeList componentsList = bom.getElementsByTagName("components");
+        assertEquals("Expected a single components element", 1, componentsList.getLength());
+        final Node components = componentsList.item(0);
+        final Node testCompileDependencyNode = getComponentNode(components, TEST_COMPILE_DEPENDENCY);
+        assertNotNull("Missing test_compile_dependency component", testCompileDependencyNode);
+    }
+
+    /**
+     * This test ensures that any <i>compile</i> dependencies concealed by excluded types are included in the BOM if they are visible dependencies
+     * @throws Exception
+     */
+    @Test
+    public void testTypeExcludes() throws Exception {
+        final File projDir = cleanAndBuild(new String[]{"test-jar"});
+
+        final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
+
+        final NodeList componentsList = bom.getElementsByTagName("components");
+        assertEquals("Expected a single components element", 1, componentsList.getLength());
+        final Node components = componentsList.item(0);
+
+        final NodeList dependenciesList = bom.getElementsByTagName("dependencies");
+        assertEquals("Expected a single dependencies element", 1, dependenciesList.getLength());
+        final Node dependencies = dependenciesList.item(0);
+
+        // BOM should not contain pkg:maven/com.example/type_dependency@1.0.0?classifier=tests&type=test-jar
+        // component nor top level dependency because of type test-jar
+        final Node testTypeDependencyComponentNode = getComponentNode(components, TYPE_DEPENDENCY);
+        assertNull("Unexpected type_dependency component discovered in BOM", testTypeDependencyComponentNode);
+        final Node testTypeDependencyNode = getDependencyNode(dependencies, TYPE_DEPENDENCY);
+        assertNull("Unexpected type_dependency dependency discovered in BOM", testTypeDependencyNode);
+
+        // BOM should contain pkg:maven/com.example/shared_type_dependency1@1.0.0?type=jar and shared_test_dependency2 and
+        // pkg:maven/com.example/shared_type_dependency2@1.0.0?type=jar components/dependencies as they are referenced by dependency2
+        final Node sharedTypeDependency1ComponentNode = getComponentNode(components, SHARED_TYPE_DEPENDENCY1);
+        assertNotNull("Missing shared_type_dependency1 component", sharedTypeDependency1ComponentNode);
+        final Node sharedTypeDependency2ComponentNode = getComponentNode(components, SHARED_TYPE_DEPENDENCY2);
+        assertNotNull("Missing shared_type_dependency2 component", sharedTypeDependency2ComponentNode);
+        /*
+           <dependency ref="pkg:maven/com.example/shared_type_dependency1@1.0.0?type=jar">
+             <dependency ref="pkg:maven/com.example/shared_type_dependency2@1.0.0?type=jar"/>
+           </dependency>
+           <dependency ref="pkg:maven/com.example/shared_type_dependency2@1.0.0?type=jar"/>
+        */
+        final Node sharedTypeDependency1Node = getDependencyNode(dependencies, SHARED_TYPE_DEPENDENCY1);
+        assertNotNull("Missing shared_type_dependency1 dependency", sharedTypeDependency1Node);
+        Set<String> sharedTypeDependency1Dependencies = getDependencyReferences(sharedTypeDependency1Node);
+        assertEquals("Invalid dependency count for shared_type_dependency1", 1, sharedTypeDependency1Dependencies.size());
+        assertTrue("Missing shared_type_dependency2 dependency for shared_type_dependency1", sharedTypeDependency1Dependencies.contains(SHARED_TYPE_DEPENDENCY2));
+
+        final Node sharedTypeDependency2Node = getDependencyNode(dependencies, SHARED_TYPE_DEPENDENCY2);
+        assertNotNull("Missing shared_type_dependency2 dependency", sharedTypeDependency2Node);
+
+        // BOM should not contain pkg:maven/com.example/shared_type_dependency3@1.0.0?type=jar nor
+        // pkg:maven/com.example/shared_type_dependency4@1.0.0?type=jar components/dependencies
+        // as they are only referenced via type_dependency
+        final Node sharedTypeDependency3ComponentNode = getComponentNode(components, SHARED_TYPE_DEPENDENCY3);
+        assertNull("Unexpected shared_type_dependency3 component discovered in BOM", sharedTypeDependency3ComponentNode);
+        final Node sharedTypeDependency3Node = getDependencyNode(dependencies, SHARED_TYPE_DEPENDENCY3);
+        assertNull("Unexpected shared_type_dependency3 dependency discovered in BOM", sharedTypeDependency3Node);
+
+        final Node sharedTypeDependency4ComponentNode = getComponentNode(components, SHARED_TYPE_DEPENDENCY4);
+        assertNull("Unexpected shared_type_dependency4 component discovered in BOM", sharedTypeDependency4ComponentNode);
+        final Node sharedTypeDependency4Node = getDependencyNode(dependencies, SHARED_TYPE_DEPENDENCY4);
+        assertNull("Unexpected shared_type_dependency4 dependency discovered in BOM", sharedTypeDependency4Node);
+    }
+
+    private File cleanAndBuild(final String[] excludeTypes) throws Exception {
         File projectDirTransformed = new File(
                 "target/test-classes/transformed-projects/issue-trustification1"
         );
@@ -209,13 +295,19 @@ public class IssueTrustification1Test {
 
         props.load(IssueTrustification1Test.class.getClassLoader().getResourceAsStream("test.properties"));
         String projectVersion = (String) props.get("project.version");
-        verifier
+        final MavenExecution initExecution = verifier
                 .forProject(projDir) //
                 .withCliOption("-Dtest.input.version=" + projectVersion) // debug
                 .withCliOption("-X") // debug
-                .withCliOption("-B")
-                .execute("clean", "package")
-                .assertErrorFreeLog();
+                .withCliOption("-B");
+        final MavenExecution execution;
+        if ((excludeTypes != null) && (excludeTypes.length > 0)) {
+            execution = initExecution.withCliOption("-DexcludeTypes=" + String.join(",", excludeTypes));
+        } else {
+            execution = initExecution;
+        }
+        execution.execute("clean", "package")
+            .assertErrorFreeLog();
         return projDir;
     }
 

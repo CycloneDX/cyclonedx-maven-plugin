@@ -13,43 +13,40 @@
     </parent>
 
     <groupId>com.example</groupId>
-    <artifactId>trustification</artifactId>
+    <artifactId>type_dependency</artifactId>
     <packaging>jar</packaging>
     <version>1.0.0</version>
 
-    <name>Trustification</name>
+    <name>Type Dependency</name>
 
     <dependencies>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>dependency1</artifactId>
+            <artifactId>shared_type_dependency1</artifactId>
             <version>1.0.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
-            <artifactId>test_dependency</artifactId>
+            <artifactId>shared_type_dependency3</artifactId>
             <version>1.0.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>runtime_dependency</artifactId>
-            <version>1.0.0</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>test_compile_dependency</artifactId>
-            <version>1.0.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>type_dependency</artifactId>
-            <version>1.0.0</version>
-            <type>test-jar</type>
             <scope>compile</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                  <execution>
+                    <goals>
+                      <goal>test-jar</goal>
+                    </goals>
+                  </execution>
+                </executions>
+              </plugin>
+          </plugins>
+    </build>
 </project>

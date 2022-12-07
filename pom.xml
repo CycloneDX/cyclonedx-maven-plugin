@@ -66,6 +66,8 @@
         <maven.jar.plugin.version>3.3.0</maven.jar.plugin.version>
         <maven.github.release.plugin.version>1.4.0</maven.github.release.plugin.version>
         <project.build.outputTimestamp>2022-11-10T07:37:14Z</project.build.outputTimestamp>
+        <junit.version>4.13.2</junit.version>
+        <junit5.version>5.9.1</junit5.version>
     </properties>
 
     <scm>
@@ -171,7 +173,40 @@
             <scope>test</scope>
             <version>3.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit5.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <prerequisites>
         <maven>3.1</maven>

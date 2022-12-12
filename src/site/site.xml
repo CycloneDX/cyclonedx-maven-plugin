@@ -1,4 +1,5 @@
-<project>
+<project xmlns="http://maven.apache.org/DECORATION/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/DECORATION/1.0.0 http://maven.apache.org/xsd/decoration-1.0.0.xsd">
     <skin>
         <groupId>org.apache.maven.skins</groupId>
         <artifactId>maven-fluido-skin</artifactId>
@@ -16,10 +17,30 @@
             </twitter>
         </fluidoSkin>
     </custom>
+    <publishDate position="right" />
+    <version position="right" />
+
     <body>
+        <breadcrumbs>
+            <item name="OWASP" href="https://www.owasp.org/" />
+            <item name="CycloneDX"  href="https://www.cyclonedx.org/" />
+            <item name="Tool Center" href="https://cyclonedx.org/tool-center/" />
+            <item name="CycloneDX Maven Plugin"  href="index.html" />
+        </breadcrumbs>
         <links>
-            <item name="OWASP CycloneDX" href="https://www.cyclonedx.org/"/>
+            <item name="Sources" href="https://github.com/CycloneDX/cyclonedx-maven-plugin"/>
         </links>
+
+        <menu name="Overview">
+          <item name="Introduction" href="index.html"/>
+          <item name="Goals" href="plugin-info.html">
+              <item name="cyclonedx:makeAggregateBom" href="makeAggregateBom-mojo.html"/>
+              <item name="cyclonedx:makeBom" href="makeBom-mojo.html"/>
+              <item name="cyclonedx:makePackageBom" href="makePackageBom-mojo.html"/>
+          </item>
+          <!-- item name="Usage" href="usage.html"/>
+          <item name="FAQ" href="faq.html"/ -->
+        </menu>
         <menu ref="reports"/>
     </body>
 </project>

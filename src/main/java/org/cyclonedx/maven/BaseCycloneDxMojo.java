@@ -107,51 +107,101 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "reactorProjects", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
 
+    /**
+     * The component type associated to the SBOM metadata. See
+     * <a href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported
+     * values. 
+     */
     @Parameter(property = "projectType", defaultValue = "library", required = false)
     private String projectType;
 
+    /**
+     * The CycloneDX schema version the BOM will comply with.
+     */
     @Parameter(property = "schemaVersion", defaultValue = "1.4", required = false)
     private String schemaVersion;
 
+    /**
+     * The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).
+     */
     @Parameter(property = "outputFormat", defaultValue = "all", required = false)
     private String outputFormat;
 
+    /**
+     * The CycloneDX output name (without extension) that should be generated.
+     */
     @Parameter(property = "outputName", defaultValue = "bom", required = false)
     private String outputName;
 
+    /**
+     * Should reactor projects be included or not?
+     */
     @Parameter(property = "outputReactorProjects", defaultValue = "true", required = false)
     private Boolean outputReactorProjects;
 
+    /**
+     * Should the resulting BOM contain a unique serial number?
+     */
     @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
     private Boolean includeBomSerialNumber;
 
+    /**
+     * Should compile scoped artifacts be included in bom?
+     */
     @Parameter(property = "includeCompileScope", defaultValue = "true", required = false)
     private Boolean includeCompileScope;
 
+    /**
+     * Should provided scoped artifacts be included in bom?
+     */
     @Parameter(property = "includeProvidedScope", defaultValue = "true", required = false)
     private Boolean includeProvidedScope;
 
+    /**
+     * Should runtime scoped artifacts be included in bom?
+     */
     @Parameter(property = "includeRuntimeScope", defaultValue = "true", required = false)
     private Boolean includeRuntimeScope;
 
+    /**
+     * Should test scoped artifacts be included in bom?
+     */
     @Parameter(property = "includeTestScope", defaultValue = "false", required = false)
     private Boolean includeTestScope;
 
+    /**
+     * Should system scoped artifacts be included in bom?
+     */
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private Boolean includeSystemScope;
 
+    /**
+     * Should license text be included in bom?
+     */
     @Parameter(property = "includeLicenseText", defaultValue = "false", required = false)
     private Boolean includeLicenseText;
 
+    /**
+     * Excluded types.
+     */
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
+    /**
+     * Excluded ArtifactIds.
+     */
     @Parameter(property = "excludeArtifactId", required = false)
     protected String[] excludeArtifactId;
 
+    /**
+     * Excluded GroupIds.
+     */
     @Parameter(property = "excludeGroupId", required = false)
     protected String[] excludeGroupId;
 
+    /**
+     * Should project artifactId with the word "test" be excluded in bom?
+     */
     @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
     protected Boolean excludeTestProject;
 
@@ -161,14 +211,23 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private DependencyCollectorBuilder dependencyCollectorBuilder;
 
+    /**
+     * Skip CycloneDX execution.
+     */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skip", defaultValue = "false", required = false)
     private boolean skip = false;
 
+    /**
+     * Don't attach bom.
+     */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skipAttach", defaultValue = "false", required = false)
     private boolean skipAttach = false;
 
+    /**
+     * Verbose output.
+     */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.verbose", defaultValue = "true", required = false)
     private boolean verbose = true;
@@ -191,7 +250,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     /**
      * Specify the project dependency analyzer to use (plexus component role-hint). By default,
-     * <a href="/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare
+     * <a href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare
      * a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus
      * role name, and you specify the role name here.
      *

@@ -28,7 +28,7 @@
             <item name="CycloneDX Maven Plugin"  href="index.html" />
         </breadcrumbs>
         <links>
-            <item name="Sources" href="https://github.com/CycloneDX/cyclonedx-maven-plugin"/>
+            <item name="Sources" href="https://www.github.com/CycloneDX/cyclonedx-maven-plugin"/>
         </links>
 
         <menu name="Overview">

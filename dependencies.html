@@ -56,6 +56,7 @@
       <li><a href="ci-management.html" title="CI Management"><span class="none"></span>CI Management</a></li>
       <li class="active"><a href="#"><span class="none"></span>Dependencies</a></li>
       <li><a href="dependency-info.html" title="Dependency Information"><span class="none"></span>Dependency Information</a></li>
+      <li><a href="dependency-management.html" title="Dependency Management"><span class="none"></span>Dependency Management</a></li>
       <li><a href="distribution-management.html" title="Distribution Management"><span class="none"></span>Distribution Management</a></li>
       <li><a href="index.html" title="About"><span class="none"></span>About</a></li>
       <li><a href="issue-management.html" title="Issue Management"><span class="none"></span>Issue Management</a></li>
@@ -145,7 +146,31 @@
 <td><a class="externalLink" href="http://takari.io/takari-plugin-testing-project/takari-plugin-testing">takari-plugin-testing</a></td>
 <td>3.0.0</td>
 <td>jar</td>
-<td><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">The Eclipse Public License, Version 1.0</a></td></tr></table></section><a name="Project_Dependencies_provided"></a><section>
+<td><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">The Eclipse Public License, Version 1.0</a></td></tr>
+<tr class="b">
+<td align="left">junit</td>
+<td><a class="externalLink" href="http://junit.org">junit</a></td>
+<td>4.13.2</td>
+<td>jar</td>
+<td><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License 1.0</a></td></tr>
+<tr class="a">
+<td align="left">org.junit.jupiter</td>
+<td><a class="externalLink" href="https://junit.org/junit5/">junit-jupiter-api</a></td>
+<td>5.9.1</td>
+<td>jar</td>
+<td><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></td></tr>
+<tr class="b">
+<td align="left">org.junit.jupiter</td>
+<td><a class="externalLink" href="https://junit.org/junit5/">junit-jupiter-engine</a></td>
+<td>5.9.1</td>
+<td>jar</td>
+<td><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></td></tr>
+<tr class="a">
+<td align="left">org.junit.vintage</td>
+<td><a class="externalLink" href="https://junit.org/junit5/">junit-vintage-engine</a></td>
+<td>5.9.1</td>
+<td>jar</td>
+<td><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></td></tr></table></section><a name="Project_Dependencies_provided"></a><section>
 <h3><a name="provided"></a>provided</h3>
 <p>The following is a list of provided dependencies for this project. These dependencies are required to compile the application, but should be provided by default when using the library:</p>
 <table border="0" class="table table-striped">
@@ -296,29 +321,47 @@
 <td>jar</td>
 <td><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License - v 1.0</a></td></tr>
 <tr class="a">
-<td align="left">junit</td>
-<td><a class="externalLink" href="http://junit.org">junit</a></td>
-<td>4.11</td>
-<td>jar</td>
-<td><a class="externalLink" href="http://www.opensource.org/licenses/cpl1.0.txt">Common Public License Version 1.0</a></td></tr>
-<tr class="b">
 <td align="left">org.apache.commons</td>
 <td><a class="externalLink" href="https://commons.apache.org/proper/commons-compress/">commons-compress</a></td>
 <td>1.22</td>
 <td>jar</td>
 <td><a class="externalLink" href="https://www.apache.org/licenses/LICENSE-2.0.txt">Apache License, Version 2.0</a></td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">org.apache.commons</td>
 <td><a class="externalLink" href="http://commons.apache.org/proper/commons-exec/">commons-exec</a></td>
 <td>1.3</td>
 <td>jar</td>
 <td><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">Apache License, Version 2.0</a></td></tr>
+<tr class="a">
+<td align="left">org.apiguardian</td>
+<td><a class="externalLink" href="https://github.com/apiguardian-team/apiguardian">apiguardian-api</a></td>
+<td>1.1.2</td>
+<td>jar</td>
+<td><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache License, Version 2.0</a></td></tr>
 <tr class="b">
 <td align="left">org.hamcrest</td>
 <td><a class="externalLink" href="https://github.com/hamcrest/JavaHamcrest/hamcrest-core">hamcrest-core</a></td>
 <td>1.3</td>
 <td>jar</td>
-<td><a class="externalLink" href="http://www.opensource.org/licenses/bsd-license.php">New BSD License</a></td></tr></table></section><a name="Project_Transitive_Dependencies_provided"></a><section>
+<td><a class="externalLink" href="http://www.opensource.org/licenses/bsd-license.php">New BSD License</a></td></tr>
+<tr class="a">
+<td align="left">org.junit.platform</td>
+<td><a class="externalLink" href="https://junit.org/junit5/">junit-platform-commons</a></td>
+<td>1.9.1</td>
+<td>jar</td>
+<td><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></td></tr>
+<tr class="b">
+<td align="left">org.junit.platform</td>
+<td><a class="externalLink" href="https://junit.org/junit5/">junit-platform-engine</a></td>
+<td>1.9.1</td>
+<td>jar</td>
+<td><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></td></tr>
+<tr class="a">
+<td align="left">org.opentest4j</td>
+<td><a class="externalLink" href="https://github.com/ota4j-team/opentest4j">opentest4j</a></td>
+<td>1.2.0</td>
+<td>jar</td>
+<td><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache License, Version 2.0</a></td></tr></table></section><a name="Project_Transitive_Dependencies_provided"></a><section>
 <h3><a name="provided"></a>provided</h3>
 <p>The following is a list of provided dependencies for this project. These dependencies are required to compile the application, but should be provided by default when using the library:</p>
 <table border="0" class="table table-striped">
@@ -1125,20 +1168,55 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td>
 <p><b>Description: </b>Takari: The future of software delivery.</p>
 <p><b>URL: </b><a class="externalLink" href="http://takari.io/takari-plugin-testing-project/takari-plugin-testing">http://takari.io/takari-plugin-testing-project/takari-plugin-testing</a></p>
-<p><b>Project Licenses: </b><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">The Eclipse Public License, Version 1.0</a></p></td></tr></table></div>
+<p><b>Project Licenses: </b><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">The Eclipse Public License, Version 1.0</a></p></td></tr></table></div></li>
+<li>org.junit.jupiter:junit-jupiter-api:jar:5.9.1 (test) <img id="_img119" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep118', '_img119' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep118" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>JUnit Jupiter API</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>Module &quot;junit-jupiter-api&quot; of JUnit 5.</p>
+<p><b>URL: </b><a class="externalLink" href="https://junit.org/junit5/">https://junit.org/junit5/</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></p></td></tr></table></div>
 <ul>
-<li>junit:junit:jar:4.11 (test) <img id="_img119" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep118', '_img119' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep118" style="display:none">
+<li>org.opentest4j:opentest4j:jar:1.2.0 (test) <img id="_img121" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep120', '_img121' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep120" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>org.opentest4j:opentest4j</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>Open Test Alliance for the JVM</p>
+<p><b>URL: </b><a class="externalLink" href="https://github.com/ota4j-team/opentest4j">https://github.com/ota4j-team/opentest4j</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache License, Version 2.0</a></p></td></tr></table></div></li>
+<li>org.junit.platform:junit-platform-commons:jar:1.9.1 (test) <img id="_img123" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep122', '_img123' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep122" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>JUnit Platform Commons</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>Module &quot;junit-platform-commons&quot; of JUnit 5.</p>
+<p><b>URL: </b><a class="externalLink" href="https://junit.org/junit5/">https://junit.org/junit5/</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></p></td></tr></table></div></li>
+<li>org.apiguardian:apiguardian-api:jar:1.1.2 (test) <img id="_img125" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep124', '_img125' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep124" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>org.apiguardian:apiguardian-api</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>@API Guardian</p>
+<p><b>URL: </b><a class="externalLink" href="https://github.com/apiguardian-team/apiguardian">https://github.com/apiguardian-team/apiguardian</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="http://www.apache.org/licenses/LICENSE-2.0.txt">The Apache License, Version 2.0</a></p></td></tr></table></div></li></ul></li>
+<li>junit:junit:jar:4.13.2 (test) <img id="_img127" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep126', '_img127' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep126" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>JUnit</th></tr>
 <tr class="b">
 <td>
-<p><b>Description: </b>JUnit is a regression testing framework written by Erich Gamma and Kent Beck.
-        It is used by the developer who implements unit tests in Java.</p>
+<p><b>Description: </b>JUnit is a unit testing framework for Java, created by Erich Gamma and Kent Beck.</p>
 <p><b>URL: </b><a class="externalLink" href="http://junit.org">http://junit.org</a></p>
-<p><b>Project Licenses: </b><a class="externalLink" href="http://www.opensource.org/licenses/cpl1.0.txt">Common Public License Version 1.0</a></p></td></tr></table></div>
+<p><b>Project Licenses: </b><a class="externalLink" href="http://www.eclipse.org/legal/epl-v10.html">Eclipse Public License 1.0</a></p></td></tr></table></div>
 <ul>
-<li>org.hamcrest:hamcrest-core:jar:1.3 (test) <img id="_img121" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep120', '_img121' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep120" style="display:none">
+<li>org.hamcrest:hamcrest-core:jar:1.3 (test) <img id="_img129" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep128', '_img129' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep128" style="display:none">
 <table border="0" class="table table-striped">
 <tr class="a">
 <th>Hamcrest Core</th></tr>
@@ -1146,15 +1224,45 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td>
 <p><b>Description: </b>This is the core API of hamcrest matcher framework to be used by third-party framework providers. This includes the a foundation set of matcher implementations for common operations.</p>
 <p><b>URL: </b><a class="externalLink" href="https://github.com/hamcrest/JavaHamcrest/hamcrest-core">https://github.com/hamcrest/JavaHamcrest/hamcrest-core</a></p>
-<p><b>Project Licenses: </b><a class="externalLink" href="http://www.opensource.org/licenses/bsd-license.php">New BSD License</a></p></td></tr></table></div></li></ul></li></ul></li></ul></li></ul></section></section><a name="Licenses"></a><section>
+<p><b>Project Licenses: </b><a class="externalLink" href="http://www.opensource.org/licenses/bsd-license.php">New BSD License</a></p></td></tr></table></div></li></ul></li>
+<li>org.junit.jupiter:junit-jupiter-engine:jar:5.9.1 (test) <img id="_img131" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep130', '_img131' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep130" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>JUnit Jupiter Engine</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>Module &quot;junit-jupiter-engine&quot; of JUnit 5.</p>
+<p><b>URL: </b><a class="externalLink" href="https://junit.org/junit5/">https://junit.org/junit5/</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></p></td></tr></table></div>
+<ul>
+<li>org.junit.platform:junit-platform-engine:jar:1.9.1 (test) <img id="_img133" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep132', '_img133' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep132" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>JUnit Platform Engine API</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>Module &quot;junit-platform-engine&quot; of JUnit 5.</p>
+<p><b>URL: </b><a class="externalLink" href="https://junit.org/junit5/">https://junit.org/junit5/</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></p></td></tr></table></div></li></ul></li>
+<li>org.junit.vintage:junit-vintage-engine:jar:5.9.1 (test) <img id="_img135" src="./images/icon_info_sml.gif" alt="[Information]" onclick="toggleDependencyDetails( '_dep134', '_img135' );" style="cursor: pointer; vertical-align: text-bottom;"></img><div id="_dep134" style="display:none">
+<table border="0" class="table table-striped">
+<tr class="a">
+<th>JUnit Vintage Engine</th></tr>
+<tr class="b">
+<td>
+<p><b>Description: </b>Module &quot;junit-vintage-engine&quot; of JUnit 5.</p>
+<p><b>URL: </b><a class="externalLink" href="https://junit.org/junit5/">https://junit.org/junit5/</a></p>
+<p><b>Project Licenses: </b><a class="externalLink" href="https://www.eclipse.org/legal/epl-v20.html">Eclipse Public License v2.0</a></p></td></tr></table></div></li></ul></li></ul></section></section><a name="Licenses"></a><section>
 <h2><a name="Licenses"></a>Licenses</h2>
 <p><b>Apache License Version 2.0: </b>JsonSchemaValidator</p>
 <p><b>The BSD License: </b>Stax2 API</p>
-<p><b>The Apache License, Version 2.0: </b>Woodstox</p>
+<p><b>The Apache License, Version 2.0: </b>Woodstox, org.apiguardian:apiguardian-api, org.opentest4j:opentest4j</p>
 <p><b>Apache 2.0: </b>error-prone annotations</p>
+<p><b>Eclipse Public License 1.0: </b>JUnit</p>
 <p><b>The Eclipse Public License, Version 1.0: </b>takari-plugin-integration-testing, takari-plugin-testing</p>
 <p><b>MIT License: </b>SLF4J API Module</p>
 <p><b>BSD-3-Clause: </b>asm</p>
+<p><b>Eclipse Public License v2.0: </b>JUnit Jupiter API, JUnit Jupiter Engine, JUnit Platform Commons, JUnit Platform Engine API, JUnit Vintage Engine</p>
 <p><b>Public Domain: </b>AOP alliance</p>
 <p><b>New BSD License: </b>Hamcrest Core</p>
 <p><b>Eclipse Public License, Version 1.0: </b>Aether API, Aether Utilities, org.eclipse.sisu.inject, org.eclipse.sisu.plexus</p>
@@ -1166,7 +1274,6 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <p><b>CDDL + GPLv2 with classpath exception: </b>javax.annotation API</p>
 <p><b>MIT license: </b>Animal Sniffer Annotations</p>
 <p><b>The Apache Software License, Version 2.0: </b>FindBugs-jsr305, Google Guice - Core Library, Guava: Google Core Libraries for Java, J2ObjC Annotations, Jackson-annotations, Jackson-core, Jackson-dataformat-XML, jackson-databind, javax.inject</p>
-<p><b>Common Public License Version 1.0: </b>JUnit</p>
 <p><b>Eclipse Public License - v 1.0: </b>m2e-workspace</p></section><a name="Dependency_File_Details"></a><section>
 <h2><a name="Dependency_File_Details"></a>Dependency File Details</h2>
 <table border="0" class="table table-striped">
@@ -1347,11 +1454,11 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="center">1.5</td>
 <td align="center">No</td></tr>
 <tr class="a">
-<td align="left">junit-4.11.jar</td>
-<td align="right">245 kB</td>
-<td align="right">266</td>
-<td align="right">233</td>
-<td align="right">28</td>
+<td align="left">junit-4.13.2.jar</td>
+<td align="right">384.6 kB</td>
+<td align="right">389</td>
+<td align="right">350</td>
+<td align="right">32</td>
 <td align="center">1.5</td>
 <td align="center">Yes</td></tr>
 <tr class="b">
@@ -1523,6 +1630,14 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="center">1.7</td>
 <td align="center">Yes</td></tr>
 <tr class="a">
+<td align="left">apiguardian-api-1.1.2.jar</td>
+<td align="right">6.8 kB</td>
+<td align="right">9</td>
+<td align="right">3</td>
+<td align="right">2</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
+<tr class="b">
 <td align="left">checker-compat-qual-2.0.0.jar</td>
 <td align="right">31.5 kB</td>
 <td align="right">47</td>
@@ -1530,7 +1645,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">10</td>
 <td align="center">1.7</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">animal-sniffer-annotations-1.14.jar</td>
 <td align="right">3.5 kB</td>
 <td align="right">12</td>
@@ -1538,7 +1653,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">1</td>
 <td align="center">1.5</td>
 <td align="center">No</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">plexus-cipher-2.0.jar</td>
 <td align="right">13 kB</td>
 <td align="right">19</td>
@@ -1546,7 +1661,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">1</td>
 <td align="center">1.7</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">plexus-classworlds-2.6.0.jar</td>
 <td align="right">52.9 kB</td>
 <td align="right">52</td>
@@ -1554,7 +1669,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">5</td>
 <td align="center">1.7</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">plexus-component-annotations-2.1.0.jar</td>
 <td align="right">4.2 kB</td>
 <td align="right">15</td>
@@ -1562,7 +1677,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">1</td>
 <td align="center">1.6</td>
 <td align="center">No</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">plexus-interpolation-1.26.jar</td>
 <td align="right">85.3 kB</td>
 <td align="right">79</td>
@@ -1570,7 +1685,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">7</td>
 <td align="center">1.6</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">plexus-sec-dispatcher-2.0.jar</td>
 <td align="right">23.6 kB</td>
 <td align="right">30</td>
@@ -1578,7 +1693,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">3</td>
 <td align="center">1.7</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">plexus-utils-3.3.1.jar</td>
 <td align="right">262 kB</td>
 <td align="right">130</td>
@@ -1586,7 +1701,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">9</td>
 <td align="center">1.6</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">stax2-api-4.2.1.jar</td>
 <td align="right">195.9 kB</td>
 <td align="right">146</td>
@@ -1594,7 +1709,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">12</td>
 <td align="center">-</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">cyclonedx-core-java-7.3.1.jar</td>
 <td align="right">1.8 MB</td>
 <td align="right">661</td>
@@ -1602,7 +1717,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">9</td>
 <td align="center">1.8</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">aether-api-1.0.0.v20140518.jar</td>
 <td align="right">136.3 kB</td>
 <td align="right">149</td>
@@ -1610,7 +1725,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">11</td>
 <td align="center">1.5</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">aether-util-1.0.0.v20140518.jar</td>
 <td align="right">145.8 kB</td>
 <td align="right">125</td>
@@ -1618,7 +1733,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">13</td>
 <td align="center">1.5</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">org.eclipse.sisu.inject-0.3.5.jar</td>
 <td align="right">379.3 kB</td>
 <td align="right">289</td>
@@ -1626,7 +1741,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">9</td>
 <td align="center">1.6</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <td align="left">org.eclipse.sisu.plexus-0.3.5.jar</td>
 <td align="right">205.3 kB</td>
 <td align="right">196</td>
@@ -1634,7 +1749,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">20</td>
 <td align="center">1.6</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">hamcrest-core-1.3.jar</td>
 <td align="right">45 kB</td>
 <td align="right">52</td>
@@ -1642,7 +1757,55 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">3</td>
 <td align="center">1.5</td>
 <td align="center">Yes</td></tr>
+<tr class="a">
+<td align="left">junit-jupiter-api-5.9.1.jar</td>
+<td align="right">207.7 kB</td>
+<td align="right">194</td>
+<td align="right">179</td>
+<td align="right">8</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
 <tr class="b">
+<td align="left">junit-jupiter-engine-5.9.1.jar</td>
+<td align="right">246.5 kB</td>
+<td align="right">151</td>
+<td align="right">134</td>
+<td align="right">9</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
+<tr class="a">
+<td align="left">junit-platform-commons-1.9.1.jar</td>
+<td align="right">103 kB</td>
+<td align="right">64</td>
+<td align="right">44</td>
+<td align="right">7</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
+<tr class="b">
+<td align="left">junit-platform-engine-1.9.1.jar</td>
+<td align="right">188.2 kB</td>
+<td align="right">143</td>
+<td align="right">127</td>
+<td align="right">9</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
+<tr class="a">
+<td align="left">junit-vintage-engine-5.9.1.jar</td>
+<td align="right">66.9 kB</td>
+<td align="right">49</td>
+<td align="right">35</td>
+<td align="right">6</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
+<tr class="b">
+<td align="left">opentest4j-1.2.0.jar</td>
+<td align="right">7.7 kB</td>
+<td align="right">11</td>
+<td align="right">7</td>
+<td align="right">2</td>
+<td align="center">-</td>
+<td align="center">Yes</td></tr>
+<tr class="a">
 <td align="left">asm-9.3.jar</td>
 <td align="right">122.2 kB</td>
 <td align="right">44</td>
@@ -1650,7 +1813,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">3</td>
 <td align="center">-</td>
 <td align="center">Yes</td></tr>
-<tr class="a">
+<tr class="b">
 <td align="left">slf4j-api-1.7.36.jar</td>
 <td align="right">41.1 kB</td>
 <td align="right">46</td>
@@ -1658,7 +1821,7 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">4</td>
 <td align="center">1.5</td>
 <td align="center">Yes</td></tr>
-<tr class="b">
+<tr class="a">
 <th>Total</th>
 <th>Size</th>
 <th>Entries</th>
@@ -1666,15 +1829,15 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <th>Packages</th>
 <th>Java Version</th>
 <th>Debug Information</th></tr>
-<tr class="a">
-<td align="right">60</td>
-<td align="right">15.8 MB</td>
-<td align="right">10565</td>
-<td align="right">8587</td>
-<td align="right">562</td>
-<td align="center">1.8</td>
-<td align="right">55</td></tr>
 <tr class="b">
+<td align="right">67</td>
+<td align="right">16.7 MB</td>
+<td align="right">11309</td>
+<td align="right">9233</td>
+<td align="right">609</td>
+<td align="center">1.8</td>
+<td align="right">62</td></tr>
+<tr class="a">
 <td align="right">compile: 21</td>
 <td align="right">compile: 8.2 MB</td>
 <td align="right">compile: 4714</td>
@@ -1682,15 +1845,15 @@ Brotli, Zstandard and ar, cpio, jar, tar, zip, dump, 7z, arj.</p>
 <td align="right">compile: 240</td>
 <td align="center">-</td>
 <td align="right">compile: 20</td></tr>
-<tr class="a">
-<td align="right">test: 7</td>
-<td align="right">test: 1.5 MB</td>
-<td align="right">test: 1026</td>
-<td align="right">test: 884</td>
-<td align="right">test: 75</td>
-<td align="center">-</td>
-<td align="right">test: 6</td></tr>
 <tr class="b">
+<td align="right">test: 14</td>
+<td align="right">test: 2.5 MB</td>
+<td align="right">test: 1770</td>
+<td align="right">test: 1530</td>
+<td align="right">test: 122</td>
+<td align="center">-</td>
+<td align="right">test: 13</td></tr>
+<tr class="a">
 <td align="right">provided: 32</td>
 <td align="right">provided: 6 MB</td>
 <td align="right">provided: 4825</td>

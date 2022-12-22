@@ -34,7 +34,7 @@
     <li class="active ">cyclonedx:makeBom</li>
         <li id="publishDate" class="pull-right"><span class="divider">|</span> Last Published: 2022-12-22</li>
           <li id="projectVersion" class="pull-right"><span class="divider">|</span>Version: 2.7.4-SNAPSHOT</li>
-      <li class="pull-right"><a href="./" title="Sources">Sources</a></li>
+      <li class="pull-right"><a href="https://www.github.com/CycloneDX/cyclonedx-maven-plugin" class="externalLink" title="Sources">Sources</a></li>
           </ul>
         </div>
       </header>
@@ -121,7 +121,7 @@
             
 <td><code>2.2</code></td>
             
-<td>Specify the project dependency analyzer to use (plexus component role-hint). By default, maven-dependency-analyzer is used. To use this, you must declare a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus role name, and you specify the role name here.<br /><b>Default value is</b>: <code>default</code>.<br /><b>User property is</b>: <code>analyzer</code>.<br /></td>
+<td>Specify the project dependency analyzer to use (plexus component role-hint). By default, <a class="externalLink" href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus role name, and you specify the role name here.<br /><b>Default value is</b>: <code>default</code>.<br /><b>User property is</b>: <code>analyzer</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -132,7 +132,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>User property is</b>: <code>excludeArtifactId</code>.<br /></td>
+<td>Excluded ArtifactIds.<br /><b>User property is</b>: <code>excludeArtifactId</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -143,7 +143,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>User property is</b>: <code>excludeGroupId</code>.<br /></td>
+<td>Excluded GroupIds.<br /><b>User property is</b>: <code>excludeGroupId</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -154,7 +154,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>excludeTestProject</code>.<br /></td>
+<td>Should project artifactId with the word &quot;test&quot; be excluded in bom?<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>excludeTestProject</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -165,7 +165,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>User property is</b>: <code>excludeTypes</code>.<br /></td>
+<td>Excluded types.<br /><b>User property is</b>: <code>excludeTypes</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -176,7 +176,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeBomSerialNumber</code>.<br /></td>
+<td>Should the resulting BOM contain a unique serial number?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeBomSerialNumber</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -187,7 +187,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeCompileScope</code>.<br /></td>
+<td>Should compile scoped artifacts be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeCompileScope</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -198,7 +198,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>includeLicenseText</code>.<br /></td>
+<td>Should license text be included in bom?<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>includeLicenseText</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -209,7 +209,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeProvidedScope</code>.<br /></td>
+<td>Should provided scoped artifacts be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeProvidedScope</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -220,7 +220,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeRuntimeScope</code>.<br /></td>
+<td>Should runtime scoped artifacts be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeRuntimeScope</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -231,7 +231,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeSystemScope</code>.<br /></td>
+<td>Should system scoped artifacts be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeSystemScope</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -242,7 +242,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>includeTestScope</code>.<br /></td>
+<td>Should test scoped artifacts be included in bom?<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>includeTestScope</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -253,7 +253,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>all</code>.<br /><b>User property is</b>: <code>outputFormat</code>.<br /></td>
+<td>The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).<br /><b>Default value is</b>: <code>all</code>.<br /><b>User property is</b>: <code>outputFormat</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -264,7 +264,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>bom</code>.<br /><b>User property is</b>: <code>outputName</code>.<br /></td>
+<td>The CycloneDX output name (without extension) that should be generated.<br /><b>Default value is</b>: <code>bom</code>.<br /><b>User property is</b>: <code>outputName</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -275,7 +275,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>outputReactorProjects</code>.<br /></td>
+<td>Should reactor projects be included or not?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>outputReactorProjects</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -286,7 +286,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>library</code>.<br /><b>User property is</b>: <code>projectType</code>.<br /></td>
+<td>The component type associated to the SBOM metadata. See <a class="externalLink" href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported values.<br /><b>Default value is</b>: <code>library</code>.<br /><b>User property is</b>: <code>projectType</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -297,7 +297,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>1.4</code>.<br /><b>User property is</b>: <code>schemaVersion</code>.<br /></td>
+<td>The CycloneDX schema version the BOM will comply with.<br /><b>Default value is</b>: <code>1.4</code>.<br /><b>User property is</b>: <code>schemaVersion</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -308,7 +308,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skip</code>.<br /></td>
+<td>Skip CycloneDX execution.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skip</code>.<br /></td>
           </tr>
           
 <tr class="b">
@@ -319,7 +319,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skipAttach</code>.<br /></td>
+<td>Don't attach bom.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skipAttach</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -330,7 +330,7 @@
             
 <td><code>-</code></td>
             
-<td>(no description)<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>cyclonedx.verbose</code>.<br /></td>
+<td>Verbose output.<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>cyclonedx.verbose</code>.<br /></td>
           </tr>
         </table>
       </section>
@@ -339,7 +339,7 @@
         <section>
 <h4><a name="a.3Canalyzer.3E"></a><b><a name="analyzer">&lt;analyzer&gt;</a></b></h4>
         
-<div>Specify the project dependency analyzer to use (plexus component role-hint). By default, maven-dependency-analyzer is used. To use this, you must declare a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus role name, and you specify the role name here.</div>
+<div>Specify the project dependency analyzer to use (plexus component role-hint). By default, <a class="externalLink" href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus role name, and you specify the role name here.</div>
         
 <ul>
           
@@ -355,7 +355,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CexcludeArtifactId.3E"></a><b><a name="excludeArtifactId">&lt;excludeArtifactId&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Excluded ArtifactIds.</div>
         
 <ul>
           
@@ -367,7 +367,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CexcludeGroupId.3E"></a><b><a name="excludeGroupId">&lt;excludeGroupId&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Excluded GroupIds.</div>
         
 <ul>
           
@@ -379,7 +379,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CexcludeTestProject.3E"></a><b><a name="excludeTestProject">&lt;excludeTestProject&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should project artifactId with the word &quot;test&quot; be excluded in bom?</div>
         
 <ul>
           
@@ -393,7 +393,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CexcludeTypes.3E"></a><b><a name="excludeTypes">&lt;excludeTypes&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Excluded types.</div>
         
 <ul>
           
@@ -405,7 +405,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeBomSerialNumber.3E"></a><b><a name="includeBomSerialNumber">&lt;includeBomSerialNumber&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should the resulting BOM contain a unique serial number?</div>
         
 <ul>
           
@@ -419,7 +419,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeCompileScope.3E"></a><b><a name="includeCompileScope">&lt;includeCompileScope&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should compile scoped artifacts be included in bom?</div>
         
 <ul>
           
@@ -433,7 +433,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeLicenseText.3E"></a><b><a name="includeLicenseText">&lt;includeLicenseText&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should license text be included in bom?</div>
         
 <ul>
           
@@ -447,7 +447,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeProvidedScope.3E"></a><b><a name="includeProvidedScope">&lt;includeProvidedScope&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should provided scoped artifacts be included in bom?</div>
         
 <ul>
           
@@ -461,7 +461,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeRuntimeScope.3E"></a><b><a name="includeRuntimeScope">&lt;includeRuntimeScope&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should runtime scoped artifacts be included in bom?</div>
         
 <ul>
           
@@ -475,7 +475,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeSystemScope.3E"></a><b><a name="includeSystemScope">&lt;includeSystemScope&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should system scoped artifacts be included in bom?</div>
         
 <ul>
           
@@ -489,7 +489,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CincludeTestScope.3E"></a><b><a name="includeTestScope">&lt;includeTestScope&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should test scoped artifacts be included in bom?</div>
         
 <ul>
           
@@ -503,7 +503,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CoutputFormat.3E"></a><b><a name="outputFormat">&lt;outputFormat&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).</div>
         
 <ul>
           
@@ -517,7 +517,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CoutputName.3E"></a><b><a name="outputName">&lt;outputName&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>The CycloneDX output name (without extension) that should be generated.</div>
         
 <ul>
           
@@ -531,7 +531,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CoutputReactorProjects.3E"></a><b><a name="outputReactorProjects">&lt;outputReactorProjects&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Should reactor projects be included or not?</div>
         
 <ul>
           
@@ -545,7 +545,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CprojectType.3E"></a><b><a name="projectType">&lt;projectType&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>The component type associated to the SBOM metadata. See <a class="externalLink" href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported values.</div>
         
 <ul>
           
@@ -559,7 +559,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CschemaVersion.3E"></a><b><a name="schemaVersion">&lt;schemaVersion&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>The CycloneDX schema version the BOM will comply with.</div>
         
 <ul>
           
@@ -573,7 +573,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3Cskip.3E"></a><b><a name="skip">&lt;skip&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Skip CycloneDX execution.</div>
         
 <ul>
           
@@ -587,7 +587,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CskipAttach.3E"></a><b><a name="skipAttach">&lt;skipAttach&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Don't attach bom.</div>
         
 <ul>
           
@@ -601,7 +601,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3Cverbose.3E"></a><b><a name="verbose">&lt;verbose&gt;</a></b></h4>
         
-<div>(no description)</div>
+<div>Verbose output.</div>
         
 <ul>
           

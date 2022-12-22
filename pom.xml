@@ -162,7 +162,7 @@
             <artifactId>takari-plugin-integration-testing</artifactId>
             <type>pom</type>
             <scope>test</scope>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
 
         <dependency>

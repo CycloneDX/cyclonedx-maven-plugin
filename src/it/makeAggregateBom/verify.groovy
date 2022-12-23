@@ -15,10 +15,11 @@ assertBomFiles("impls/impl-B/target/bom")
 
 var buildLog = new File(basedir, "build.log").text
 
-// 6 modules * 2 BOMs per module (JSON + XML) for main cyclonedx-makeAggregateBom execution
-// and root module * 2 BOMs for cyclonedx-makeAggregateBom-root-only execution
-assert 14 == (buildLog =~ /\[INFO\] CycloneDX: Writing BOM/).size()
-assert 14 == (buildLog =~ /\[INFO\] CycloneDX: Validating BOM/).size()
+// 12 = 6 modules * 2 BOMs per module (JSON + XML) for main cyclonedx-makeAggregateBom execution
+// + 2 = root module * 2 BOMs for cyclonedx-makeAggregateBom-root-only execution
+// + 12 = 6 modules * 2 BOMs per module (JSON + XML) for additional cyclonedx-makeBom execution
+assert 26 == (buildLog =~ /\[INFO\] CycloneDX: Writing BOM/).size()
+assert 26 == (buildLog =~ /\[INFO\] CycloneDX: Validating BOM/).size()
 assert 5 == (buildLog =~ /\[INFO\] Skipping CycloneDX on non-execution root/).size()
 
 // [WARNING] artifact org.cyclonedx.its:api:xml:cyclonedx:1.0-SNAPSHOT already attached, replace previous instance

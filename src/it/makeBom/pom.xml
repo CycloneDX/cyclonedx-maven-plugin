@@ -26,6 +26,14 @@
     <version>1.0-SNAPSHOT</version>
 
     <name>cyclonedx:makeBom smoke test with default configuration</name>
+    <description>This is a smoke test to show how the plugin should be used in the simplest ways and see the results.</description>
+    <url>https://github.com/CycloneDX/cyclonedx-maven-plugin</url>
+
+    <inceptionYear>2017</inceptionYear>
+    <organization>
+        <name>OWASP Foundation</name>
+        <url>https://owasp.org/</url>
+    </organization>
 
     <licenses>
         <license>
@@ -33,6 +41,23 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
+
+    <scm>
+        <connection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</connection>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin.git</url>
+        <developerConnection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/issues</url>
+    </issueManagement>
+
+    <ciManagement>
+        <system>GitHub</system>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/actions</url>
+    </ciManagement>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>

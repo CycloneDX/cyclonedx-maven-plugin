@@ -22,6 +22,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
@@ -31,6 +32,7 @@ import org.cyclonedx.model.Dependency;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,6 +45,8 @@ import java.util.Set;
         requiresDependencyResolution = ResolutionScope.TEST
 )
 public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
+    @Parameter(property = "reactorProjects", readonly = true, required = true)
+    private List<MavenProject> reactorProjects;
 
     protected boolean shouldExclude(MavenProject mavenProject) {
         boolean shouldExclude = false;
@@ -64,6 +68,10 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             getLog().info("Skipping CycloneDX");
             return;
         }
+        if (! getProject().isExecutionRoot() && ! getOutputReactorProjects()) {
+            getLog().info("Skipping CycloneDX on non-execution root");
+            return;
+        }
         logParameters();
         final Set<Component> components = new LinkedHashSet<>();
         final Set<String> componentRefs = new LinkedHashSet<>();
@@ -73,7 +81,7 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
         // Use default dependency analyzer
         dependencyAnalyzer = createProjectDependencyAnalyzer();
         // Perform dependency analysis for all projects upfront
-        for (final MavenProject mavenProject : getReactorProjects()) {
+        for (final MavenProject mavenProject : reactorProjects) {
             if (shouldExclude(mavenProject)) {
                 continue;
             }
@@ -90,13 +98,12 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
         final Component bomComponent = convert(getProject().getArtifact());
         componentRefs.add(bomComponent.getBomRef());
 
-        for (final MavenProject mavenProject : getReactorProjects()) {
+        for (final MavenProject mavenProject : reactorProjects) {
             if (shouldExclude(mavenProject)) {
                 getLog().info("Skipping " + mavenProject.getArtifactId());
                 continue;
             }
 
-            final Set<Component> projectComponents = new LinkedHashSet<>();
             final Set<String> projectComponentRefs = new LinkedHashSet<>();
             final Set<Dependency> projectDependencies = new LinkedHashSet<>();
 
@@ -148,7 +155,6 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                         components.add(component);
 
                         projectComponentRefs.add(component.getBomRef());
-                        projectComponents.add(component);
                     }
                 }
             }
@@ -156,11 +162,8 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
                 projectDependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
                 dependencies.addAll(projectDependencies);
             }
-            if (! mavenProject.isExecutionRoot() && getOutputReactorProjects()) {
-                super.execute(projectComponents, projectDependencies, mavenProject);
-            }
         }
-        addMavenProjectsAsDependencies(getReactorProjects(), dependencies);
-        super.execute(components, dependencies, getProject());
+        addMavenProjectsAsDependencies(reactorProjects, dependencies);
+        super.execute(components, dependencies);
     }
 }

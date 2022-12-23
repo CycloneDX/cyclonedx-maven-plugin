@@ -85,7 +85,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         if (schemaVersion().getVersion() >= 1.2) {
             dependencies = buildDependencyGraph(componentRefs, null);
         }
-        super.execute(components, dependencies, getProject());
+        super.execute(components, dependencies);
     }
 
 }

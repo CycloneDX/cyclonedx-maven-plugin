@@ -626,6 +626,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                     addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
                 }
             }
+            if (project.getDistributionManagement() != null && project.getDistributionManagement().getRepository() != null) {
+                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
+                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
+                }
+            }
             if (project.getIssueManagement() != null && project.getIssueManagement().getUrl() != null) {
                 if (!doesComponentHaveExternalReference(component, ExternalReference.Type.ISSUE_TRACKER)) {
                     addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);

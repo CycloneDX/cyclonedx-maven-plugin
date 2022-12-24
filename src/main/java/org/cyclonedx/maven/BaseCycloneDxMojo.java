@@ -29,16 +29,18 @@ import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.MailingList;
-import org.apache.maven.model.Model;
-import org.apache.maven.model.Parent;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectBuilder;
+import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.project.ProjectBuildingRequest;
+import org.apache.maven.project.ProjectBuildingResult;
+import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
@@ -49,7 +51,6 @@ import org.codehaus.plexus.context.Context;
 import org.codehaus.plexus.PlexusConstants;
 import org.codehaus.plexus.PlexusContainer;
 import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -70,16 +71,10 @@ import org.cyclonedx.util.LicenseResolver;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -90,9 +85,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import org.apache.commons.io.input.BOMInputStream;
 
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
@@ -232,6 +224,17 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @Parameter(property = "cyclonedx.verbose", defaultValue = "true", required = false)
     private boolean verbose = true;
 
+    /**
+     * The RepositorySystem to inject. Used by this plugin for building effective poms.
+     */
+    @org.apache.maven.plugins.annotations.Component
+    private RepositorySystem repositorySystem;
+
+    /**
+     * The ProjectBuilder to inject. Used by this plugin for building effective poms.
+     */
+    @org.apache.maven.plugins.annotations.Component
+    private ProjectBuilder mavenProjectBuilder;
     /**
      * Various messages sent to console.
      */
@@ -535,9 +538,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             component.setBomRef(component.getPurl());
         }
         if (isDescribedArtifact(artifact)) {
-            final MavenProject project = extractPom(artifact);
-            if (project != null) {
-                getClosestMetadata(artifact, project, component);
+            try {
+                final MavenProject project = getEffectiveMavenProject(artifact);
+                if (project != null) {
+                    extractMetadata(project, component);
+                }
+            } catch (ProjectBuildingException e) {
+                getLog().warn("An unexpected issue occurred attempting to resolve the effective pom for  "
+                        + artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion(), e);
             }
         }
         return component;
@@ -568,23 +576,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     }
 
     /**
-     * Resolves meta for an artifact. This method essentially does what an 'effective pom' would do,
-     * but for an artifact instead of a project. This method will attempt to resolve metadata at
-     * the lowest level of the inheritance tree and work its way up.
-     * @param artifact the artifact to resolve metadata for
-     * @param project the associated project for the artifact
-     * @param component the component to populate data for
+     * This method generates an 'effective pom' for an artifact.
+     * @param artifact the artifact to generate an effective pom of
+     * @throws ProjectBuildingException if an error is encountered
      */
-    private void getClosestMetadata(Artifact artifact, MavenProject project, Component component) {
-        extractMetadata(project, component);
-        if (project.getParent() != null) {
-            getClosestMetadata(artifact, project.getParent(), component);
-        } else if (project.getModel().getParent() != null) {
-            final MavenProject parentProject = retrieveParentProject(artifact, project);
-            if (parentProject != null) {
-                getClosestMetadata(artifact, parentProject, component);
-            }
-        }
+    private MavenProject getEffectiveMavenProject(final Artifact artifact) throws ProjectBuildingException {
+        final Artifact pomArtifact = repositorySystem.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+        final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact,
+                session.getProjectBuildingRequest().setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
+        );
+        return build.getProject();
     }
 
     /**
@@ -721,110 +722,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             }
         }
         return false;
-    }
-
-    /**
-     * Retrieves the parent pom for an artifact (if any). The parent pom may contain license,
-     * description, and other metadata whereas the artifact itself may not.
-     * @param artifact the artifact to retrieve the parent pom for
-     * @param project the maven project the artifact is part of
-     */
-    private MavenProject retrieveParentProject(final Artifact artifact, final MavenProject project) {
-        if (artifact.getFile() == null || artifact.getFile().getParentFile() == null || !isDescribedArtifact(artifact)) {
-            return null;
-        }
-        final Model model = project.getModel();
-        if (model.getParent() != null) {
-            final Parent parent = model.getParent();
-            // Navigate out of version, artifactId, and first (possibly only) level of groupId
-            final StringBuilder getout = new StringBuilder("../../../");
-            final int periods = artifact.getGroupId().length() - artifact.getGroupId().replace(".", "").length();
-            for (int i= 0; i< periods; i++) {
-                getout.append("../");
-            }
-            final File parentFile = new File(artifact.getFile().getParentFile(), getout + parent.getGroupId().replace(".", "/") + "/" + parent.getArtifactId() + "/" + parent.getVersion() + "/" + parent.getArtifactId() + "-" + parent.getVersion() + ".pom");
-            if (parentFile.exists() && parentFile.isFile()) {
-                try {
-                    return readPom(parentFile.getCanonicalFile());
-                } catch (Exception e) {
-                    getLog().error("An error occurred retrieving an artifacts parent pom", e);
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Extracts a pom from an artifacts jar file and creates a MavenProject from it.
-     * @param artifact the artifact to extract the pom from
-     * @return a Maven project
-     */
-    private MavenProject extractPom(Artifact artifact) {
-        if (!isDescribedArtifact(artifact)) {
-            return null;
-        }
-        if (artifact.getFile() != null && artifact.getFile().isFile()) {
-            try {
-                final JarFile jarFile = new JarFile(artifact.getFile());
-                final JarEntry entry = jarFile.getJarEntry("META-INF/maven/"+ artifact.getGroupId() + "/" + artifact.getArtifactId() + "/pom.xml");
-                if (entry != null) {
-                    try (final InputStream input = jarFile.getInputStream(entry)) {
-                        return readPom(input);
-                    }
-                } else {
-                    // Read the pom.xml directly from the filesystem as a fallback
-                    Path artifactPath = Paths.get(artifact.getFile().getPath());
-                    String pomFilename = artifactPath.getFileName().toString().replace("jar", "pom");
-                    Path pomPath = artifactPath.resolveSibling(pomFilename);
-                    if (Files.exists(pomPath)) {
-                       try (final InputStream input = Files.newInputStream(pomPath)) {
-                          return readPom(input);
-                       }
-                    }
-                }
-            } catch (IOException e) {
-                getLog().error("An error occurred attempting to extract POM from artifact", e);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Reads a POM and creates a MavenProject from it.
-     * @param file the file object of the POM to read
-     * @return a MavenProject
-     * @throws IOException oops
-     */
-    private MavenProject readPom(File file) throws IOException {
-        try (final FileInputStream in = new FileInputStream(file)) {
-            return readPom(in);
-        }
-    }
-
-    /**
-     * Reads a POM and creates a MavenProject from it.
-     * @param in the inputstream to read from
-     * @return a MavenProject
-     */
-    private MavenProject readPom(InputStream in) {
-        try {
-            final MavenXpp3Reader mavenreader = new MavenXpp3Reader();
-            try (final InputStreamReader reader = new InputStreamReader(new BOMInputStream(in))) {
-                final Model model = mavenreader.read(reader);
-                return new MavenProject(model);
-            }
-            //if you don't like BOMInputStream you can also escape the error this way:
-//            catch (XmlPullParserException xppe){
-//               if (! xppe.getMessage().startsWith("only whitespace content allowed before start tag")){
-//                   throw xppe;
-//               } else {
-//                   getLog().debug("The pom.xml starts with a Byte Order Marker and MavenXpp3Reader doesn't like it");
-//               }
-//            }
-        } catch (XmlPullParserException | IOException e) {
-            getLog().error("An error occurred attempting to read POM", e);
-        }
-        return null;
     }
 
     protected void execute(Set<Component> components, Set<Dependency> dependencies, MavenProject mavenProject) throws MojoExecutionException {

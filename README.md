@@ -24,6 +24,14 @@ Maven Usage
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <version>2.7.3</version>
+        <executions>
+            <execution>
+                <phase>package</phase>
+                <goals>
+                    <goal>makeAggregateBom</goal>
+                </goals>
+            </execution>
+        </executions>
     </plugin>
 </plugins>
 ```
@@ -36,15 +44,6 @@ Default Values
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.7.3</version>
-        <executions>
-            <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>makeAggregateBom</goal>
-                </goals>
-            </execution>
-        </executions>
         <configuration>
             <projectType>library</projectType>
             <schemaVersion>1.4</schemaVersion>
@@ -67,25 +66,25 @@ Excluding Projects
 -------------------
 With `makeAggregateBom` goal it is possible to exclude certain Maven Projects (artifactId) from getting included in bom.
 
-* Pass `-DexcludeTestProject=true` to skip any maven project artifactId containing the word "test"
+* Pass `-DexcludeTestProject` to skip any Maven project artifactId containing the word "test"
 * Pass `-DexcludeArtifactId=comma separated id` to skip based on artifactId
 * Pass `-DexcludeGroupId=comma separated id` to skip based on groupId
 
 Goals
 -------------------
 The CycloneDX Maven plugin contains the following three goals:
-* makeBom
-* makeAggregateBom
-* makePackageBom
+* `makeBom`
+* `makeAggregateBom`
+* `makePackageBom`
 
-By default, the BOM(s) will be attached as an additional artifacts during a Maven install or deploy.
+By default, the BOM(s) will be attached as an additional artifacts with `cyclonedx` classifier and `xml` or `json` extension during a Maven install or deploy:
 
 * `${project.artifactId}-${project.version}-cyclonedx.xml`
 * `${project.artifactId}-${project.version}-cyclonedx.json`
 
 This may be switched off by setting `cyclonedx.skipAttach` to true.
 
-makeBom and makeAggregateBom can optionally be skipped completely by setting `cyclonedx.skip` to true.
+`makeBom` and `makeAggregateBom` can optionally be skipped completely by setting `cyclonedx.skip` to true.
 
 ## CycloneDX Schema Support
 

@@ -38,16 +38,8 @@ import java.util.Set;
 )
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
-    public void execute() throws MojoExecutionException {
-        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
-        if (shouldSkip) {
-            getLog().info("Skipping CycloneDX");
-            return;
-        }
-        logParameters();
-        final Set<Component> components = new LinkedHashSet<>();
+    protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
-        Set<Dependency> dependencies = new LinkedHashSet<>();
         // Use default dependency analyzer
         dependencyAnalyzer = createProjectDependencyAnalyzer();
         getLog().info(MESSAGE_RESOLVING_DEPS);
@@ -83,9 +75,9 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
             }
         }
         if (schemaVersion().getVersion() >= 1.2) {
-            dependencies = buildDependencyGraph(componentRefs, null);
+            dependencies.addAll(buildDependencyGraph(componentRefs, null));
         }
-        super.execute(components, dependencies);
+        return true;
     }
 
 }

@@ -51,17 +51,9 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
         return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
-    public void execute() throws MojoExecutionException {
-        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
-        if (shouldSkip) {
-            getLog().info("Skipping CycloneDX");
-            return;
-        }
-        logParameters();
-        final Set<Component> components = new LinkedHashSet<>();
+    protected boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
 
-        Set<Dependency> dependencies = new LinkedHashSet<>();
         for (final MavenProject mavenProject : reactorProjects) {
             if (!shouldInclude(mavenProject)) {
                 continue;
@@ -87,6 +79,6 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 dependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
             }
         }
-        super.execute(components, dependencies);
+        return true;
     }
 }

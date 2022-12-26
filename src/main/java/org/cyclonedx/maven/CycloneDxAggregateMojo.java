@@ -44,7 +44,7 @@ import java.util.Set;
         requiresDependencyCollection = ResolutionScope.TEST,
         requiresDependencyResolution = ResolutionScope.TEST
 )
-public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
+public class CycloneDxAggregateMojo extends CycloneDxMojo {
     @Parameter(property = "reactorProjects", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
 
@@ -62,22 +62,18 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
         return shouldExclude;
     }
 
-    public void execute() throws MojoExecutionException {
-        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
-        if (shouldSkip) {
-            getLog().info("Skipping CycloneDX");
-            return;
+    protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
+        if (! getProject().isExecutionRoot()) {
+            if (getOutputReactorProjects()) {
+                return super.analyze(components, dependencies);
+            }
+            getLog().info("Skipping aggregate CycloneDX on non-execution root");
+            return false;
         }
-        if (! getProject().isExecutionRoot() && ! getOutputReactorProjects()) {
-            getLog().info("Skipping CycloneDX on non-execution root");
-            return;
-        }
-        logParameters();
-        final Set<Component> components = new LinkedHashSet<>();
+
         final Set<String> componentRefs = new LinkedHashSet<>();
         final Map<String, ProjectDependencyAnalysis> dependencyAnalysisMap = new LinkedHashMap<>();
 
-        Set<Dependency> dependencies = new LinkedHashSet<>();
         // Use default dependency analyzer
         dependencyAnalyzer = createProjectDependencyAnalyzer();
         // Perform dependency analysis for all projects upfront
@@ -164,6 +160,6 @@ public class CycloneDxAggregateMojo extends BaseCycloneDxMojo {
             }
         }
         addMavenProjectsAsDependencies(reactorProjects, dependencies);
-        super.execute(components, dependencies);
+        return true;
     }
 }

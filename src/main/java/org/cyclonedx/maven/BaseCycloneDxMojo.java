@@ -717,7 +717,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         return false;
     }
 
-    protected void execute(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
+    protected abstract boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
+
+    public void execute() throws MojoExecutionException {
+        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
+        if (shouldSkip) {
+            getLog().info("Skipping CycloneDX");
+            return;
+        }
+        logParameters();
+
+        final Set<Component> components = new LinkedHashSet<>();
+        final Set<Dependency> dependencies = new LinkedHashSet<>();
+
+        if (analyze(components, dependencies)) {
+            generateBom(components, dependencies);
+        }
+    }
+
+    private void generateBom(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();

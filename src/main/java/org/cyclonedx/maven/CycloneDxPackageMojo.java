@@ -22,6 +22,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.cyclonedx.model.Component;
@@ -29,6 +30,7 @@ import org.cyclonedx.model.Dependency;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Mojo(
@@ -41,23 +43,18 @@ import java.util.Set;
         requiresDependencyResolution = ResolutionScope.TEST
 )
 public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
+    @Parameter(property = "reactorProjects", readonly = true, required = true)
+    private List<MavenProject> reactorProjects;
+
 
     protected boolean shouldInclude(MavenProject mavenProject) {
         return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
-    public void execute() throws MojoExecutionException {
-        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
-        if (shouldSkip) {
-            getLog().info("Skipping CycloneDX");
-            return;
-        }
-        logParameters();
-        final Set<Component> components = new LinkedHashSet<>();
+    protected boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
 
-        Set<Dependency> dependencies = new LinkedHashSet<>();
-        for (final MavenProject mavenProject : getReactorProjects()) {
+        for (final MavenProject mavenProject : reactorProjects) {
             if (!shouldInclude(mavenProject)) {
                 continue;
             }
@@ -82,6 +79,6 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 dependencies.addAll(buildDependencyGraph(componentRefs, mavenProject));
             }
         }
-        super.execute(components, dependencies, getProject());
+        return true;
     }
 }

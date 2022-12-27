@@ -56,7 +56,7 @@
                     <includeRuntimeScope>true</includeRuntimeScope>
                     <includeSystemScope>true</includeSystemScope>
                     <includeTestScope>true</includeTestScope>
-                    <includeLicenseText>true</includeLicenseText>
+                    <includeLicenseText>false</includeLicenseText>
                     <outputFormat>xml</outputFormat>
                 </configuration>
             </plugin>

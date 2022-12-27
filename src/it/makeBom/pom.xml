@@ -89,6 +89,19 @@
                             <goal>makeBom</goal>
                         </goals>
                     </execution>
+
+                    <!-- also makeAggregateBom to see the difference with makeAggregateBom -->
+                    <execution>
+                        <id>cyclonedx-makeAggregateBom</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                        <configuration>
+                            <outputName>bom-makeAggregateBom</outputName>
+                            <skipAttach>true</skipAttach>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

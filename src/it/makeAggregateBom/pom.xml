@@ -97,6 +97,32 @@
                             <goal>makeAggregateBom</goal>
                         </goals>
                     </execution>
+
+                    <!-- test #181 -->
+                    <execution>
+                        <id>cyclonedx-makeAggregateBom-root-only</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                        <configuration>
+                            <outputReactorProjects>false</outputReactorProjects>
+                            <outputName>bom-root-only</outputName>
+                            <skipAttach>true</skipAttach>
+                        </configuration>
+                    </execution>
+                    <!-- also makeBom to see the difference with makeAggregateBom -->
+                    <execution>
+                        <id>cyclonedx-makeBom</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>makeBom</goal>
+                        </goals>
+                        <configuration>
+                            <outputName>bom-makeBom</outputName>
+                            <skipAttach>true</skipAttach>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

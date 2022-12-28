@@ -36,6 +36,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Creates a CycloneDX aggregate BOM at build root (with dependencies from the whole build), and eventually a BOM for each module.
+ *
+ * @since 2.1.0
+ */
 @Mojo(
         name = "makeAggregateBom",
         defaultPhase = LifecyclePhase.PACKAGE,

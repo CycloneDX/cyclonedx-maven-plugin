@@ -29,6 +29,9 @@ import org.cyclonedx.model.Dependency;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Creates a CycloneDX BOM for each Maven module with its dependencies.
+ */
 @Mojo(
         name = "makeBom",
         defaultPhase = LifecyclePhase.PACKAGE,

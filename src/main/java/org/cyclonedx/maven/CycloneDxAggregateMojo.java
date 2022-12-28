@@ -48,6 +48,14 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
     @Parameter(property = "reactorProjects", readonly = true, required = true)
     private List<MavenProject> reactorProjects;
 
+    /**
+     * Should reactor projects be included or not?
+     *
+     * @since 2.6.2
+     */
+    @Parameter(property = "outputReactorProjects", defaultValue = "true", required = false)
+    private Boolean outputReactorProjects;
+
     protected boolean shouldExclude(MavenProject mavenProject) {
         boolean shouldExclude = false;
         if (excludeArtifactId != null && excludeArtifactId.length > 0) {
@@ -62,9 +70,14 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         return shouldExclude;
     }
 
+    @Override
+    protected void logAdditionalParameters() {
+        getLog().info("outputReactorProjects  : " + outputReactorProjects);
+    }
+
     protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         if (! getProject().isExecutionRoot()) {
-            if (getOutputReactorProjects()) {
+            if (outputReactorProjects) {
                 return super.analyze(components, dependencies);
             }
             getLog().info("Skipping aggregate CycloneDX on non-execution root");

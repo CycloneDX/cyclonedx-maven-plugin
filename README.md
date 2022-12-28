@@ -73,9 +73,9 @@ With `makeAggregateBom` goal it is possible to exclude certain Maven Projects (a
 Goals
 -------------------
 The CycloneDX Maven plugin contains the following three goals:
-* `makeBom`
-* `makeAggregateBom`
-* `makePackageBom`
+* `makeBom`: creates a BOM for each Maven module with its dependencies,
+* `makeAggregateBom`: creates an aggregate BOM at build root (with dependencies from the whole build), and eventually a BOM for each module,
+* `makePackageBom`: creates a BOM for each Maven module with `war` or `ear packaging.
 
 By default, the BOM(s) will be attached as an additional artifacts with `cyclonedx` classifier and `xml` or `json` extension during a Maven install or deploy:
 

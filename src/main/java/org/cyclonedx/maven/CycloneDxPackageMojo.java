@@ -33,6 +33,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Creates a CycloneDX BOM for each Maven module with {@code war} or {@code ear} packaging.
+ *
+ * @since 2.4.0
+ */
 @Mojo(
         name = "makePackageBom",
         defaultPhase = LifecyclePhase.PACKAGE,

@@ -65,6 +65,7 @@ import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
 import org.cyclonedx.parsers.JsonParser;
+import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
@@ -106,99 +107,115 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     /**
      * The CycloneDX schema version the BOM will comply with.
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "schemaVersion", defaultValue = "1.4", required = false)
     private String schemaVersion;
 
     /**
      * The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "outputFormat", defaultValue = "all", required = false)
     private String outputFormat;
 
     /**
-     * The CycloneDX output name (without extension) that should be generated.
+     * The CycloneDX output file name (without extension) that should be generated (in {@code target/} directory).
+     *
+     * @since 2.2.0
      */
     @Parameter(property = "outputName", defaultValue = "bom", required = false)
     private String outputName;
 
     /**
-     * Should reactor projects be included or not?
-     */
-    @Parameter(property = "outputReactorProjects", defaultValue = "true", required = false)
-    private Boolean outputReactorProjects;
-
-    /**
      * Should the resulting BOM contain a unique serial number?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
     private Boolean includeBomSerialNumber;
 
     /**
      * Should compile scoped artifacts be included in bom?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeCompileScope", defaultValue = "true", required = false)
     private Boolean includeCompileScope;
 
     /**
      * Should provided scoped artifacts be included in bom?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeProvidedScope", defaultValue = "true", required = false)
     private Boolean includeProvidedScope;
 
     /**
      * Should runtime scoped artifacts be included in bom?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeRuntimeScope", defaultValue = "true", required = false)
     private Boolean includeRuntimeScope;
 
     /**
      * Should test scoped artifacts be included in bom?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeTestScope", defaultValue = "false", required = false)
     private Boolean includeTestScope;
 
     /**
      * Should system scoped artifacts be included in bom?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private Boolean includeSystemScope;
 
     /**
      * Should license text be included in bom?
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "includeLicenseText", defaultValue = "false", required = false)
     private Boolean includeLicenseText;
 
     /**
      * Excluded types.
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
     /**
      * Excluded ArtifactIds.
+     *
+     * @since 2.4.0
      */
     @Parameter(property = "excludeArtifactId", required = false)
     protected String[] excludeArtifactId;
 
     /**
      * Excluded GroupIds.
+     *
+     * @since 2.7.3
      */
     @Parameter(property = "excludeGroupId", required = false)
     protected String[] excludeGroupId;
 
     /**
      * Should project artifactId with the word "test" be excluded in bom?
+     *
+     * @since 2.4.0
      */
     @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
     protected Boolean excludeTestProject;
-
-    @org.apache.maven.plugins.annotations.Component(hint = "default")
-    private MavenProjectHelper mavenProjectHelper;
-
-    @org.apache.maven.plugins.annotations.Component(hint = "default")
-    private DependencyCollectorBuilder dependencyCollectorBuilder;
 
     /**
      * Skip CycloneDX execution.
@@ -209,6 +226,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     /**
      * Don't attach bom.
+     *
+     * @since 2.1.0
      */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skipAttach", defaultValue = "false", required = false)
@@ -216,10 +235,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     /**
      * Verbose output.
+     *
+     * @since 2.6.0
      */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.verbose", defaultValue = "true", required = false)
     private boolean verbose = true;
+
+    @org.apache.maven.plugins.annotations.Component
+    private MavenProjectHelper mavenProjectHelper;
+
+    @org.apache.maven.plugins.annotations.Component
+    private DependencyCollectorBuilder dependencyCollectorBuilder;
 
     /**
      * The RepositorySystem to inject. Used by this plugin for building effective poms.
@@ -232,6 +259,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     @org.apache.maven.plugins.annotations.Component
     private ProjectBuilder mavenProjectBuilder;
+
     /**
      * Various messages sent to console.
      */
@@ -264,167 +292,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      */
     protected ProjectDependencyAnalyzer dependencyAnalyzer;
 
-    public MavenSession getSession() {
-        return session;
-    }
-
     /**
-     * Returns a reference to the current project. This method is used instead
-     * of auto-binding the project via component annotation in concrete
-     * implementations of this. If the child has a
-     * <code>@Component MavenProject project;</code> defined then the abstract
-     * class (i.e. this class) will not have access to the current project (just
-     * the way Maven works with the binding).
+     * Returns a reference to the current project.
      *
      * @return returns a reference to the current project
      */
     protected MavenProject getProject() {
         return project;
-    }
-
-    /**
-     * Returns the CycloneDX schema version the BOM will comply with.
-     *
-     * @return the CycloneDX schema version
-     */
-    public String getSchemaVersion() {
-        return schemaVersion;
-    }
-
-    /**
-     * Returns the CycloneDX output format that should be generated.
-     *
-     * @return the CycloneDX output format
-     */
-    public String getOutputFormat() {
-        return outputFormat;
-    }
-
-    /**
-     * Returns the CycloneDX output name that should be generated.
-     *
-     * @return the CycloneDX output name
-     */
-    public String getOutputName() {
-        return outputName;
-    }
-
-    /**
-     * Returns if the resulting BOM should contain a unique serial number.
-     *
-     * @return true if serial number should be included, otherwise false
-     */
-    public Boolean getIncludeBomSerialNumber() {
-        return includeBomSerialNumber;
-    }
-
-    /**
-     * Returns if compile scoped artifacts should be included in bom.
-     *
-     * @return true if artifact should be included, otherwise false
-     */
-    protected Boolean getIncludeCompileScope() {
-        return includeCompileScope;
-    }
-
-    /**
-     * Returns if provided scoped artifacts should be included in bom.
-     *
-     * @return true if artifact should be included, otherwise false
-     */
-    protected Boolean getIncludeProvidedScope() {
-        return includeProvidedScope;
-    }
-
-    /**
-     * Returns if runtime scoped artifacts should be included in bom.
-     *
-     * @return true if artifact should be included, otherwise false
-     */
-    protected Boolean getIncludeRuntimeScope() {
-        return includeRuntimeScope;
-    }
-
-    /**
-     * Returns if test scoped artifacts should be included in bom.
-     *
-     * @return true if artifact should be included, otherwise false
-     */
-    protected Boolean getIncludeTestScope() {
-        return includeTestScope;
-    }
-
-    /**
-     * Returns if system scoped artifacts should be included in bom.
-     *
-     * @return true if artifact should be included, otherwise false
-     */
-    protected Boolean getIncludeSystemScope() {
-        return includeSystemScope;
-    }
-
-    /**
-     * Returns if license text should be included in bom.
-     *
-     * @return true if license text should be included, otherwise false
-     */
-    public Boolean getIncludeLicenseText() {
-        return includeLicenseText;
-    }
-
-
-    /**
-     * Returns if excluded types are defined.
-     *
-     * @return an array of excluded types
-     */
-    public String[] getExcludeTypes() {
-        return excludeTypes;
-    }
-
-    /**
-     * Returns if excluded ArtifactId are defined.
-     *
-     * @return an array of excluded Artifact Id
-     */
-    public String[] getExcludeArtifactId() {
-        return excludeArtifactId;
-    }
-
-    /**
-     * Returns if excluded GroupId are defined.
-     *
-     * @return an array of excluded Group Id
-     */
-    public String[] getExcludeGroupId() {
-        return excludeGroupId;
-    }
-
-    /**
-     * Returns if project artifactId with the word test should be excluded in bom.
-     *
-     * @return true if artifactId should be excluded, otherwise false
-     */
-    protected Boolean getExcludeTestProject() {
-        return excludeTestProject;
-    }
-
-    /**
-     * Returns if CycloneDX execution should be skipped.
-     *
-     * @return true if execution should be skipped, otherwise false
-     */
-    protected Boolean getSkip() {
-        return skip;
-    }
-
-    /**
-     * Returns if reactor projects should be included or not.
-     *
-     * @return true if reactor projects should be included, otherwise false
-     */
-    protected Boolean getOutputReactorProjects() {
-        return outputReactorProjects;
     }
 
     protected boolean shouldInclude(Artifact artifact) {
@@ -458,16 +332,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      * @return a CycloneDX Metadata object
      */
     protected Metadata convert(final MavenProject project) {
-        final Properties properties = readPluginProperties();
-        final Metadata metadata = new Metadata();
         final Tool tool = new Tool();
+        final Properties properties = readPluginProperties();
         tool.setVendor(properties.getProperty("vendor"));
         tool.setName(properties.getProperty("name"));
         tool.setVersion(properties.getProperty("version"));
         // Attempt to add hash values from the current mojo
         final Artifact self = new DefaultArtifact(properties.getProperty("groupId"), properties.getProperty("artifactId"),
                 properties.getProperty("version"), SCOPE_COMPILE, "jar", null, new DefaultArtifactHandler());
-        final Artifact resolved = this.getSession().getLocalRepository().find(self);
+        final Artifact resolved = session.getLocalRepository().find(self);
         if (resolved != null) {
             try {
                 resolved.setFile(new File(resolved.getFile() + ".jar"));
@@ -476,7 +349,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 getLog().warn("Unable to calculate hashes of self", e);
             }
         }
-        metadata.addTool(tool);
+
         final Component component = new Component();
         component.setGroup(project.getGroupId());
         component.setName(project.getArtifactId());
@@ -484,7 +357,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         component.setType(resolveProjectType());
         component.setPurl(generatePackageUrl(project.getArtifact()));
         component.setBomRef(component.getPurl());
-        extractMetadata(project, component);
+        extractComponentMetadata(project, component);
+
+        final Metadata metadata = new Metadata();
+        metadata.addTool(tool);
         metadata.setComponent(component);
         return metadata;
     }
@@ -501,7 +377,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
 
     /**
      * Converts a Maven artifact (dependency or transitive dependency) into a
-     * CycloneDX component./
+     * CycloneDX component.
      *
      * @param artifact the artifact to convert
      * @return a CycloneDX component
@@ -529,7 +405,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             try {
                 final MavenProject project = getEffectiveMavenProject(artifact);
                 if (project != null) {
-                    extractMetadata(project, component);
+                    extractComponentMetadata(project, component);
                 }
             } catch (ProjectBuildingException e) {
                 getLog().warn("An unexpected issue occurred attempting to resolve the effective pom for  "
@@ -581,7 +457,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      * @param project the project to extract data from
      * @param component the component to add data to
      */
-    private void extractMetadata(MavenProject project, Component component) {
+    private void extractComponentMetadata(MavenProject project, Component component) {
         if (component.getPublisher() == null) {
             // If we don't already have publisher information, retrieve it.
             if (project.getOrganization() != null) {
@@ -720,7 +596,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     protected abstract boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
 
     public void execute() throws MojoExecutionException {
-        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(getSkip())));
+        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
         if (shouldSkip) {
             getLog().info("Skipping CycloneDX");
             return;
@@ -768,47 +644,42 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
                 return;
             }
 
-            createBom(bom);
+            saveBom(bom);
 
         } catch (GeneratorException | ParserConfigurationException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
     }
 
-    private void createBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,
+    private void saveBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,
             MojoExecutionException {
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
             final String bomString = bomGenerator.toXmlString();
-            final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".xml");
-            getLog().info(String.format(MESSAGE_WRITING_BOM, "XML", bomFile.getAbsolutePath()));
-            FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
 
-            getLog().info(String.format(MESSAGE_VALIDATING_BOM, "XML", bomFile.getAbsolutePath()));
-            final XmlParser bomParser = new XmlParser();
-            if (!bomParser.isValid(bomFile, schemaVersion())) {
-                throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
-            }
-            if (!skipAttach) {
-                mavenProjectHelper.attachArtifact(project, "xml", "cyclonedx", bomFile);
-            }
+            saveBomToFile(bomString, "xml", new XmlParser());
         }
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("json")) {
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
             final String bomString = bomGenerator.toJsonString();
-            final File bomFile = new File(project.getBasedir(), "target/" + outputName + ".json");
-            getLog().info(String.format(MESSAGE_WRITING_BOM, "JSON", bomFile.getAbsolutePath()));
-            FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
 
-            getLog().info(String.format(MESSAGE_VALIDATING_BOM, "JSON", bomFile.getAbsolutePath()));
-            final JsonParser bomParser = new JsonParser();
-            if (!bomParser.isValid(bomFile, schemaVersion())) {
-                throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
-            }
-            if (!skipAttach) {
-                mavenProjectHelper.attachArtifact(project, "json", "cyclonedx", bomFile);
-            }
+            saveBomToFile(bomString, "json", new JsonParser());
+        }
+    }
+
+    private void saveBomToFile(String bomString, String extension, Parser bomParser) throws IOException, MojoExecutionException {
+        final File bomFile = new File(project.getBasedir(), "target/" + outputName + "." + extension);
+
+        getLog().info(String.format(MESSAGE_WRITING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
+        FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
+
+        getLog().info(String.format(MESSAGE_VALIDATING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
+        if (!bomParser.isValid(bomFile, schemaVersion())) {
+            throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
+        }
+        if (!skipAttach) {
+            mavenProjectHelper.attachArtifact(project, extension, "cyclonedx", bomFile);
         }
     }
 
@@ -832,13 +703,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      * @return the CycloneDX schema to use
      */
     protected CycloneDxSchema.Version schemaVersion() {
-        if (schemaVersion != null && schemaVersion.equals("1.0")) {
+        if ("1.0".equals(schemaVersion)) {
             return CycloneDxSchema.Version.VERSION_10;
-        } else if (schemaVersion != null && schemaVersion.equals("1.1")) {
+        } else if ("1.1".equals(schemaVersion)) {
             return CycloneDxSchema.Version.VERSION_11;
-        } else if (schemaVersion != null && schemaVersion.equals("1.2")) {
+        } else if ("1.2".equals(schemaVersion)) {
             return CycloneDxSchema.Version.VERSION_12;
-        } else if (schemaVersion != null && schemaVersion.equals("1.3")) {
+        } else if ("1.3".equals(schemaVersion)) {
             return CycloneDxSchema.Version.VERSION_13;
         } else {
             return CycloneDxSchema.Version.VERSION_14;
@@ -931,6 +802,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         }
     }
 
+    protected void logAdditionalParameters() {
+        // no additional parameters
+    }
+
     protected void logParameters() {
         if (verbose && getLog().isInfoEnabled()) {
             getLog().info("CycloneDX: Parameters");
@@ -943,9 +818,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
             getLog().info("includeLicenseText     : " + includeLicenseText);
-            getLog().info("outputReactorProjects  : " + outputReactorProjects);
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);
+            logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
     }

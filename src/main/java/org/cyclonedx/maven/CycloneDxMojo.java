@@ -35,6 +35,7 @@ import java.util.Set;
 @Mojo(
         name = "makeBom",
         defaultPhase = LifecyclePhase.PACKAGE,
+        threadSafe = true,
         requiresOnline = true,
         requiresDependencyCollection = ResolutionScope.TEST,
         requiresDependencyResolution = ResolutionScope.TEST

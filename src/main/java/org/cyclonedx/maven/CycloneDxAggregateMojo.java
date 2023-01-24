@@ -44,6 +44,7 @@ import java.util.Set;
 @Mojo(
         name = "makeAggregateBom",
         defaultPhase = LifecyclePhase.PACKAGE,
+        threadSafe = true,
         aggregator = true,
         requiresOnline = true,
         requiresDependencyCollection = ResolutionScope.TEST,

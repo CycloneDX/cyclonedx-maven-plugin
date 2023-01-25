@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Creates a CycloneDX aggregate BOM at build root (with dependencies from the whole build), and eventually a BOM for each module.
+ * Creates a CycloneDX aggregate BOM at build root (with dependencies from the whole multi-modules build), and eventually a BOM for each module.
  *
  * @since 2.1.0
  */
@@ -55,12 +55,36 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
     private List<MavenProject> reactorProjects;
 
     /**
-     * Should reactor projects be included or not?
+     * Should non-root reactor projects create a module-only BOM?
      *
      * @since 2.6.2
      */
     @Parameter(property = "outputReactorProjects", defaultValue = "true", required = false)
     private Boolean outputReactorProjects;
+
+    /**
+     * Excluded reactor project (aka module) ArtifactIds from aggregate BOM.
+     *
+     * @since 2.4.0
+     */
+    @Parameter(property = "excludeArtifactId", required = false)
+    protected String[] excludeArtifactId;
+
+    /**
+     * Excluded reactor project (aka module) GroupIds from aggregate BOM.
+     *
+     * @since 2.7.3
+     */
+    @Parameter(property = "excludeGroupId", required = false)
+    protected String[] excludeGroupId;
+
+    /**
+     * Should reactor project (aka module) artifactId with the word "test" be excluded from aggregate BOM?
+     *
+     * @since 2.4.0
+     */
+    @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
+    protected Boolean excludeTestProject;
 
     protected boolean shouldExclude(MavenProject mavenProject) {
         boolean shouldExclude = false;
@@ -95,6 +119,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
 
         // Use default dependency analyzer
         dependencyAnalyzer = createProjectDependencyAnalyzer();
+
         // Perform dependency analysis for all projects upfront
         for (final MavenProject mavenProject : reactorProjects) {
             if (shouldExclude(mavenProject)) {
@@ -115,7 +140,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
 
         for (final MavenProject mavenProject : reactorProjects) {
             if (shouldExclude(mavenProject)) {
-                getLog().info("Skipping " + mavenProject.getArtifactId());
+                getLog().info("Excluding " + mavenProject.getArtifactId());
                 continue;
             }
 

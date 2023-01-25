@@ -194,30 +194,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     private String[] excludeTypes;
 
     /**
-     * Excluded ArtifactIds.
-     *
-     * @since 2.4.0
-     */
-    @Parameter(property = "excludeArtifactId", required = false)
-    protected String[] excludeArtifactId;
-
-    /**
-     * Excluded GroupIds.
-     *
-     * @since 2.7.3
-     */
-    @Parameter(property = "excludeGroupId", required = false)
-    protected String[] excludeGroupId;
-
-    /**
-     * Should project artifactId with the word "test" be excluded in bom?
-     *
-     * @since 2.4.0
-     */
-    @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
-    protected Boolean excludeTestProject;
-
-    /**
      * Skip CycloneDX execution.
      */
     @SuppressWarnings("CanBeFinal")

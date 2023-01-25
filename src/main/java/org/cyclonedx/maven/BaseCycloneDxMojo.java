@@ -264,6 +264,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      * Various messages sent to console.
      */
     protected static final String MESSAGE_RESOLVING_DEPS = "CycloneDX: Resolving Dependencies";
+    protected static final String MESSAGE_RESOLVING_AGGREGATED_DEPS = "CycloneDX: Resolving Aggregated Dependencies";
     protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM";
     protected static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
     protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM (%s): %s";

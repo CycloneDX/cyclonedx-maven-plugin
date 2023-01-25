@@ -83,13 +83,16 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
 
     protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         if (! getProject().isExecutionRoot()) {
+            // non-root project: let parent class create a module-only BOM?
             if (outputReactorProjects) {
                 return super.analyze(components, dependencies);
             }
-            getLog().info("Skipping aggregate CycloneDX on non-execution root");
+            getLog().info("Skipping CycloneDX on non-execution root");
             return false;
         }
 
+        // root project: analyze and aggregate all the modules
+        getLog().info((reactorProjects.size() <= 1) ? MESSAGE_RESOLVING_DEPS : MESSAGE_RESOLVING_AGGREGATED_DEPS);
         final Set<String> componentRefs = new LinkedHashSet<>();
         final Map<String, ProjectDependencyAnalysis> dependencyAnalysisMap = new LinkedHashMap<>();
 

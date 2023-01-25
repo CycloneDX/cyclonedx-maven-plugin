@@ -58,6 +58,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
 
     protected boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
+        getLog().info(MESSAGE_RESOLVING_DEPS);
 
         for (final MavenProject mavenProject : reactorProjects) {
             if (!shouldInclude(mavenProject)) {

@@ -197,4 +197,18 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         addMavenProjectsAsDependencies(reactorProjects, dependencies);
         return true;
     }
+
+    private void addMavenProjectsAsDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {
+        for (final Dependency dependency: dependencies) {
+            for (final MavenProject project: reactorProjects) {
+                if (project.hasParent()) {
+                    final String parentRef = generatePackageUrl(project.getParentArtifact());
+                    if (dependency.getRef() != null && dependency.getRef().equals(parentRef)) {
+                        final Dependency child = new Dependency(generatePackageUrl(project.getArtifact()));
+                        dependency.addDependency(child);
+                    }
+                }
+            }
+        }
+    }
 }

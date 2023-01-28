@@ -22,8 +22,14 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
+import org.codehaus.plexus.PlexusConstants;
+import org.codehaus.plexus.PlexusContainer;
+import org.codehaus.plexus.context.Context;
+import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import java.util.LinkedHashSet;
@@ -40,7 +46,51 @@ import java.util.Set;
         requiresDependencyCollection = ResolutionScope.TEST,
         requiresDependencyResolution = ResolutionScope.TEST
 )
-public class CycloneDxMojo extends BaseCycloneDxMojo {
+public class CycloneDxMojo extends BaseCycloneDxMojo implements Contextualizable {
+
+    /**
+     * The Plexus context to look-up the right {@link ProjectDependencyAnalyzer} implementation depending on the mojo
+     * configuration.
+     */
+    private Context context;
+
+    /**
+     * Specify the project dependency analyzer to use (plexus component role-hint). By default,
+     * <a href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare
+     * a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus
+     * role name, and you specify the role name here.
+     *
+     * @since 2.2
+     */
+    @Parameter(property = "analyzer", defaultValue = "default")
+    private String analyzer;
+
+    /**
+     * DependencyAnalyzer
+     */
+    protected ProjectDependencyAnalyzer dependencyAnalyzer;
+
+    @Override
+    public void contextualize(Context theContext) {
+        this.context = theContext;
+    }
+
+    /**
+     * @return {@link ProjectDependencyAnalyzer}
+     * @throws MojoExecutionException in case of an error.
+     */
+    protected ProjectDependencyAnalyzer createProjectDependencyAnalyzer() throws MojoExecutionException {
+        final String role = ProjectDependencyAnalyzer.class.getName();
+        final String roleHint = analyzer;
+        try {
+            final PlexusContainer container = (PlexusContainer) context.get(PlexusConstants.PLEXUS_KEY);
+            return (ProjectDependencyAnalyzer) container.lookup(role, roleHint);
+        }
+        catch (Exception exception) {
+            throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role " + role
+                    + " / role-hint " + roleHint, exception);
+        }
+    }
 
     protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
@@ -78,4 +128,31 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return true;
     }
 
+    /**
+     * Method to identify component scope based on dependency analysis
+     *
+     * @param component Component
+     * @param artifact Artifact from maven project
+     * @param dependencyAnalysis Dependency analysis data
+     *
+     * @return Component.Scope - Required: If the component is used. Optional: If it is unused
+     */
+    protected Component.Scope getComponentScope(Component component, Artifact artifact, ProjectDependencyAnalysis dependencyAnalysis) {
+        if (dependencyAnalysis == null) {
+            return null;
+        }
+        Set<Artifact> usedDeclaredArtifacts = dependencyAnalysis.getUsedDeclaredArtifacts();
+        Set<Artifact> usedUndeclaredArtifacts = dependencyAnalysis.getUsedUndeclaredArtifacts();
+        Set<Artifact> unusedDeclaredArtifacts = dependencyAnalysis.getUnusedDeclaredArtifacts();
+        Set<Artifact> testArtifactsWithNonTestScope = dependencyAnalysis.getTestArtifactsWithNonTestScope();
+        // Is the artifact used?
+        if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
+            return Component.Scope.REQUIRED;
+        }
+        // Is the artifact unused or test?
+        if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
+            return Component.Scope.OPTIONAL;
+        }
+        return null;
+    }
 }

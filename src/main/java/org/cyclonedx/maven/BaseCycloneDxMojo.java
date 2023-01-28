@@ -42,15 +42,10 @@ import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
-import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
-import org.codehaus.plexus.context.Context;
-import org.codehaus.plexus.PlexusConstants;
-import org.codehaus.plexus.PlexusContainer;
-import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -89,7 +84,7 @@ import java.util.UUID;
 
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
-public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextualizable {
+public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     @Parameter(property = "session", readonly = true, required = true)
     private MavenSession session;
@@ -248,28 +243,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
 
     /**
-     * The plexus context to look-up the right {@link ProjectDependencyAnalyzer} implementation depending on the mojo
-     * configuration.
-     */
-    private Context context;
-
-    /**
-     * Specify the project dependency analyzer to use (plexus component role-hint). By default,
-     * <a href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare
-     * a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus
-     * role name, and you specify the role name here.
-     *
-     * @since 2.2
-     */
-    @Parameter( property = "analyzer", defaultValue = "default" )
-    private String analyzer;
-
-    /**
-     * DependencyAnalyzer
-     */
-    protected ProjectDependencyAnalyzer dependencyAnalyzer;
-
-    /**
      * Returns a reference to the current project.
      *
      * @return returns a reference to the current project
@@ -308,7 +281,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
      * @param project the MavenProject to convert
      * @return a CycloneDX Metadata object
      */
-    protected Metadata convert(final MavenProject project) {
+    private Metadata convert(final MavenProject project) {
         final Tool tool = new Tool();
         final Properties properties = readPluginProperties();
         tool.setVendor(properties.getProperty("vendor"));
@@ -392,7 +365,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         return component;
     }
 
-    private String generatePackageUrl(final Artifact artifact) {
+    protected String generatePackageUrl(final Artifact artifact) {
         TreeMap<String, String> qualifiers = null;
         if (artifact.getType() != null || artifact.getClassifier() != null) {
             qualifiers = new TreeMap<>();
@@ -765,20 +738,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
         }
     }
 
-    protected void addMavenProjectsAsDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {
-        for (final Dependency dependency: dependencies) {
-            for (final MavenProject project: reactorProjects) {
-                if (project.hasParent()) {
-                    final String parentRef = generatePackageUrl(project.getParentArtifact());
-                    if (dependency.getRef() != null && dependency.getRef().equals(parentRef)) {
-                        final Dependency child = new Dependency(generatePackageUrl(project.getArtifact()));
-                        dependency.addDependency(child);
-                    }
-                }
-            }
-        }
-    }
-
     protected void logAdditionalParameters() {
         // no additional parameters
     }
@@ -800,60 +759,5 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
-    }
-
-    @Override
-    public void contextualize( Context theContext )
-    {
-        this.context = theContext;
-    }
-
-    /**
-     * @return {@link ProjectDependencyAnalyzer}
-     * @throws MojoExecutionException in case of an error.
-     */
-    protected ProjectDependencyAnalyzer createProjectDependencyAnalyzer()
-            throws MojoExecutionException
-    {
-        final String role = ProjectDependencyAnalyzer.class.getName();
-        final String roleHint = analyzer;
-        try
-        {
-            final PlexusContainer container = (PlexusContainer) context.get( PlexusConstants.PLEXUS_KEY );
-            return (ProjectDependencyAnalyzer) container.lookup( role, roleHint );
-        }
-        catch ( Exception exception )
-        {
-            throw new MojoExecutionException( "Failed to instantiate ProjectDependencyAnalyser with role " + role
-                    + " / role-hint " + roleHint, exception );
-        }
-    }
-
-    /**
-     * Method to identify component scope based on dependency analysis
-     *
-     * @param component Component
-     * @param artifact Artifact from maven project
-     * @param dependencyAnalysis Dependency analysis data
-     *
-     * @return Component.Scope - Required: If the component is used. Optional: If it is unused
-     */
-    protected Component.Scope getComponentScope(Component component, Artifact artifact, ProjectDependencyAnalysis dependencyAnalysis) {
-        if (dependencyAnalysis == null) {
-            return null;
-        }
-        Set<Artifact> usedDeclaredArtifacts = dependencyAnalysis.getUsedDeclaredArtifacts();
-        Set<Artifact> usedUndeclaredArtifacts = dependencyAnalysis.getUsedUndeclaredArtifacts();
-        Set<Artifact> unusedDeclaredArtifacts = dependencyAnalysis.getUnusedDeclaredArtifacts();
-        Set<Artifact> testArtifactsWithNonTestScope = dependencyAnalysis.getTestArtifactsWithNonTestScope();
-        // Is the artifact used?
-        if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
-            return Component.Scope.REQUIRED;
-        }
-        // Is the artifact unused or test?
-        if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
-            return Component.Scope.OPTIONAL;
-        }
-        return null;
     }
 }

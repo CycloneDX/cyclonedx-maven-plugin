@@ -69,13 +69,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 if (shouldInclude(artifact)) {
                     final Component component = convert(artifact);
                     // ensure that only one component with the same bom-ref exists in the BOM
-                    boolean found = false;
-                    for (String s : componentRefs) {
-                        if (s != null && s.equals(component.getBomRef())) {
-                            found = true;
-                        }
-                    }
-                    if (!found) {
+                    if (!componentRefs.contains(component.getBomRef())) {
                         componentRefs.add(component.getBomRef());
                         components.add(component);
                     }

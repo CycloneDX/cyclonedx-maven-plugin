@@ -28,8 +28,6 @@ import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.codehaus.plexus.PlexusConstants;
 import org.codehaus.plexus.PlexusContainer;
-import org.codehaus.plexus.context.Context;
-import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import java.util.LinkedHashSet;
@@ -46,13 +44,7 @@ import java.util.Set;
         requiresDependencyCollection = ResolutionScope.TEST,
         requiresDependencyResolution = ResolutionScope.TEST
 )
-public class CycloneDxMojo extends BaseCycloneDxMojo implements Contextualizable {
-
-    /**
-     * The Plexus context to look-up the right {@link ProjectDependencyAnalyzer} implementation depending on the mojo
-     * configuration.
-     */
-    private Context context;
+public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     /**
      * Specify the project dependency analyzer to use (plexus component role-hint). By default,
@@ -69,11 +61,6 @@ public class CycloneDxMojo extends BaseCycloneDxMojo implements Contextualizable
      * DependencyAnalyzer
      */
     protected ProjectDependencyAnalyzer dependencyAnalyzer;
-
-    @Override
-    public void contextualize(Context theContext) {
-        this.context = theContext;
-    }
 
     /**
      * @return {@link ProjectDependencyAnalyzer}

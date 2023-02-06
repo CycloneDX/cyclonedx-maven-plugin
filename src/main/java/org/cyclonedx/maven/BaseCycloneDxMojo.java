@@ -18,8 +18,6 @@
  */
 package org.cyclonedx.maven;
 
-import com.github.packageurl.MalformedPackageURLException;
-import com.github.packageurl.PackageURL;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.Artifact;
@@ -41,11 +39,13 @@ import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
-import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
+import org.codehaus.plexus.context.Context;
+import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -79,12 +79,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
-public abstract class BaseCycloneDxMojo extends AbstractMojo {
+public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextualizable {
 
     @Parameter(property = "session", readonly = true, required = true)
     private MavenSession session;
@@ -231,6 +230,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @org.apache.maven.plugins.annotations.Component
     private ProjectBuilder mavenProjectBuilder;
 
+    //@org.apache.maven.plugins.annotations.Component
+    private ModelConverter modelConverter;
+
+    /**
+     * The Plexus context to look-up the right {@link ProjectDependencyAnalyzer} implementation depending on the mojo
+     * configuration.
+     */
+    protected Context context;
+
     /**
      * Various messages sent to console.
      */
@@ -249,6 +257,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected MavenProject getProject() {
         return project;
+    }
+
+    protected ModelConverter getModelConverter() {
+        return modelConverter;
     }
 
     protected boolean shouldInclude(Artifact artifact) {
@@ -305,7 +317,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         component.setName(project.getArtifactId());
         component.setVersion(project.getVersion());
         component.setType(resolveProjectType());
-        component.setPurl(generatePackageUrl(project.getArtifact()));
+        component.setPurl(modelConverter.generatePackageUrl(project.getArtifact()));
         component.setBomRef(component.getPurl());
         extractComponentMetadata(project, component);
 
@@ -347,7 +359,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (CycloneDxSchema.Version.VERSION_10 == schemaVersion()) {
             component.setModified(isModified(artifact));
         }
-        component.setPurl(generatePackageUrl(artifact));
+        component.setPurl(modelConverter.generatePackageUrl(artifact));
         if (CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
             component.setBomRef(component.getPurl());
         }
@@ -363,30 +375,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
         }
         return component;
-    }
-
-    protected String generatePackageUrl(final Artifact artifact) {
-        TreeMap<String, String> qualifiers = null;
-        if (artifact.getType() != null || artifact.getClassifier() != null) {
-            qualifiers = new TreeMap<>();
-            if (artifact.getType() != null) {
-                qualifiers.put("type", artifact.getType());
-            }
-            if (artifact.getClassifier() != null) {
-                qualifiers.put("classifier", artifact.getClassifier());
-            }
-        }
-        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), artifact.getBaseVersion(), qualifiers, null);
-    }
-
-    private String generatePackageUrl(String groupId, String artifactId, String version, TreeMap<String, String> qualifiers, String subpath) {
-        try {
-            return new PackageURL(PackageURL.StandardTypes.MAVEN, groupId, artifactId, version, qualifiers, subpath).canonicalize();
-        } catch(MalformedPackageURLException e) {
-            getLog().warn("An unexpected issue occurred attempting to create a PackageURL for "
-                    + groupId + ":" + artifactId + ":" + version, e);
-        }
-        return null;
     }
 
     /**
@@ -716,7 +704,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     private void buildDependencyGraphNode(final Set<String> componentRefs, final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
-        final String purl = generatePackageUrl(artifactNode.getArtifact());
+        final String purl = modelConverter.generatePackageUrl(artifactNode.getArtifact());
         final Dependency dependency = new Dependency(purl);
         final String parentRef = (parent != null) ? parent.getRef() : null;
         componentRefs.stream().filter(s -> s != null && s.equals(purl))
@@ -760,4 +748,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("------------------------------------------------------------------------");
         }
     }
+
+    @Override
+    public void contextualize(Context theContext) {
+        this.context = theContext;
+        modelConverter = new DefaultModelConverter();
+    }
+
 }

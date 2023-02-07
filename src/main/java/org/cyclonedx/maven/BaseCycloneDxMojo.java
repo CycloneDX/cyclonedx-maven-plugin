@@ -44,8 +44,6 @@ import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
-import org.codehaus.plexus.context.Context;
-import org.codehaus.plexus.personality.plexus.lifecycle.phase.Contextualizable;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -83,7 +81,7 @@ import java.util.UUID;
 
 import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
-public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextualizable {
+public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     @Parameter(property = "session", readonly = true, required = true)
     private MavenSession session;
@@ -230,14 +228,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
     @org.apache.maven.plugins.annotations.Component
     private ProjectBuilder mavenProjectBuilder;
 
-    //@org.apache.maven.plugins.annotations.Component
+    @org.apache.maven.plugins.annotations.Component
     private ModelConverter modelConverter;
-
-    /**
-     * The Plexus context to look-up the right {@link ProjectDependencyAnalyzer} implementation depending on the mojo
-     * configuration.
-     */
-    protected Context context;
 
     /**
      * Various messages sent to console.
@@ -747,12 +739,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo implements Contextu
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
-    }
-
-    @Override
-    public void contextualize(Context theContext) {
-        this.context = theContext;
-        modelConverter = new DefaultModelConverter();
     }
 
 }

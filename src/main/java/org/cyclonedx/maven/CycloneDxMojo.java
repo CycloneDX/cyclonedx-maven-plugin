@@ -26,7 +26,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
-import org.codehaus.plexus.PlexusConstants;
 import org.codehaus.plexus.PlexusContainer;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
@@ -57,6 +56,9 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     @Parameter(property = "analyzer", defaultValue = "default")
     private String analyzer;
 
+    @org.apache.maven.plugins.annotations.Component
+    private PlexusContainer plexusContainer;
+
     /**
      * DependencyAnalyzer
      */
@@ -70,8 +72,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         final String role = ProjectDependencyAnalyzer.class.getName();
         final String roleHint = analyzer;
         try {
-            final PlexusContainer container = (PlexusContainer) context.get(PlexusConstants.PLEXUS_KEY);
-            return (ProjectDependencyAnalyzer) container.lookup(role, roleHint);
+            return (ProjectDependencyAnalyzer) plexusContainer.lookup(role, roleHint);
         }
         catch (Exception exception) {
             throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role " + role

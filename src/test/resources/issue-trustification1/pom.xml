@@ -15,6 +15,10 @@
     <modules>
         <module>trustification</module>
 
+        <module>versioned_dependency1</module>
+        <module>versioned_dependency2</module>
+        <module>provided_dependency</module>
+
         <module>dependency1</module>
         <module>dependency2</module>
 

@@ -40,6 +40,12 @@
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
+            <artifactId>provided_dependency</artifactId>
+            <version>1.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.example</groupId>
             <artifactId>test_compile_dependency</artifactId>
             <version>1.0.0</version>
             <scope>test</scope>

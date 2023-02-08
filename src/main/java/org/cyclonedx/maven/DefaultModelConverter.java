@@ -80,7 +80,15 @@ public class DefaultModelConverter implements ModelConverter {
     public DefaultModelConverter() {
     }
 
-    public String generatePackageUrl(Artifact artifact) {
+    public String generatePackageUrl(final Artifact artifact) {
+        return generatePackageUrl(artifact, true);
+    }
+
+    public String generateVersionlessPackageUrl(final Artifact artifact) {
+        return generatePackageUrl(artifact, false);
+    }
+
+    private String generatePackageUrl(final Artifact artifact, final boolean includeVersion) {
         TreeMap<String, String> qualifiers = null;
         if (artifact.getType() != null || artifact.getClassifier() != null) {
             qualifiers = new TreeMap<>();
@@ -91,7 +99,8 @@ public class DefaultModelConverter implements ModelConverter {
                 qualifiers.put("classifier", artifact.getClassifier());
             }
         }
-        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), artifact.getBaseVersion(), qualifiers, null);
+        final String version = includeVersion ? artifact.getBaseVersion() : null;
+        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), version, qualifiers, null);
     }
 
     private String generatePackageUrl(String groupId, String artifactId, String version, TreeMap<String, String> qualifiers, String subpath) {

@@ -44,6 +44,10 @@ public class IssueTrustification1Test {
     private static final String SHARED_TYPE_DEPENDENCY2 = "pkg:maven/com.example/shared_type_dependency2@1.0.0?type=jar";
     private static final String SHARED_TYPE_DEPENDENCY3 = "pkg:maven/com.example/shared_type_dependency3@1.0.0?type=jar";
     private static final String SHARED_TYPE_DEPENDENCY4 = "pkg:maven/com.example/shared_type_dependency4@1.0.0?type=jar";
+    private static final String VERSIONED_DEPENDENCY1 = "pkg:maven/com.example/versioned_dependency@1.0.0?type=jar";
+    private static final String VERSIONED_DEPENDENCY2 = "pkg:maven/com.example/versioned_dependency@2.0.0?type=jar";
+    private static final String PROVIDED_DEPENDENCY = "pkg:maven/com.example/provided_dependency@1.0.0?type=jar";
+    private static final String DEPENDENCY1 = "pkg:maven/com.example/dependency1@1.0.0?type=jar";
 
     @Rule
     public final TestResources resources = new TestResources(
@@ -278,6 +282,58 @@ public class IssueTrustification1Test {
         assertNull("Unexpected shared_type_dependency4 component discovered in BOM", sharedTypeDependency4ComponentNode);
         final Node sharedTypeDependency4Node = getDependencyNode(dependencies, SHARED_TYPE_DEPENDENCY4);
         assertNull("Unexpected shared_type_dependency4 dependency discovered in BOM", sharedTypeDependency4Node);
+    }
+
+    /**
+     * This test ensures that transitive dependencies hidden under versioned components are included in the BOM.
+     * @throws Exception
+     */
+    @Test
+    public void testHiddenVersionedTransitiveDependencies() throws Exception {
+        // Note: testExtraneousComponents will also catch missing versioned dependencies but doesn't check for transitive dependencies
+        final File projDir = cleanAndBuild(null);
+
+        final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
+
+        final NodeList componentsList = bom.getElementsByTagName("components");
+        assertEquals("Expected a single components element", 1, componentsList.getLength());
+        final Node components = componentsList.item(0);
+
+        final NodeList dependenciesList = bom.getElementsByTagName("dependencies");
+        assertEquals("Expected a single dependencies element", 1, dependenciesList.getLength());
+        final Node dependencies = dependenciesList.item(0);
+
+        // BOM should not contain pkg:maven/com.example/versioned_dependency@1.0.0?type=jar
+        final Node testVersionedDependency1ComponentNode = getComponentNode(components, VERSIONED_DEPENDENCY1);
+        assertNull("Unexpected versioned_dependency:1.0.0 component discovered in BOM", testVersionedDependency1ComponentNode);
+        final Node testVersionedDependency1Node = getDependencyNode(dependencies, VERSIONED_DEPENDENCY1);
+        assertNull("Unexpected versioned_dependency:1.0.0 dependency discovered in BOM", testVersionedDependency1Node);
+
+        // BOM should contain pkg:maven/com.example/versioned_dependency@2.0.0?type=jar
+        final Node testVersionedDependency2ComponentNode = getComponentNode(components, VERSIONED_DEPENDENCY2);
+        assertNotNull("Missing versioned_dependency:2.0.0 component component", testVersionedDependency2ComponentNode);
+
+        /*
+           <dependency ref="pkg:maven/com.example/provided_dependency@1.0.0?type=jar">
+             <dependency ref="pkg:maven/com.example/versioned_dependency@2.0.0?type=jar"/>
+           </dependency>
+        */
+        final Node providedDependencyNode = getDependencyNode(dependencies, PROVIDED_DEPENDENCY);
+        assertNotNull("Missing provided_dependency dependency", providedDependencyNode);
+        Set<String> providedDependencyDependencies = getDependencyReferences(providedDependencyNode);
+        assertEquals("Invalid dependency count for provided_dependency", 1, providedDependencyDependencies.size());
+        assertTrue("Missing versioned_dependency:2.0.0 dependency for provided_dependency", providedDependencyDependencies.contains(VERSIONED_DEPENDENCY2));
+
+        /*
+           <dependency ref="pkg:maven/com.example/versioned_dependency@2.0.0?type=jar">
+             <dependency ref="pkg:maven/com.example/dependency1@1.0.0?type=jar"/>
+           </dependency>
+        */
+        final Node versionedDependencyNode = getDependencyNode(dependencies, VERSIONED_DEPENDENCY2);
+        assertNotNull("Missing versioned_dependency dependency", versionedDependencyNode);
+        Set<String> versionedDependencyDependencies = getDependencyReferences(versionedDependencyNode);
+        assertEquals("Invalid dependency count for versioned_dependency", 1, versionedDependencyDependencies.size());
+        assertTrue("Missing dependency1 dependency for versioned_dependency", versionedDependencyDependencies.contains(DEPENDENCY1));
     }
 
     private File cleanAndBuild(final String[] excludeTypes) throws Exception {

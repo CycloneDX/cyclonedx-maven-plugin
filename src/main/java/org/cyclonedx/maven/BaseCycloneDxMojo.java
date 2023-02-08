@@ -409,7 +409,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, artifactFilter);
             final Map<String, DependencyNode> excludedNodes = new HashMap<>();
             final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
-            buildDependencyGraphNode(dependencies, rootNode, null, excludedNodes, resolvedPUrls);
+            final Set<String> loggedReplacementPUrls = new HashSet<>();
+            buildDependencyGraphNode(dependencies, rootNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
             final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor() {
                 @Override
                 public boolean visit(final DependencyNode node) {
@@ -423,7 +424,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             };
             rootNode.accept(visitor);
             for (final DependencyNode dependencyNode : visitor.getNodes()) {
-                buildDependencyGraphNode(dependencies, dependencyNode, null, excludedNodes, resolvedPUrls);
+                buildDependencyGraphNode(dependencies, dependencyNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
             }
 
             /*
@@ -452,6 +453,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     }
                 }
 
+                final Set<String> loggedPurls = new HashSet<>();
                 final Deque<Dependency> toProcess = new ArrayDeque<>(dependencies.values());
                 while (!toProcess.isEmpty()) {
                     final Dependency dependency = toProcess.remove();
@@ -462,10 +464,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                             concealedNode = concealedEmptyNodes.get(purl);
                         }
                         if (concealedNode != null) {
-                            getLog().info("CycloneDX: Populating concealed node: " + purl);
+                            if (!loggedPurls.contains(purl)) {
+                                getLog().info("CycloneDX: Populating concealed node: " + purl);
+                                loggedPurls.add(purl);
+                            }
                             for (DependencyNode child: concealedNode.getChildren()) {
-                                buildDependencyGraphNode(dependencies, child, dependency, excludedNodes, resolvedPUrls);
-                                buildDependencyGraphNode(dependencies, child, null, excludedNodes, resolvedPUrls);
+                                buildDependencyGraphNode(dependencies, child, dependency, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
+                                buildDependencyGraphNode(dependencies, child, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
                             }
                             final Dependency topLevelDependency = dependencies.get(dependency);
                             if (topLevelDependency.getDependencies() != null) {
@@ -548,7 +553,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent,
-            final Map<String, DependencyNode> excludedNodes, Map<String, String> resolvedPurls) {
+            final Map<String, DependencyNode> excludedNodes, Map<String, String> resolvedPurls, Set<String> loggedReplacementPUrls) {
         String purl = generatePackageUrl(artifactNode.getArtifact());
         // If this is an excluded type then track in case it is hiding a transitive dependency
         if (isExcludedNode(artifactNode)) {
@@ -565,7 +570,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final String versionlessPurl = generateVersionlessPackageUrl(artifactNode.getArtifact());
             final String resolvedPurl = resolvedPurls.get(versionlessPurl);
             if (!purl.equals(resolvedPurl)) {
-                getLog().info("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                if (!loggedReplacementPUrls.contains(purl)) {
+                    getLog().info("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                    loggedReplacementPUrls.add(purl);
+                }
                 purl = resolvedPurl;
             }
         }
@@ -573,7 +581,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         final Dependency dependency = new Dependency(purl);
         addDependencyToGraph(dependencies, parent, dependency);
         for (final DependencyNode childrenNode : artifactNode.getChildren()) {
-            buildDependencyGraphNode(dependencies, childrenNode, dependency, excludedNodes, resolvedPurls);
+            buildDependencyGraphNode(dependencies, childrenNode, dependency, excludedNodes, resolvedPurls, loggedReplacementPUrls);
         }
     }
 

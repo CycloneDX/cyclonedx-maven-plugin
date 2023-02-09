@@ -18,30 +18,18 @@
  */
 package org.cyclonedx.maven;
 
-import com.github.packageurl.MalformedPackageURLException;
-import com.github.packageurl.PackageURL;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.DefaultArtifact;
-import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
 import org.apache.maven.execution.MavenSession;
-import org.apache.maven.model.MailingList;
-import org.apache.maven.model.building.ModelBuildingRequest;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
-import org.apache.maven.project.ProjectBuilder;
-import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.project.ProjectBuildingRequest;
-import org.apache.maven.project.ProjectBuildingResult;
-import org.apache.maven.repository.RepositorySystem;
-import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
@@ -54,35 +42,22 @@ import org.cyclonedx.generators.xml.BomXmlGenerator;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
-import org.cyclonedx.model.ExternalReference;
-import org.cyclonedx.model.License;
-import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
-import org.cyclonedx.model.Tool;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
-import org.cyclonedx.util.BomUtils;
-import org.cyclonedx.util.LicenseResolver;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
-
-import static org.apache.maven.artifact.Artifact.SCOPE_COMPILE;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
@@ -219,17 +194,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @org.apache.maven.plugins.annotations.Component
     private DependencyCollectorBuilder dependencyCollectorBuilder;
 
-    /**
-     * The RepositorySystem to inject. Used by this plugin for building effective poms.
-     */
     @org.apache.maven.plugins.annotations.Component
-    private RepositorySystem repositorySystem;
-
-    /**
-     * The ProjectBuilder to inject. Used by this plugin for building effective poms.
-     */
-    @org.apache.maven.plugins.annotations.Component
-    private ProjectBuilder mavenProjectBuilder;
+    private ModelConverter modelConverter;
 
     /**
      * Various messages sent to console.
@@ -237,7 +203,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected static final String MESSAGE_RESOLVING_DEPS = "CycloneDX: Resolving Dependencies";
     protected static final String MESSAGE_RESOLVING_AGGREGATED_DEPS = "CycloneDX: Resolving Aggregated Dependencies";
     protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM";
-    protected static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
+    static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
     protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM (%s): %s";
     protected static final String MESSAGE_VALIDATING_BOM = "CycloneDX: Validating BOM (%s): %s";
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
@@ -249,6 +215,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected MavenProject getProject() {
         return project;
+    }
+
+    protected String generatePackageUrl(Artifact artifact) {
+        return modelConverter.generatePackageUrl(artifact);
+    }
+
+    protected Component convert(Artifact artifact) {
+        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText);
     }
 
     protected boolean shouldInclude(Artifact artifact) {
@@ -271,274 +245,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             return true;
         } else if (includeSystemScope && "system".equals(artifact.getScope())) {
             return true;
-        }
-        return false;
-    }
-
-    /**
-     * Converts a MavenProject into a Metadata object.
-     *
-     * @param project the MavenProject to convert
-     * @return a CycloneDX Metadata object
-     */
-    private Metadata convert(final MavenProject project) {
-        final Tool tool = new Tool();
-        final Properties properties = readPluginProperties();
-        tool.setVendor(properties.getProperty("vendor"));
-        tool.setName(properties.getProperty("name"));
-        tool.setVersion(properties.getProperty("version"));
-        // Attempt to add hash values from the current mojo
-        final Artifact self = new DefaultArtifact(properties.getProperty("groupId"), properties.getProperty("artifactId"),
-                properties.getProperty("version"), SCOPE_COMPILE, "jar", null, new DefaultArtifactHandler());
-        final Artifact resolved = session.getLocalRepository().find(self);
-        if (resolved != null) {
-            try {
-                resolved.setFile(new File(resolved.getFile() + ".jar"));
-                tool.setHashes(BomUtils.calculateHashes(resolved.getFile(), schemaVersion()));
-            } catch (IOException e) {
-                getLog().warn("Unable to calculate hashes of self", e);
-            }
-        }
-
-        final Component component = new Component();
-        component.setGroup(project.getGroupId());
-        component.setName(project.getArtifactId());
-        component.setVersion(project.getVersion());
-        component.setType(resolveProjectType());
-        component.setPurl(generatePackageUrl(project.getArtifact()));
-        component.setBomRef(component.getPurl());
-        extractComponentMetadata(project, component);
-
-        final Metadata metadata = new Metadata();
-        metadata.addTool(tool);
-        metadata.setComponent(component);
-        return metadata;
-    }
-
-    private Properties readPluginProperties() {
-        final Properties props = new Properties();
-        try {
-            props.load(this.getClass().getClassLoader().getResourceAsStream("plugin.properties"));
-        } catch (NullPointerException | IOException e) {
-            getLog().warn("Unable to load plugin.properties", e);
-        }
-        return props;
-    }
-
-    /**
-     * Converts a Maven artifact (dependency or transitive dependency) into a
-     * CycloneDX component.
-     *
-     * @param artifact the artifact to convert
-     * @return a CycloneDX component
-     */
-    protected Component convert(Artifact artifact) {
-        final Component component = new Component();
-        component.setGroup(artifact.getGroupId());
-        component.setName(artifact.getArtifactId());
-        component.setVersion(artifact.getBaseVersion());
-        component.setType(Component.Type.LIBRARY);
-        try {
-            getLog().debug(MESSAGE_CALCULATING_HASHES);
-            component.setHashes(BomUtils.calculateHashes(artifact.getFile(), schemaVersion()));
-        } catch (IOException e) {
-            getLog().error("Error encountered calculating hashes", e);
-        }
-        if (CycloneDxSchema.Version.VERSION_10 == schemaVersion()) {
-            component.setModified(isModified(artifact));
-        }
-        component.setPurl(generatePackageUrl(artifact));
-        if (CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
-            component.setBomRef(component.getPurl());
-        }
-        if (isDescribedArtifact(artifact)) {
-            try {
-                final MavenProject project = getEffectiveMavenProject(artifact);
-                if (project != null) {
-                    extractComponentMetadata(project, component);
-                }
-            } catch (ProjectBuildingException e) {
-                getLog().warn("An unexpected issue occurred attempting to resolve the effective pom for  "
-                        + artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion(), e);
-            }
-        }
-        return component;
-    }
-
-    protected String generatePackageUrl(final Artifact artifact) {
-        TreeMap<String, String> qualifiers = null;
-        if (artifact.getType() != null || artifact.getClassifier() != null) {
-            qualifiers = new TreeMap<>();
-            if (artifact.getType() != null) {
-                qualifiers.put("type", artifact.getType());
-            }
-            if (artifact.getClassifier() != null) {
-                qualifiers.put("classifier", artifact.getClassifier());
-            }
-        }
-        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), artifact.getBaseVersion(), qualifiers, null);
-    }
-
-    private String generatePackageUrl(String groupId, String artifactId, String version, TreeMap<String, String> qualifiers, String subpath) {
-        try {
-            return new PackageURL(PackageURL.StandardTypes.MAVEN, groupId, artifactId, version, qualifiers, subpath).canonicalize();
-        } catch(MalformedPackageURLException e) {
-            getLog().warn("An unexpected issue occurred attempting to create a PackageURL for "
-                    + groupId + ":" + artifactId + ":" + version, e);
-        }
-        return null;
-    }
-
-    /**
-     * This method generates an 'effective pom' for an artifact.
-     * @param artifact the artifact to generate an effective pom of
-     * @throws ProjectBuildingException if an error is encountered
-     */
-    private MavenProject getEffectiveMavenProject(final Artifact artifact) throws ProjectBuildingException {
-        final Artifact pomArtifact = repositorySystem.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
-        final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact,
-                session.getProjectBuildingRequest().setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
-        );
-        return build.getProject();
-    }
-
-    /**
-     * Extracts data from a project and adds the data to the component.
-     * @param project the project to extract data from
-     * @param component the component to add data to
-     */
-    private void extractComponentMetadata(MavenProject project, Component component) {
-        if (component.getPublisher() == null) {
-            // If we don't already have publisher information, retrieve it.
-            if (project.getOrganization() != null) {
-                component.setPublisher(project.getOrganization().getName());
-            }
-        }
-        if (component.getDescription() == null) {
-            // If we don't already have description information, retrieve it.
-            component.setDescription(project.getDescription());
-        }
-        if (component.getLicenseChoice() == null || component.getLicenseChoice().getLicenses() == null || component.getLicenseChoice().getLicenses().isEmpty()) {
-            // If we don't already have license information, retrieve it.
-            if (project.getLicenses() != null) {
-                component.setLicenseChoice(resolveMavenLicenses(project.getLicenses()));
-            }
-        }
-        if (CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
-            if (project.getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.WEBSITE)) {
-                    addExternalReference(ExternalReference.Type.WEBSITE, project.getUrl(), component);
-                }
-            }
-            if (project.getCiManagement() != null && project.getCiManagement().getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.BUILD_SYSTEM)) {
-                    addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
-                }
-            }
-            if (project.getDistributionManagement() != null && project.getDistributionManagement().getDownloadUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
-                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
-                }
-            }
-            if (project.getDistributionManagement() != null && project.getDistributionManagement().getRepository() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
-                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
-                }
-            }
-            if (project.getIssueManagement() != null && project.getIssueManagement().getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.ISSUE_TRACKER)) {
-                    addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
-                }
-            }
-            if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
-                for (MailingList list : project.getMailingLists()) {
-                    if (list.getArchive() != null) {
-                        if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
-                            addExternalReference(ExternalReference.Type.MAILING_LIST, list.getArchive(), component);
-                        }
-                    } else if (list.getSubscribe() != null) {
-                        if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
-                            addExternalReference(ExternalReference.Type.MAILING_LIST, list.getSubscribe(), component);
-                        }
-                    }
-                }
-            }
-            if (project.getScm() != null && project.getScm().getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.VCS)) {
-                    addExternalReference(ExternalReference.Type.VCS, project.getScm().getUrl(), component);
-                }
-            }
-        }
-    }
-
-    private void addExternalReference(final ExternalReference.Type referenceType, final String url, final Component component) {
-        try {
-            final URI uri = new URI(url.trim());
-            final ExternalReference ref = new ExternalReference();
-            ref.setType(referenceType);
-            ref.setUrl(uri.toString());
-            component.addExternalReference(ref);
-        } catch (URISyntaxException e) {
-            // throw it away
-        }
-    }
-
-    private boolean doesComponentHaveExternalReference(final Component component, final ExternalReference.Type type) {
-        if (component.getExternalReferences() != null && !component.getExternalReferences().isEmpty()) {
-            for (final ExternalReference ref : component.getExternalReferences()) {
-                if (type == ref.getType()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private LicenseChoice resolveMavenLicenses(final List<org.apache.maven.model.License> projectLicenses) {
-        final LicenseChoice licenseChoice = new LicenseChoice();
-        for (org.apache.maven.model.License artifactLicense : projectLicenses) {
-            boolean resolved = false;
-            if (artifactLicense.getName() != null) {
-                final LicenseChoice resolvedByName =
-                    LicenseResolver.resolve(artifactLicense.getName(), includeLicenseText);
-                resolved = resolveLicenseInfo(licenseChoice, resolvedByName);
-            }
-            if (artifactLicense.getUrl() != null && !resolved) {
-                final LicenseChoice resolvedByUrl =
-                    LicenseResolver.resolve(artifactLicense.getUrl(), includeLicenseText);
-                resolved = resolveLicenseInfo(licenseChoice, resolvedByUrl);
-            }
-            if (artifactLicense.getName() != null && !resolved) {
-                final License license = new License();
-                license.setName(artifactLicense.getName().trim());
-                if (StringUtils.isNotBlank(artifactLicense.getUrl())) {
-                    try {
-                        final URI uri = new URI(artifactLicense.getUrl().trim());
-                        license.setUrl(uri.toString());
-                    } catch (URISyntaxException  e) {
-                        // throw it away
-                    }
-                }
-                licenseChoice.addLicense(license);
-            }
-        }
-        return licenseChoice;
-    }
-
-    private boolean resolveLicenseInfo(
-        final LicenseChoice licenseChoice,
-        final LicenseChoice licenseChoiceToResolve)
-    {
-        if (licenseChoiceToResolve != null) {
-            if (licenseChoiceToResolve.getLicenses() != null && !licenseChoiceToResolve.getLicenses().isEmpty()) {
-                licenseChoice.addLicense(licenseChoiceToResolve.getLicenses().get(0));
-                return true;
-            }
-            else if (licenseChoiceToResolve.getExpression() != null &&
-                CycloneDxSchema.Version.VERSION_10 != schemaVersion()) {
-                licenseChoice.setExpression(licenseChoiceToResolve.getExpression());
-                return true;
-            }
         }
         return false;
     }
@@ -569,7 +275,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                final Metadata metadata = convert(project);
+                final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText);
                 bom.setMetadata(metadata);
             }
             bom.setComponents(new ArrayList<>(components));
@@ -633,21 +339,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    private boolean isModified(Artifact artifact) {
-        //todo: compare hashes + GAV with what the artifact says against Maven Central to determine if component has been modified.
-        return false;
-    }
-
-    /**
-     * Returns true for any artifact type which will positively have a POM that
-     * describes the artifact.
-     * @param artifact the artifact
-     * @return true if artifact will have a POM, false if not
-     */
-    private boolean isDescribedArtifact(Artifact artifact) {
-        return artifact.getType().equalsIgnoreCase("jar");
-    }
-
     /**
      * Resolves the CycloneDX schema the mojo has been requested to use.
      * @return the CycloneDX schema to use
@@ -664,20 +355,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         } else {
             return CycloneDxSchema.Version.VERSION_14;
         }
-    }
-
-    private Component.Type resolveProjectType() {
-        for (Component.Type type: Component.Type.values()) {
-            if (type.getTypeName().equalsIgnoreCase(this.projectType)) {
-                return type;
-            }
-        }
-        getLog().warn("Invalid project type. Defaulting to 'library'");
-        getLog().warn("Valid types are:");
-        for (Component.Type type: Component.Type.values()) {
-            getLog().warn("  " + type.getTypeName());
-        }
-        return Component.Type.LIBRARY;
     }
 
     protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs, final MavenProject mavenProject) throws MojoExecutionException {
@@ -716,7 +393,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     private void buildDependencyGraphNode(final Set<String> componentRefs, final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
-        final String purl = generatePackageUrl(artifactNode.getArtifact());
+        final String purl = modelConverter.generatePackageUrl(artifactNode.getArtifact());
         final Dependency dependency = new Dependency(purl);
         final String parentRef = (parent != null) ? parent.getRef() : null;
         componentRefs.stream().filter(s -> s != null && s.equals(purl))

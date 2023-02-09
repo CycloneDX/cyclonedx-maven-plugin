@@ -348,7 +348,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         for (Entry<String, Component> entry: components.entrySet()) {
             final String componentRef = entry.getKey();
             if (!dependencyRefs.contains(componentRef)) {
-                getLog().info("CycloneDX: Component not used in dependency graph, pruning component from bom: " + componentRef);
+                if (getLog().isDebugEnabled()) {
+                    getLog().debug("CycloneDX: Component not used in dependency graph, pruning component from bom: " + componentRef);
+                }
                 final Component component = entry.getValue();
                 if (component != null) {
                     bom.getComponents().remove(component);
@@ -428,28 +430,28 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
 
             /*
-             Test and Runtime scope artifacts may conceal transitive compile dependencies.
-             Test artifacts will conceal other artifacts if includeTestScope is false, whereas Runtime artifacs
-             will conceal other artifacts if both includeTestScope and includeRuntimeScope are false.
+             Test and Runtime scope artifacts may hide transitive compile dependencies.
+             Test artifacts will hide other artifacts if includeTestScope is false, whereas Runtime artifacts
+             will hide other artifacts if both includeTestScope and includeRuntimeScope are false.
              */
             if ((includeCompileScope && !includeTestScope) || !excludedNodes.isEmpty()){
                 final ProjectBuildingRequest testBuildingRequest = getProjectBuildingRequest(mavenProject);
-                final Map<String, DependencyNode> concealedNodes = new HashMap<>();
-                final Map<String, DependencyNode> concealedEmptyNodes = new HashMap<>();
+                final Map<String, DependencyNode> hiddenNodes = new HashMap<>();
+                final Map<String, DependencyNode> hiddenEmptyNodes = new HashMap<>();
                 if (includeCompileScope && !includeTestScope) {
                     final DependencyNode testRootNode = dependencyCollectorBuilder.collectDependencyGraph(testBuildingRequest, null);
                     for (DependencyNode child: testRootNode.getChildren()) {
                         if (Artifact.SCOPE_TEST.equals(child.getArtifact().getScope())) {
-                            collectNodes(concealedNodes, concealedEmptyNodes, child);
+                            collectNodes(hiddenNodes, hiddenEmptyNodes, child);
                         }
                     }
                     if (!includeRuntimeScope) {
-                        collectRuntimeNodes(concealedNodes, concealedEmptyNodes, testRootNode);
+                        collectRuntimeNodes(hiddenNodes, hiddenEmptyNodes, testRootNode);
                     }
                 }
                 if (!excludedNodes.isEmpty()) {
                     for (DependencyNode excluded: excludedNodes.values()) {
-                        collectNodes(concealedNodes, concealedEmptyNodes, excluded);
+                        collectNodes(hiddenNodes, hiddenEmptyNodes, excluded);
                     }
                 }
 
@@ -459,16 +461,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     final Dependency dependency = toProcess.remove();
                     if ((dependency.getDependencies() == null) || dependency.getDependencies().isEmpty()) {
                         final String purl = dependency.getRef();
-                        DependencyNode concealedNode = concealedNodes.get(purl);
-                        if (concealedNode == null) {
-                            concealedNode = concealedEmptyNodes.get(purl);
+                        DependencyNode hiddenNode = hiddenNodes.get(purl);
+                        if (hiddenNode == null) {
+                            hiddenNode = hiddenEmptyNodes.get(purl);
                         }
-                        if (concealedNode != null) {
+                        if (hiddenNode != null) {
                             if (!loggedPurls.contains(purl)) {
-                                getLog().info("CycloneDX: Populating concealed node: " + purl);
+                                if (getLog().isDebugEnabled()) {
+                                    getLog().debug("CycloneDX: Populating hidden node: " + purl);
+                                }
                                 loggedPurls.add(purl);
                             }
-                            for (DependencyNode child: concealedNode.getChildren()) {
+                            for (DependencyNode child: hiddenNode.getChildren()) {
                                 buildDependencyGraphNode(dependencies, child, dependency, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
                                 buildDependencyGraphNode(dependencies, child, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
                             }
@@ -509,21 +513,21 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     /**
      * Add all runtime nodes with children into the map.  Key is purl, value is the node.
-     * @param concealedNodes The map of references to concealed nodes with children
-     * @param concealedEmptyNodes The map of references to concealed nodes without children
+     * @param hiddenNodes The map of references to hidden nodes with children
+     * @param hiddenEmptyNodes The map of references to hidden nodes without children
      * @param node The node to add
      */
-    private void collectRuntimeNodes(Map<String, DependencyNode> concealedNodes, Map<String, DependencyNode> concealedEmptyNodes, DependencyNode node) {
+    private void collectRuntimeNodes(Map<String, DependencyNode> hiddenNodes, Map<String, DependencyNode> hiddenEmptyNodes, DependencyNode node) {
         if (!node.getChildren().isEmpty()) {
             if (Artifact.SCOPE_RUNTIME.equals(node.getArtifact().getScope())) {
                 final String purl = generatePackageUrl(node.getArtifact());
-                concealedNodes.put(purl, node) ;
+                hiddenNodes.put(purl, node) ;
                 for (DependencyNode child: node.getChildren()) {
-                    collectNodes(concealedNodes, concealedEmptyNodes, child);
+                    collectNodes(hiddenNodes, hiddenEmptyNodes, child);
                 }
             } else {
                 for (DependencyNode child: node.getChildren()) {
-                    collectRuntimeNodes(concealedNodes, concealedEmptyNodes, child);
+                    collectRuntimeNodes(hiddenNodes, hiddenEmptyNodes, child);
                 }
             }
         }
@@ -531,19 +535,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     /**
      * Add all nodes with children into the map.  Key is purl, value is the node.
-     * @param concealedNodes The map of references to concealed nodes with children
-     * @param concealedEmptyNodes The map of references to concealed nodes without children
+     * @param hiddenNodes The map of references to hidden nodes with children
+     * @param hiddenEmptyNodes The map of references to hidden nodes without children
      * @param node The node to add
      */
-    private void collectNodes(Map<String, DependencyNode> concealedNodes, Map<String, DependencyNode> concealedEmptyNodes, DependencyNode node) {
+    private void collectNodes(Map<String, DependencyNode> hiddenNodes, Map<String, DependencyNode> hiddenEmptyNodes, DependencyNode node) {
         final String purl = generatePackageUrl(node.getArtifact());
         if (!node.getChildren().isEmpty()) {
-            concealedNodes.put(purl, node) ;
+            hiddenNodes.put(purl, node) ;
             for (DependencyNode child: node.getChildren()) {
-                collectNodes(concealedNodes, concealedEmptyNodes, child);
+                collectNodes(hiddenNodes, hiddenEmptyNodes, child);
             }
         } else {
-            concealedEmptyNodes.put(purl, node);
+            hiddenEmptyNodes.put(purl, node);
         }
     }
 
@@ -560,7 +564,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             excludedNodes.put(purl, artifactNode);
             return;
         }
-        // When adding concealed nodes we may inadvertently pull in runtime artifacts
+        // When adding hidden nodes we may inadvertently pull in runtime artifacts
         if (!includeTestScope && !includeRuntimeScope && Artifact.SCOPE_RUNTIME.equals(artifactNode.getArtifact().getScope())) {
             return;
         }
@@ -571,7 +575,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final String resolvedPurl = resolvedPurls.get(versionlessPurl);
             if (!purl.equals(resolvedPurl)) {
                 if (!loggedReplacementPUrls.contains(purl)) {
-                    getLog().info("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                    if (getLog().isDebugEnabled()) {
+                        getLog().debug("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                    }
                     loggedReplacementPUrls.add(purl);
                 }
                 purl = resolvedPurl;

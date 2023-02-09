@@ -63,11 +63,11 @@ public class IssueTrustification1Test {
     }
 
     /**
-     * This test ensures that any dependencies obscured by <i>test</i> dependencies are discovered and present in the dependency graph
+     * This test ensures that any dependencies hidden by <i>test</i> dependencies are discovered and present in the dependency graph
      * @throws Exception
      */
     @Test
-    public void testConcealedTestArtifacts() throws Exception {
+    public void testHiddenTestArtifacts() throws Exception {
         final File projDir = cleanAndBuild(null);
 
         final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
@@ -130,11 +130,11 @@ public class IssueTrustification1Test {
     }
 
     /**
-     * This test ensures that any dependencies obscured by <i>runtime</i> dependencies are discovered and present in the dependency graph
+     * This test ensures that any dependencies hidden by <i>runtime</i> dependencies are discovered and present in the dependency graph
      * @throws Exception
      */
     @Test
-    public void testConcealedRuntimeArtifacts() throws Exception {
+    public void testHiddenRuntimeArtifacts() throws Exception {
         final File projDir = cleanAndBuild(null);
 
         final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
@@ -225,7 +225,7 @@ public class IssueTrustification1Test {
     }
 
     /**
-     * This test ensures that any <i>compile</i> dependencies concealed by excluded types are included in the BOM if they are visible dependencies
+     * This test ensures that any <i>compile</i> dependencies hidden by excluded types are included in the BOM if they are visible dependencies
      * @throws Exception
      */
     @Test

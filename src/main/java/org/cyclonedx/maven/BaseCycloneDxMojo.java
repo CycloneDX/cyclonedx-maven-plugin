@@ -271,6 +271,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             bom.setComponents(new ArrayList<>(components));
             if (schemaVersion().getVersion() >= 1.2 && dependencies != null && !dependencies.isEmpty()) {
                 bom.setDependencies(new ArrayList<>(dependencies));
+                validateBomDependencies(bom);
             }
             if (schemaVersion().getVersion() >= 1.3) {
                 //if (excludeArtifactId != null && excludeTypes.length > 0) { // TODO
@@ -299,7 +300,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     private void saveBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,
             MojoExecutionException {
-        validateBom(bom);
         if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
@@ -330,7 +330,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    private void validateBom(final Bom bom) {
+    private void validateBomDependencies(final Bom bom) {
         final Map<String, Component> components = new HashMap<>();
         components.put(bom.getMetadata().getComponent().getBomRef(), bom.getMetadata().getComponent());
         for (Component component: bom.getComponents()) {
@@ -385,8 +385,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     private Set<String> getExcludeTypesSet() {
         if (excludeTypesSet == null) {
-            excludeTypesSet = Collections.emptySet();
-        } else {
             excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
         }
         return excludeTypesSet;
@@ -394,6 +392,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     protected Set<Dependency> buildDependencyGraph(MavenProject mavenProject) throws MojoExecutionException {
         final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
+
         final Collection<String> scope = new HashSet<>();
         if (includeCompileScope) scope.add("compile");
         if (includeProvidedScope) scope.add("provided");
@@ -407,10 +406,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
         final ProjectBuildingRequest buildingRequest = getProjectBuildingRequest(mavenProject);
 
+        // version-less PUrl to version-resolved PUrl
+        final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
+
         try {
             final DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, artifactFilter);
             final Map<String, DependencyNode> excludedNodes = new HashMap<>();
-            final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
             final Set<String> loggedReplacementPUrls = new HashSet<>();
             buildDependencyGraphNode(dependencies, rootNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
             final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor() {

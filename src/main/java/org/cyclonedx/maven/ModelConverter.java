@@ -31,6 +31,8 @@ import org.cyclonedx.model.Metadata;
 public interface ModelConverter {
     String generatePackageUrl(Artifact artifact);
 
+    String generateVersionlessPackageUrl(final Artifact artifact);
+
     /**
      * Converts a Maven artifact (dependency or transitive dependency) into a
      * CycloneDX component.

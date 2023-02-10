@@ -99,19 +99,17 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
             componentRefs.add(bomComponent.getBomRef());
 
             for (final Artifact artifact : getProject().getArtifacts()) {
-                if (shouldInclude(artifact)) {
-                    final Component component = convert(artifact);
-                    // ensure that only one component with the same bom-ref exists in the BOM
-                    if (!componentRefs.contains(component.getBomRef())) {
-                        component.setScope(getComponentScope(component, artifact, dependencyAnalysis));
-                        componentRefs.add(component.getBomRef());
-                        components.add(component);
-                    }
+                final Component component = convert(artifact);
+                // ensure that only one component with the same bom-ref exists in the BOM
+                if (!componentRefs.contains(component.getBomRef())) {
+                    component.setScope(getComponentScope(component, artifact, dependencyAnalysis));
+                    componentRefs.add(component.getBomRef());
+                    components.add(component);
                 }
             }
         }
         if (schemaVersion().getVersion() >= 1.2) {
-            dependencies.addAll(buildDependencyGraph(componentRefs, null));
+            dependencies.addAll(buildDependencyGraph(null));
         }
         return true;
     }

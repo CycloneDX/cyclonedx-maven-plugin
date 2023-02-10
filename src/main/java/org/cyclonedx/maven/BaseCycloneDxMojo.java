@@ -51,13 +51,21 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
@@ -197,6 +205,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @org.apache.maven.plugins.annotations.Component
     private ModelConverter modelConverter;
 
+    private Set<String> excludeTypesSet;
+
     /**
      * Various messages sent to console.
      */
@@ -221,32 +231,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return modelConverter.generatePackageUrl(artifact);
     }
 
-    protected Component convert(Artifact artifact) {
-        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText);
+    protected String generateVersionlessPackageUrl(final Artifact artifact) {
+        return modelConverter.generateVersionlessPackageUrl(artifact);
     }
 
-    protected boolean shouldInclude(Artifact artifact) {
-        if (artifact.getScope() == null) {
-            return false;
-        }
-        if (excludeTypes != null) {
-            final boolean shouldExclude = Arrays.asList(excludeTypes).contains(artifact.getType());
-            if (shouldExclude) {
-                return false;
-            }
-        }
-        if (includeCompileScope && "compile".equals(artifact.getScope())) {
-            return true;
-        } else if (includeProvidedScope && "provided".equals(artifact.getScope())) {
-            return true;
-        } else if (includeRuntimeScope && "runtime".equals(artifact.getScope())) {
-            return true;
-        } else if (includeTestScope && "test".equals(artifact.getScope())) {
-            return true;
-        } else if (includeSystemScope && "system".equals(artifact.getScope())) {
-            return true;
-        }
-        return false;
+    protected Component convert(Artifact artifact) {
+        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText);
     }
 
     protected abstract boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
@@ -281,6 +271,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             bom.setComponents(new ArrayList<>(components));
             if (schemaVersion().getVersion() >= 1.2 && dependencies != null && !dependencies.isEmpty()) {
                 bom.setDependencies(new ArrayList<>(dependencies));
+                validateBomDependencies(bom);
             }
             if (schemaVersion().getVersion() >= 1.3) {
                 //if (excludeArtifactId != null && excludeTypes.length > 0) { // TODO
@@ -339,6 +330,41 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
+    private void validateBomDependencies(final Bom bom) {
+        final Map<String, Component> components = new HashMap<>();
+        components.put(bom.getMetadata().getComponent().getBomRef(), bom.getMetadata().getComponent());
+        for (Component component: bom.getComponents()) {
+            components.put(component.getBomRef(), component);
+        }
+        final Set<String> dependencyRefs = new HashSet<>();
+        for (Dependency dependency: bom.getDependencies()) {
+            dependencyRefs.add(dependency.getRef());
+            List<Dependency> childDependencies = dependency.getDependencies();
+            if (childDependencies != null) {
+                childDependencies.forEach(d -> dependencyRefs.add(d.getRef()));
+            }
+        }
+        // Check all components have a top level dependency
+        for (Entry<String, Component> entry: components.entrySet()) {
+            final String componentRef = entry.getKey();
+            if (!dependencyRefs.contains(componentRef)) {
+                if (getLog().isDebugEnabled()) {
+                    getLog().debug("CycloneDX: Component not used in dependency graph, pruning component from bom: " + componentRef);
+                }
+                final Component component = entry.getValue();
+                if (component != null) {
+                    bom.getComponents().remove(component);
+                }
+            }
+        }
+        // Check all transitive dependencies have a component
+        for (String dependencyRef: dependencyRefs) {
+            if (!components.containsKey(dependencyRef)) {
+                getLog().warn("CycloneDX: Dependency missing component entry: " + dependencyRef);
+            }
+        }
+    }
+
     /**
      * Resolves the CycloneDX schema the mojo has been requested to use.
      * @return the CycloneDX schema to use
@@ -357,8 +383,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected Set<Dependency> buildDependencyGraph(final Set<String> componentRefs, final MavenProject mavenProject) throws MojoExecutionException {
-        final Set<Dependency> dependencies = new LinkedHashSet<>();
+    private Set<String> getExcludeTypesSet() {
+        if (excludeTypesSet == null) {
+            excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
+        }
+        return excludeTypesSet;
+    }
+
+    protected Set<Dependency> buildDependencyGraph(MavenProject mavenProject) throws MojoExecutionException {
+        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
+
         final Collection<String> scope = new HashSet<>();
         if (includeCompileScope) scope.add("compile");
         if (includeProvidedScope) scope.add("provided");
@@ -366,19 +400,90 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (includeSystemScope) scope.add("system");
         if (includeTestScope) scope.add("test");
         final ArtifactFilter artifactFilter = new CumulativeScopeArtifactFilter(scope);
-        final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
-        if (mavenProject != null) {
-            buildingRequest.setProject(mavenProject);
-        } else {
-            buildingRequest.setProject(this.project);
+
+        if (mavenProject == null) {
+            mavenProject = project;
         }
+        final ProjectBuildingRequest buildingRequest = getProjectBuildingRequest(mavenProject);
+
+        // version-less PUrl to version-resolved PUrl
+        final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
+
         try {
             final DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, artifactFilter);
-            buildDependencyGraphNode(componentRefs, dependencies, rootNode, null);
-            final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor();
+            final Map<String, DependencyNode> excludedNodes = new HashMap<>();
+            final Set<String> loggedReplacementPUrls = new HashSet<>();
+            buildDependencyGraphNode(dependencies, rootNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
+            final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor() {
+                @Override
+                public boolean visit(final DependencyNode node) {
+                    // Do not visit excluded nodes
+                    if (isExcludedNode(node)) {
+                        return false;
+                    } else {
+                        return super.visit(node);
+                    }
+                }
+            };
             rootNode.accept(visitor);
             for (final DependencyNode dependencyNode : visitor.getNodes()) {
-                buildDependencyGraphNode(componentRefs, dependencies, dependencyNode, null);
+                buildDependencyGraphNode(dependencies, dependencyNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
+            }
+
+            /*
+             Test and Runtime scope artifacts may hide transitive compile dependencies.
+             Test artifacts will hide other artifacts if includeTestScope is false, whereas Runtime artifacts
+             will hide other artifacts if both includeTestScope and includeRuntimeScope are false.
+             */
+            if ((includeCompileScope && !includeTestScope) || !excludedNodes.isEmpty()){
+                final ProjectBuildingRequest testBuildingRequest = getProjectBuildingRequest(mavenProject);
+                final Map<String, DependencyNode> hiddenNodes = new HashMap<>();
+                final Map<String, DependencyNode> hiddenEmptyNodes = new HashMap<>();
+                if (includeCompileScope && !includeTestScope) {
+                    final DependencyNode testRootNode = dependencyCollectorBuilder.collectDependencyGraph(testBuildingRequest, null);
+                    for (DependencyNode child: testRootNode.getChildren()) {
+                        if (Artifact.SCOPE_TEST.equals(child.getArtifact().getScope())) {
+                            collectNodes(hiddenNodes, hiddenEmptyNodes, child);
+                        }
+                    }
+                    if (!includeRuntimeScope) {
+                        collectRuntimeNodes(hiddenNodes, hiddenEmptyNodes, testRootNode);
+                    }
+                }
+                if (!excludedNodes.isEmpty()) {
+                    for (DependencyNode excluded: excludedNodes.values()) {
+                        collectNodes(hiddenNodes, hiddenEmptyNodes, excluded);
+                    }
+                }
+
+                final Set<String> loggedPurls = new HashSet<>();
+                final Deque<Dependency> toProcess = new ArrayDeque<>(dependencies.values());
+                while (!toProcess.isEmpty()) {
+                    final Dependency dependency = toProcess.remove();
+                    if ((dependency.getDependencies() == null) || dependency.getDependencies().isEmpty()) {
+                        final String purl = dependency.getRef();
+                        DependencyNode hiddenNode = hiddenNodes.get(purl);
+                        if (hiddenNode == null) {
+                            hiddenNode = hiddenEmptyNodes.get(purl);
+                        }
+                        if (hiddenNode != null) {
+                            if (!loggedPurls.contains(purl)) {
+                                if (getLog().isDebugEnabled()) {
+                                    getLog().debug("CycloneDX: Populating hidden node: " + purl);
+                                }
+                                loggedPurls.add(purl);
+                            }
+                            for (DependencyNode child: hiddenNode.getChildren()) {
+                                buildDependencyGraphNode(dependencies, child, dependency, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
+                                buildDependencyGraphNode(dependencies, child, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
+                            }
+                            final Dependency topLevelDependency = dependencies.get(dependency);
+                            if (topLevelDependency.getDependencies() != null) {
+                                toProcess.addAll(topLevelDependency.getDependencies());
+                            }
+                        }
+                    }
+                }
             }
         } catch (DependencyCollectorBuilderException e) {
             if (mavenProject != null) {
@@ -389,28 +494,111 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 throw new MojoExecutionException("An error occurred building dependency graph", e);
             }
         }
-        return dependencies;
+
+        return dependencies.keySet();
     }
 
-    private void buildDependencyGraphNode(final Set<String> componentRefs, final Set<Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent) {
-        final String purl = modelConverter.generatePackageUrl(artifactNode.getArtifact());
-        final Dependency dependency = new Dependency(purl);
-        final String parentRef = (parent != null) ? parent.getRef() : null;
-        componentRefs.stream().filter(s -> s != null && s.equals(purl))
-                .forEach(s -> addDependencyToGraph(dependencies, parentRef, dependency));
-        for (final DependencyNode childrenNode : artifactNode.getChildren()) {
-            buildDependencyGraphNode(componentRefs, dependencies, childrenNode, dependency);
+    /**
+     * Generate a map of versionless purls to their resolved versioned purl
+     * @return the map of versionless purls to resolved versioned purls
+     */
+    private Map<String, String> generateResolvedPUrls(final MavenProject mavenProject) {
+        final Map<String, String> resolvedPUrls = new HashMap<>();
+        final Artifact projectArtifact = mavenProject.getArtifact();
+        resolvedPUrls.put(generateVersionlessPackageUrl(projectArtifact), generatePackageUrl(projectArtifact));
+        for (Artifact artifact: mavenProject.getArtifacts()) {
+            resolvedPUrls.put(generateVersionlessPackageUrl(artifact), generatePackageUrl(artifact));
+        }
+        return resolvedPUrls;
+    }
+
+    /**
+     * Add all runtime nodes with children into the map.  Key is purl, value is the node.
+     * @param hiddenNodes The map of references to hidden nodes with children
+     * @param hiddenEmptyNodes The map of references to hidden nodes without children
+     * @param node The node to add
+     */
+    private void collectRuntimeNodes(Map<String, DependencyNode> hiddenNodes, Map<String, DependencyNode> hiddenEmptyNodes, DependencyNode node) {
+        if (!node.getChildren().isEmpty()) {
+            if (Artifact.SCOPE_RUNTIME.equals(node.getArtifact().getScope())) {
+                final String purl = generatePackageUrl(node.getArtifact());
+                hiddenNodes.put(purl, node) ;
+                for (DependencyNode child: node.getChildren()) {
+                    collectNodes(hiddenNodes, hiddenEmptyNodes, child);
+                }
+            } else {
+                for (DependencyNode child: node.getChildren()) {
+                    collectRuntimeNodes(hiddenNodes, hiddenEmptyNodes, child);
+                }
+            }
         }
     }
 
-    private void addDependencyToGraph(final Set<Dependency> dependencies, final String parentRef, final Dependency dependency) {
-        if (parentRef == null) {
-            dependencies.add(dependency);
+    /**
+     * Add all nodes with children into the map.  Key is purl, value is the node.
+     * @param hiddenNodes The map of references to hidden nodes with children
+     * @param hiddenEmptyNodes The map of references to hidden nodes without children
+     * @param node The node to add
+     */
+    private void collectNodes(Map<String, DependencyNode> hiddenNodes, Map<String, DependencyNode> hiddenEmptyNodes, DependencyNode node) {
+        final String purl = generatePackageUrl(node.getArtifact());
+        if (!node.getChildren().isEmpty()) {
+            hiddenNodes.put(purl, node) ;
+            for (DependencyNode child: node.getChildren()) {
+                collectNodes(hiddenNodes, hiddenEmptyNodes, child);
+            }
         } else {
-            for (final Dependency d : dependencies) {
-                if (d.getRef().equals(parentRef) && !parentRef.equals(dependency.getRef())) {
-                    d.addDependency(dependency);
+            hiddenEmptyNodes.put(purl, node);
+        }
+    }
+
+    private boolean isExcludedNode(final DependencyNode node) {
+        final String type = node.getArtifact().getType();
+        return ((type == null) || getExcludeTypesSet().contains(type));
+    }
+
+    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent,
+            final Map<String, DependencyNode> excludedNodes, Map<String, String> resolvedPurls, Set<String> loggedReplacementPUrls) {
+        String purl = generatePackageUrl(artifactNode.getArtifact());
+        // If this is an excluded type then track in case it is hiding a transitive dependency
+        if (isExcludedNode(artifactNode)) {
+            excludedNodes.put(purl, artifactNode);
+            return;
+        }
+        // When adding hidden nodes we may inadvertently pull in runtime artifacts
+        if (!includeTestScope && !includeRuntimeScope && Artifact.SCOPE_RUNTIME.equals(artifactNode.getArtifact().getScope())) {
+            return;
+        }
+
+        // If the node has no children then it could be a marker node for conflict resolution
+        if (artifactNode.getChildren().isEmpty()) {
+            final String versionlessPurl = generateVersionlessPackageUrl(artifactNode.getArtifact());
+            final String resolvedPurl = resolvedPurls.get(versionlessPurl);
+            if (!purl.equals(resolvedPurl)) {
+                if (!loggedReplacementPUrls.contains(purl)) {
+                    if (getLog().isDebugEnabled()) {
+                        getLog().debug("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                    }
+                    loggedReplacementPUrls.add(purl);
                 }
+                purl = resolvedPurl;
+            }
+        }
+
+        final Dependency dependency = new Dependency(purl);
+        addDependencyToGraph(dependencies, parent, dependency);
+        for (final DependencyNode childrenNode : artifactNode.getChildren()) {
+            buildDependencyGraphNode(dependencies, childrenNode, dependency, excludedNodes, resolvedPurls, loggedReplacementPUrls);
+        }
+    }
+
+    private void addDependencyToGraph(final Map<Dependency, Dependency> dependencies, final Dependency parent, final Dependency dependency) {
+        if (parent == null) {
+            dependencies.putIfAbsent(dependency, dependency);
+        } else if (!parent.getRef().equals(dependency.getRef())) {
+            final Dependency topLevelParent = dependencies.get(parent);
+            if (topLevelParent != null) {
+                topLevelParent.addDependency(dependency);
             }
         }
     }
@@ -436,5 +624,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
+    }
+
+    /**
+     * Create a project building request
+     * @param mavenProject The maven project associated with this build request
+     * @return The project building request
+     */
+    private ProjectBuildingRequest getProjectBuildingRequest(final MavenProject mavenProject) {
+        final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
+        buildingRequest.setProject(mavenProject);
+        return buildingRequest;
     }
 }

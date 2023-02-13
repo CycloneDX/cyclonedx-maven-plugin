@@ -220,7 +220,7 @@
 
     <build>
         <plugins>
-            <plugin>
+            <plugin><!-- https://github.com/takari/takari-plugin-testing-project/blob/master/testproperties.md -->
                 <groupId>io.takari.maven.plugins</groupId>
                 <artifactId>takari-lifecycle-plugin</artifactId>
                 <version>2.0.8</version>

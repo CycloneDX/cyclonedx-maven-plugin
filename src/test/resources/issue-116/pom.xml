@@ -33,12 +33,13 @@
             <version>5.14</version>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>${test.input.version}</version>
+                <version>${current.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>

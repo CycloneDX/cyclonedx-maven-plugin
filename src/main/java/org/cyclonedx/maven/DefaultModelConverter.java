@@ -139,8 +139,12 @@ public class DefaultModelConverter implements ModelConverter {
                     extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
                 }
             } catch (ProjectBuildingException e) {
-                logger.warn("An unexpected issue occurred attempting to resolve the effective pom for  "
-                        + artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + artifact.getVersion(), e);
+                // doing same workaround as MPIR-374 https://github.com/apache/maven-project-info-reports-plugin/commit/3e139cdbafc944932407ae349da0c54fbf433e50
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
+                } else {
+                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
+                }
             }
         }
         return component;

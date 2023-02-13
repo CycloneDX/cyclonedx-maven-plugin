@@ -42,12 +42,13 @@
         <module>shared_type_dependency3</module>
         <module>shared_type_dependency4</module>
     </modules>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>${test.input.version}</version>
+                <version>${current.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -65,12 +66,13 @@
                     <includeRuntimeScope>false</includeRuntimeScope>
                     <includeSystemScope>false</includeSystemScope>
                     <includeTestScope>false</includeTestScope>
-                    <includeLicenseText>true</includeLicenseText>
-                    <outputFormat>all</outputFormat>
+                    <includeLicenseText>false</includeLicenseText>
+                    <outputFormat>xml</outputFormat>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

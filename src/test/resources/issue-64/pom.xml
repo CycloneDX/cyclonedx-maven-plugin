@@ -40,12 +40,13 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>${test.input.version}</version>
+                <version>${current.version}</version>
                 <executions>
                     <execution>
                         <phase>verify</phase>
@@ -63,7 +64,7 @@
                     <includeRuntimeScope>true</includeRuntimeScope>
                     <includeSystemScope>true</includeSystemScope>
                     <includeTestScope>true</includeTestScope>
-                    <includeLicenseText>true</includeLicenseText>
+                    <includeLicenseText>false</includeLicenseText>
                     <outputFormat>xml</outputFormat>
                 </configuration>
             </plugin>

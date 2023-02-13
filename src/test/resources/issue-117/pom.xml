@@ -33,12 +33,13 @@
             <version>5.14</version>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>${test.input.version}</version>
+                <version>${current.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -55,9 +56,9 @@
                     <includeProvidedScope>true</includeProvidedScope>
                     <includeRuntimeScope>true</includeRuntimeScope>
                     <includeSystemScope>true</includeSystemScope>
-                    <includeTestScope>true</includeTestScope>
-                    <includeLicenseText>true</includeLicenseText>
-                    <outputFormat>all</outputFormat>
+                    <includeTestScope>false</includeTestScope>
+                    <includeLicenseText>false</includeLicenseText>
+                    <outputFormat>json</outputFormat>
                 </configuration>
             </plugin>
         </plugins>

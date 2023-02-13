@@ -1,24 +1,19 @@
 package org.cyclonedx.maven;
 
-import io.takari.maven.testing.TestResources;
-import io.takari.maven.testing.executor.MavenExecution;
-import io.takari.maven.testing.executor.MavenRuntime;
-import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
-import io.takari.maven.testing.executor.MavenVersions;
-import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.w3c.dom.Document;
@@ -26,11 +21,18 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import static org.junit.Assert.*;
+import io.takari.maven.testing.executor.MavenExecution;
+import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
+import io.takari.maven.testing.executor.MavenVersions;
+import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
+/**
+ * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/256
+ * 
+ */
 @RunWith(MavenJUnitTestRunner.class)
 @MavenVersions({"3.6.3"})
-public class BomDependenciesTest {
+public class BomDependenciesTest extends BaseMavenVerifier {
 
     private static final String SHARED_DEPENDENCY1 = "pkg:maven/com.example/shared_dependency1@1.0.0?type=jar";
     private static final String SHARED_DEPENDENCY2 = "pkg:maven/com.example/shared_dependency2@1.0.0?type=jar";
@@ -49,17 +51,8 @@ public class BomDependenciesTest {
     private static final String PROVIDED_DEPENDENCY = "pkg:maven/com.example/provided_dependency@1.0.0?type=jar";
     private static final String DEPENDENCY1 = "pkg:maven/com.example/dependency1@1.0.0?type=jar";
 
-    @Rule
-    public final TestResources resources = new TestResources(
-            "target/test-classes",
-            "target/test-classes/transformed-projects"
-    );
-
-    public final MavenRuntime verifier;
-
-    public BomDependenciesTest(MavenRuntimeBuilder runtimeBuilder)
-            throws Exception {
-        this.verifier = runtimeBuilder.build(); //.withCliOptions(opts) // //
+    public BomDependenciesTest(MavenRuntimeBuilder runtimeBuilder) throws Exception {
+        super(runtimeBuilder);
     }
 
     @Test
@@ -332,23 +325,11 @@ public class BomDependenciesTest {
     }
 
     private File cleanAndBuild(final String[] excludeTypes) throws Exception {
-        File projectDirTransformed = new File(
-                "target/test-classes/transformed-projects/bom-dependencies"
-        );
-        if (projectDirTransformed.exists()) {
-            FileUtils.cleanDirectory(projectDirTransformed);
-            projectDirTransformed.delete();
-        }
-
         File projDir = resources.getBasedir("bom-dependencies");
 
-        Properties props = new Properties();
-
-        props.load(BomDependenciesTest.class.getClassLoader().getResourceAsStream("test.properties"));
-        String projectVersion = (String) props.get("project.version");
         final MavenExecution initExecution = verifier
-                .forProject(projDir) //
-                .withCliOption("-Dtest.input.version=" + projectVersion) // debug
+                .forProject(projDir)
+                .withCliOption("-Dcurrent.version=" + getCurrentVersion()) // inject cyclonedx-maven-plugin version
                 .withCliOption("-X") // debug
                 .withCliOption("-B");
         final MavenExecution execution;

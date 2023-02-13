@@ -139,7 +139,6 @@ public class DefaultModelConverter implements ModelConverter {
                     extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
                 }
             } catch (ProjectBuildingException e) {
-                // doing same workaround as MPIR-374 https://github.com/apache/maven-project-info-reports-plugin/commit/3e139cdbafc944932407ae349da0c54fbf433e50
                 if (logger.isDebugEnabled()) {
                     logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
                 } else {
@@ -242,7 +241,7 @@ public class DefaultModelConverter implements ModelConverter {
     private MavenProject getEffectiveMavenProject(final Artifact artifact) throws ProjectBuildingException {
         final Artifact pomArtifact = repositorySystem.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
         final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact,
-                session.getProjectBuildingRequest().setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
+                session.getProjectBuildingRequest().setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL).setProcessPlugins(false)
         );
         return build.getProject();
     }

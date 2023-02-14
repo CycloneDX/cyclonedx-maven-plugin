@@ -1,10 +1,8 @@
 package org.cyclonedx.maven;
 
-import static io.takari.maven.testing.TestResources.assertFilesPresent;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

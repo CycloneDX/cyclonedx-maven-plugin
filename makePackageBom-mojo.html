@@ -207,6 +207,17 @@
           
 <tr class="b">
             
+<td align="left"><code><a href="#outputDirectory">&lt;outputDirectory&gt;</a></code></td>
+            
+<td><code>File</code></td>
+            
+<td><code>2.7.5</code></td>
+            
+<td>The output directory where to store generated CycloneDX output files.<br /><b>Default value is</b>: <code>${project.build.directory}</code>.<br /></td>
+          </tr>
+          
+<tr class="a">
+            
 <td align="left"><code><a href="#outputFormat">&lt;outputFormat&gt;</a></code></td>
             
 <td><code>String</code></td>
@@ -216,7 +227,7 @@
 <td>The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).<br /><b>Default value is</b>: <code>all</code>.<br /><b>User property is</b>: <code>outputFormat</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#outputName">&lt;outputName&gt;</a></code></td>
             
@@ -224,10 +235,10 @@
             
 <td><code>2.2.0</code></td>
             
-<td>The CycloneDX output file name (without extension) that should be generated (in <code>target/</code> directory).<br /><b>Default value is</b>: <code>bom</code>.<br /><b>User property is</b>: <code>outputName</code>.<br /></td>
+<td>The CycloneDX output file name (without extension) that should be generated (in <code>outputDirectory</code> directory).<br /><b>Default value is</b>: <code>bom</code>.<br /><b>User property is</b>: <code>outputName</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#projectType">&lt;projectType&gt;</a></code></td>
             
@@ -238,7 +249,7 @@
 <td>The component type associated to the SBOM metadata. See <a class="externalLink" href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported values.<br /><b>Default value is</b>: <code>library</code>.<br /><b>User property is</b>: <code>projectType</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#schemaVersion">&lt;schemaVersion&gt;</a></code></td>
             
@@ -249,7 +260,7 @@
 <td>The CycloneDX schema version the BOM will comply with.<br /><b>Default value is</b>: <code>1.4</code>.<br /><b>User property is</b>: <code>schemaVersion</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#skip">&lt;skip&gt;</a></code></td>
             
@@ -260,7 +271,7 @@
 <td>Skip CycloneDX execution.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skip</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#skipAttach">&lt;skipAttach&gt;</a></code></td>
             
@@ -271,7 +282,7 @@
 <td>Don't attach bom.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skipAttach</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#verbose">&lt;verbose&gt;</a></code></td>
             
@@ -412,6 +423,20 @@
           
 <li><b>Default</b>: <code>false</code></li>
         </ul><hr /></section><section>
+<h4><a name="a.3CoutputDirectory.3E"></a><b><a name="outputDirectory">&lt;outputDirectory&gt;</a></b></h4>
+        
+<div>The output directory where to store generated CycloneDX output files.</div>
+        
+<ul>
+          
+<li><b>Type</b>: <code>java.io.File</code></li>
+          
+<li><b>Since</b>: <code>2.7.5</code></li>
+          
+<li><b>Required</b>: <code>No</code></li>
+          
+<li><b>Default</b>: <code>${project.build.directory}</code></li>
+        </ul><hr /></section><section>
 <h4><a name="a.3CoutputFormat.3E"></a><b><a name="outputFormat">&lt;outputFormat&gt;</a></b></h4>
         
 <div>The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).</div>
@@ -430,7 +455,7 @@
         </ul><hr /></section><section>
 <h4><a name="a.3CoutputName.3E"></a><b><a name="outputName">&lt;outputName&gt;</a></b></h4>
         
-<div>The CycloneDX output file name (without extension) that should be generated (in <code>target/</code> directory).</div>
+<div>The CycloneDX output file name (without extension) that should be generated (in <code>outputDirectory</code> directory).</div>
         
 <ul>
           

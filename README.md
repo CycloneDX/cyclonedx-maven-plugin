@@ -23,7 +23,6 @@ Maven Usage
     <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.7.4</version>
         <executions>
             <execution>
                 <phase>package</phase>

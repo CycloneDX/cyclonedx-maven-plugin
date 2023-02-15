@@ -27,6 +27,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.codehaus.plexus.PlexusContainer;
+import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import java.util.LinkedHashSet;
@@ -69,18 +70,14 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
      * @throws MojoExecutionException in case of an error.
      */
     protected ProjectDependencyAnalyzer createProjectDependencyAnalyzer() throws MojoExecutionException {
-        final String role = ProjectDependencyAnalyzer.class.getName();
-        final String roleHint = analyzer;
         try {
-            return (ProjectDependencyAnalyzer) plexusContainer.lookup(role, roleHint);
-        }
-        catch (Exception exception) {
-            throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role " + role
-                    + " / role-hint " + roleHint, exception);
+            return (ProjectDependencyAnalyzer) plexusContainer.lookup(ProjectDependencyAnalyzer.class, analyzer);
+        } catch (ComponentLookupException cle) {
+            throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role-hint " + analyzer, cle);
         }
     }
 
-    protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
+    protected String analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
         // Use default dependency analyzer
         dependencyAnalyzer = createProjectDependencyAnalyzer();
@@ -111,7 +108,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         if (schemaVersion().getVersion() >= 1.2) {
             dependencies.addAll(buildDependencyGraph(null));
         }
-        return true;
+        return "makeBom";
     }
 
     /**

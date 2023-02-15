@@ -1,17 +1,21 @@
-void assertBomFiles(String path) {
+void assertBomFiles(String path, boolean aggregate) {
     File bomFileXml = new File(basedir, path + ".xml")
     File bomFileJson = new File(basedir, path + ".json")
 
     assert bomFileXml.exists()
     assert bomFileJson.exists()
+
+    String analysis = aggregate ? "makeAggregateBom" : "makeBom"
+    assert bomFileXml.text.contains('<name>CycloneDX Maven plugin ' + analysis + '</name>')
+    assert bomFileJson.text.contains('"name" : "CycloneDX Maven plugin ' + analysis + '"')
 }
 
-assertBomFiles("target/bom") // aggregate
-assertBomFiles("api/target/bom")
-assertBomFiles("util/target/bom")
-assertBomFiles("impls/target/bom")
-assertBomFiles("impls/impl-A/target/bom")
-assertBomFiles("impls/impl-B/target/bom")
+assertBomFiles("target/bom", true) // aggregate
+assertBomFiles("api/target/bom", false)
+assertBomFiles("util/target/bom", false)
+assertBomFiles("impls/target/bom", false)
+assertBomFiles("impls/impl-A/target/bom", false)
+assertBomFiles("impls/impl-B/target/bom", false)
 
 var buildLog = new File(basedir, "build.log").text
 

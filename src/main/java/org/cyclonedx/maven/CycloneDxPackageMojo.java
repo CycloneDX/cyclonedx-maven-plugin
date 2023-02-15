@@ -56,7 +56,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
         return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
-    protected boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
+    protected String analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
@@ -77,6 +77,6 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 dependencies.addAll(buildDependencyGraph(mavenProject));
             }
         }
-        return true;
+        return "makePackageBom";
     }
 }

@@ -99,12 +99,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private String outputFormat;
 
     /**
-     * The CycloneDX output file name (without extension) that should be generated (in {@code target/} directory).
+     * The CycloneDX output file name (without extension) that should be generated (in {@code outputDirectory} directory).
      *
      * @since 2.2.0
      */
     @Parameter(property = "outputName", defaultValue = "bom", required = false)
     private String outputName;
+
+    /**
+     * The output directory where to store generated CycloneDX output files.
+     *
+     * @since 2.7.5
+     */
+    @Parameter(defaultValue = "${project.build.directory}", required = false)
+    private File outputDirectory;
 
     /**
      * Should the resulting BOM contain a unique serial number?
@@ -315,7 +323,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     private void saveBomToFile(String bomString, String extension, Parser bomParser) throws IOException, MojoExecutionException {
-        final File bomFile = new File(project.getBasedir(), "target/" + outputName + "." + extension);
+        final File bomFile = new File(outputDirectory, outputName + "." + extension);
 
         getLog().info(String.format(MESSAGE_WRITING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
         FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);

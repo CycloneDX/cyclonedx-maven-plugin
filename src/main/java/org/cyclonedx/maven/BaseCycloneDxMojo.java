@@ -246,7 +246,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return modelConverter.convert(artifact, schemaVersion(), includeLicenseText);
     }
 
-    protected abstract boolean analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
+    /**
+     * Analyze the project dependencies to fill the BOM components list and their dependencies.
+     *
+     * @param components the components set to fill
+     * @param dependencies the dependencies set to fill
+     * @return the name of the analysis done to store as a BOM, or {@code null} to not save result.
+     * @throws MojoExecutionException something weird happened...
+     */
+    protected abstract String analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
 
     public void execute() throws MojoExecutionException {
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
@@ -259,12 +267,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         final Set<Component> components = new LinkedHashSet<>();
         final Set<Dependency> dependencies = new LinkedHashSet<>();
 
-        if (analyze(components, dependencies)) {
-            generateBom(components, dependencies);
+        String analysis = analyze(components, dependencies);
+        if (analysis != null) {
+            generateBom(analysis, components, dependencies);
         }
     }
 
-    private void generateBom(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
+    private void generateBom(String analysis, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();
@@ -272,7 +281,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
             }
             if (schemaVersion().getVersion() >= 1.2) {
-                final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText);
+                final Metadata metadata = modelConverter.convert(project, analysis, projectType, schemaVersion(), includeLicenseText);
                 bom.setMetadata(metadata);
             }
             bom.setComponents(new ArrayList<>(components));

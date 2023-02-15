@@ -48,10 +48,11 @@ public interface ModelConverter {
      * Converts a MavenProject into a Metadata object.
      *
      * @param project the MavenProject to convert
+     * @param analysis type of analysis
      * @param projectType the target CycloneDX component type
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
      * @return a CycloneDX Metadata object
      */
-    Metadata convert(MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
+    Metadata convert(MavenProject project, String analysis, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
 }

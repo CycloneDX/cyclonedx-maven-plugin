@@ -26,6 +26,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
@@ -105,14 +106,14 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         getLog().info("outputReactorProjects  : " + outputReactorProjects);
     }
 
-    protected boolean analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
+    protected String analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         if (! getProject().isExecutionRoot()) {
             // non-root project: let parent class create a module-only BOM?
             if (outputReactorProjects) {
                 return super.analyze(components, dependencies);
             }
             getLog().info("Skipping CycloneDX on non-execution root");
-            return false;
+            return null;
         }
 
         // root project: analyze and aggregate all the modules
@@ -131,8 +132,8 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             try {
                 ProjectDependencyAnalysis dependencyAnalysis = dependencyAnalyzer.analyze(mavenProject);
                 dependencyAnalysisMap.put(mavenProject.getArtifactId(), dependencyAnalysis);
-            } catch (Exception e) {
-                getLog().debug(e);
+            } catch (ProjectDependencyAnalyzerException pdae) {
+                getLog().debug("Could not analyze " + mavenProject.getId(), pdae); // TODO should warn...
             }
         }
 
@@ -192,7 +193,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             }
         }
         addMavenProjectsAsDependencies(reactorProjects, dependencies);
-        return true;
+        return "makeAggregateBom";
     }
 
     private void addMavenProjectsAsDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {

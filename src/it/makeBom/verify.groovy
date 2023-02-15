@@ -11,3 +11,5 @@ File bomAggregateFileJson = new File(basedir, "target/bom-makeAggregateBom.json"
 
 assert bomAggregateFileXml.exists()
 assert bomAggregateFileJson.exists()
+
+assert ! new File(basedir, "build.log").text.contains('[INFO] CycloneDX: Parameters')

@@ -57,6 +57,7 @@ Default Values
             <outputReactorProjects>true</outputReactorProjects>
             <outputFormat>all</outputFormat>
             <outputName>bom</outputName>
+            <verbose>true</verbose><!-- = ${cyclonedx.verbose} -->
         </configuration>
     </plugin>
 </plugins>

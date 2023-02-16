@@ -53,6 +53,14 @@
                 <role>Developer</role>
             </roles>
         </developer>
+        <developer>
+            <name>Hervé Boutemy</name>
+            <email>hboutemy@sonatype.com</email>
+            <organization>Sonatype,Apache</organization>
+            <roles>
+                <role>Developer</role>
+            </roles>
+        </developer>
     </developers>
 
     <properties>

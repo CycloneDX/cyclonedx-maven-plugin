@@ -56,7 +56,7 @@ Default Values
             <outputReactorProjects>true</outputReactorProjects>
             <outputFormat>all</outputFormat>
             <outputName>bom</outputName>
-            <outputDirectory>${project.build.directory}</outpuDirectory><!-- usually target, if not redefined in pom.xml -->
+            <outputDirectory>${project.build.directory}</outputDirectory><!-- usually target, if not redefined in pom.xml -->
             <verbose>true</verbose><!-- = ${cyclonedx.verbose} -->
         </configuration>
     </plugin>

@@ -637,6 +637,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeLicenseText     : " + includeLicenseText);
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);
+            getLog().info("outputDirectory        : " + outputDirectory);
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }

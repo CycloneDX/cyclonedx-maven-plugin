@@ -39,7 +39,7 @@ import java.util.Set;
  * @since 2.4.0
  */
 @Mojo(
-        name = "makePackageBom",
+        name = "MakePackageBom",
         defaultPhase = LifecyclePhase.PACKAGE,
         threadSafe = true,
         aggregator = true,

@@ -60,7 +60,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -247,14 +246,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
-     * Analyze the project dependencies to fill the BOM components list and their dependencies.
+     * Analyze the current Maven project to extract the BOM components list and their dependencies.
      *
      * @param components the components set to fill
      * @param dependencies the dependencies set to fill
      * @return the name of the analysis done to store as a BOM, or {@code null} to not save result.
      * @throws MojoExecutionException something weird happened...
      */
-    protected abstract String analyze(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
+    protected abstract String extractComponentsAndDependencies(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
 
     public void execute() throws MojoExecutionException {
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
@@ -267,48 +266,46 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         final Set<Component> components = new LinkedHashSet<>();
         final Set<Dependency> dependencies = new LinkedHashSet<>();
 
-        String analysis = analyze(components, dependencies);
+        String analysis = extractComponentsAndDependencies(components, dependencies);
         if (analysis != null) {
-            generateBom(analysis, components, dependencies);
+            final Metadata metadata = modelConverter.convert(project, analysis, projectType, schemaVersion(), includeLicenseText);
+            cleanupBomDependencies(metadata, components, dependencies);
+
+            generateBom(analysis, metadata, components, dependencies);
         }
     }
 
-    private void generateBom(String analysis, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
+    private void generateBom(String analysis, Metadata metadata, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(MESSAGE_CREATING_BOM);
             final Bom bom = new Bom();
+            bom.setComponents(new ArrayList<>(components));
+
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
             }
+
             if (schemaVersion().getVersion() >= 1.2) {
-                final Metadata metadata = modelConverter.convert(project, analysis, projectType, schemaVersion(), includeLicenseText);
                 bom.setMetadata(metadata);
-            }
-            bom.setComponents(new ArrayList<>(components));
-            if (schemaVersion().getVersion() >= 1.2 && dependencies != null && !dependencies.isEmpty()) {
                 bom.setDependencies(new ArrayList<>(dependencies));
-                validateBomDependencies(bom);
             }
-            if (schemaVersion().getVersion() >= 1.3) {
-                //if (excludeArtifactId != null && excludeTypes.length > 0) { // TODO
-                /*
+
+            /*if (schemaVersion().getVersion() >= 1.3) {
+                if (excludeArtifactId != null && excludeTypes.length > 0) { // TODO
                     final Composition composition = new Composition();
                     composition.setAggregate(Composition.Aggregate.INCOMPLETE);
                     composition.setDependencies(Collections.singletonList(new Dependency(bom.getMetadata().getComponent().getBomRef())));
                     bom.setCompositions(Collections.singletonList(composition));
-                */
-                //}
-            }
+                }
+            }*/
 
-            if (!outputFormat.trim().equalsIgnoreCase("all")
-                    && !outputFormat.trim().equalsIgnoreCase("xml")
-                    && !outputFormat.trim().equalsIgnoreCase("json")) {
+            if ("all".equalsIgnoreCase(outputFormat)
+                    || "xml".equalsIgnoreCase(outputFormat)
+                    || "json".equalsIgnoreCase(outputFormat)) {
+                saveBom(bom);
+            } else {
                 getLog().error("Unsupported output format. Valid options are XML and JSON");
-                return;
             }
-
-            saveBom(bom);
-
         } catch (GeneratorException | ParserConfigurationException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
@@ -316,17 +313,17 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     private void saveBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,
             MojoExecutionException {
-        if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("xml")) {
+        if ("all".equalsIgnoreCase(outputFormat) || "xml".equalsIgnoreCase(outputFormat)) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
             bomGenerator.generate();
-            final String bomString = bomGenerator.toXmlString();
 
+            final String bomString = bomGenerator.toXmlString();
             saveBomToFile(bomString, "xml", new XmlParser());
         }
-        if (outputFormat.trim().equalsIgnoreCase("all") || outputFormat.trim().equalsIgnoreCase("json")) {
+        if ("all".equalsIgnoreCase(outputFormat) || "json".equalsIgnoreCase(outputFormat)) {
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
-            final String bomString = bomGenerator.toJsonString();
 
+            final String bomString = bomGenerator.toJsonString();
             saveBomToFile(bomString, "json", new JsonParser());
         }
     }
@@ -341,42 +338,51 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (!bomParser.isValid(bomFile, schemaVersion())) {
             throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
         }
+
         if (!skipAttach) {
             mavenProjectHelper.attachArtifact(project, extension, "cyclonedx", bomFile);
         }
     }
 
-    private void validateBomDependencies(final Bom bom) {
-        final Map<String, Component> components = new HashMap<>();
-        components.put(bom.getMetadata().getComponent().getBomRef(), bom.getMetadata().getComponent());
-        for (Component component: bom.getComponents()) {
-            components.put(component.getBomRef(), component);
-        }
+    /**
+     * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
+     * Maven dependency resolution graph but that are finally not kept in the effective dependencies list.
+     */
+    private void cleanupBomDependencies(Metadata metadata, Set<Component> components, Set<Dependency> dependencies) {
+        // map(component ref -> component)
+        final Map<String, Component> componentRefs = new HashMap<>();
+        components.forEach(c -> componentRefs.put(c.getBomRef(), c));
+
+        // set(dependencies refs) and set(dependencies of dependencies)
         final Set<String> dependencyRefs = new HashSet<>();
-        for (Dependency dependency: bom.getDependencies()) {
-            dependencyRefs.add(dependency.getRef());
-            List<Dependency> childDependencies = dependency.getDependencies();
-            if (childDependencies != null) {
-                childDependencies.forEach(d -> dependencyRefs.add(d.getRef()));
+        final Set<String> dependsOns = new HashSet<>();
+        dependencies.forEach(d -> {
+            dependencyRefs.add(d.getRef());
+            if (d.getDependencies() != null) {
+                d.getDependencies().forEach(on -> dependsOns.add(on.getRef()));
             }
-        }
-        // Check all components have a top level dependency
-        for (Entry<String, Component> entry: components.entrySet()) {
-            final String componentRef = entry.getKey();
-            if (!dependencyRefs.contains(componentRef)) {
+        });
+
+        // Check all BOM components have an associated BOM dependency
+        for (Entry<String, Component> entry: componentRefs.entrySet()) {
+            if (!dependencyRefs.contains(entry.getKey())) {
                 if (getLog().isDebugEnabled()) {
-                    getLog().debug("CycloneDX: Component not used in dependency graph, pruning component from bom: " + componentRef);
+                    getLog().debug("Component reference not listed in dependencies, pruning from bom components: " + entry.getKey());
                 }
-                final Component component = entry.getValue();
-                if (component != null) {
-                    bom.getComponents().remove(component);
-                }
+                components.remove(entry.getValue());
+            } else if (!dependsOns.contains(entry.getKey())) {
+                getLog().warn("BOM dependency listed but is not depended upon: " + entry.getKey());
             }
         }
-        // Check all transitive dependencies have a component
+
+        // add BOM main component
+        Component main = metadata.getComponent();
+        componentRefs.put(main.getBomRef(), main);
+
+        // Check all BOM dependencies have a BOM component
         for (String dependencyRef: dependencyRefs) {
-            if (!components.containsKey(dependencyRef)) {
-                getLog().warn("CycloneDX: Dependency missing component entry: " + dependencyRef);
+            if (!componentRefs.containsKey(dependencyRef)) {
+                getLog().warn("Dependency missing component entry: " + dependencyRef);
             }
         }
     }
@@ -406,7 +412,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return excludeTypesSet;
     }
 
-    protected Set<Dependency> buildDependencyGraph(MavenProject mavenProject) throws MojoExecutionException {
+    protected Set<Dependency> buildBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
 
         final Collection<String> scope = new HashSet<>();
@@ -485,7 +491,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                         if (hiddenNode != null) {
                             if (!loggedPurls.contains(purl)) {
                                 if (getLog().isDebugEnabled()) {
-                                    getLog().debug("CycloneDX: Populating hidden node: " + purl);
+                                    getLog().debug("Populating hidden node: " + purl);
                                 }
                                 loggedPurls.add(purl);
                             }
@@ -505,7 +511,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (mavenProject != null) {
                 // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
                 // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
-                getLog().warn("An error occurred building dependency graph: " + e.getMessage());
+                getLog().warn("An error occurred building Maven dependency graph: " + e.getMessage());
             } else {
                 throw new MojoExecutionException("An error occurred building dependency graph", e);
             }
@@ -593,7 +599,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (!purl.equals(resolvedPurl)) {
                 if (!loggedReplacementPUrls.contains(purl)) {
                     if (getLog().isDebugEnabled()) {
-                        getLog().debug("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                        getLog().debug("replacing reference to " + purl + " with resolved package url " + resolvedPurl);
                     }
                     loggedReplacementPUrls.add(purl);
                 }

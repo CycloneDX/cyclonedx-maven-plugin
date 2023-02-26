@@ -26,15 +26,13 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
-import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -119,23 +117,9 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         // root project: analyze and aggregate all the modules
         getLog().info((reactorProjects.size() <= 1) ? MESSAGE_RESOLVING_DEPS : MESSAGE_RESOLVING_AGGREGATED_DEPS);
         final Set<String> componentRefs = new LinkedHashSet<>();
-        final Map<String, ProjectDependencyAnalysis> dependencyAnalysisMap = new LinkedHashMap<>();
 
-        // Use default dependency analyzer
-        dependencyAnalyzer = createProjectDependencyAnalyzer();
-
-        // Perform dependency analysis for all projects upfront
-        for (final MavenProject mavenProject : reactorProjects) {
-            if (shouldExclude(mavenProject)) {
-                continue;
-            }
-            try {
-                ProjectDependencyAnalysis dependencyAnalysis = dependencyAnalyzer.analyze(mavenProject);
-                dependencyAnalysisMap.put(mavenProject.getArtifactId(), dependencyAnalysis);
-            } catch (ProjectDependencyAnalyzerException pdae) {
-                getLog().debug("Could not analyze " + mavenProject.getId(), pdae); // TODO should warn...
-            }
-        }
+        // Perform used/unused dependencies analysis for all projects upfront
+        final List<ProjectDependencyAnalysis> projectsDependencyAnalysis = prepareMavenDependencyAnalysis();
 
         // Add reference to BOM metadata component.
         // Without this, direct dependencies of the Maven project cannot be determined.
@@ -167,21 +151,8 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 final Component component = convert(artifact);
 
                 // ensure that only one component with the same bom-ref exists in the BOM
-                if (!componentRefs.contains(component.getBomRef())) {
-                    Component.Scope componentScope = null;
-                    for (ProjectDependencyAnalysis dependencyAnalysis : dependencyAnalysisMap.values()) {
-                        Component.Scope currentProjectScope = getComponentScope(component, artifact, dependencyAnalysis);
-                        // Set scope to required if the component is used in any project
-                        if (Component.Scope.REQUIRED.equals(currentProjectScope)) {
-                            componentScope = currentProjectScope;
-                            break;
-                        } else if (componentScope == null && currentProjectScope != null) {
-                            // Set optional or excluded scope
-                            componentScope = currentProjectScope;
-                        }
-                    }
-                    component.setScope(componentScope);
-                    componentRefs.add(component.getBomRef());
+                if (componentRefs.add(component.getBomRef())) {
+                    component.setScope(inferComponentScope(artifact, projectsDependencyAnalysis));
                     components.add(component);
 
                     projectComponentRefs.add(component.getBomRef());
@@ -208,5 +179,37 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 }
             }
         }
+    }
+
+    private List<ProjectDependencyAnalysis> prepareMavenDependencyAnalysis() throws MojoExecutionException {
+        final List<ProjectDependencyAnalysis> dependencyAnalysisMap = new ArrayList<>();
+        for (final MavenProject mavenProject : reactorProjects) {
+            if (shouldExclude(mavenProject)) {
+                continue;
+            }
+            ProjectDependencyAnalysis dependencyAnalysis = doProjectDependencyAnalysis(mavenProject);
+            if (dependencyAnalysis != null) {
+                dependencyAnalysisMap.add(dependencyAnalysis);
+            }
+        }
+        return dependencyAnalysisMap;
+    }
+
+    private Component.Scope inferComponentScope(Artifact artifact, List<ProjectDependencyAnalysis> projectsDependencyAnalysis) {
+        Component.Scope componentScope = null;
+        for (ProjectDependencyAnalysis dependencyAnalysis : projectsDependencyAnalysis) {
+            Component.Scope currentProjectScope = inferComponentScope(artifact, dependencyAnalysis);
+
+            // Set scope to required if the component is used in any project
+            if (Component.Scope.REQUIRED.equals(currentProjectScope)) {
+                return Component.Scope.REQUIRED;
+            }
+
+            if (componentScope == null && currentProjectScope != null) {
+                // Set optional or excluded scope
+                componentScope = currentProjectScope;
+            }
+        }
+        return componentScope;
     }
 }

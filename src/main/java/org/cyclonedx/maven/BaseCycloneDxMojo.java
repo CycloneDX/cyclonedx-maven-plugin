@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -275,7 +276,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         String analysis = extractComponentsAndDependencies(components, dependencies);
         if (analysis != null) {
-            final Metadata metadata = modelConverter.convert(project, analysis, projectType, schemaVersion(), includeLicenseText);
+            List<String> scopes = new ArrayList<>();
+            if (includeCompileScope) scopes.add("compile");
+            if (includeProvidedScope) scopes.add("provided");
+            if (includeRuntimeScope) scopes.add("runtime");
+            if (includeSystemScope) scopes.add("system");
+            if (includeTestScope) scopes.add("test");
+
+            final Metadata metadata = modelConverter.convert(project, analysis + " " + String.join("+", scopes), projectType, schemaVersion(), includeLicenseText);
             cleanupBomDependencies(metadata, components, dependencies);
 
             generateBom(analysis, metadata, components, dependencies);

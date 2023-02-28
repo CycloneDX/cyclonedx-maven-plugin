@@ -5,7 +5,7 @@ void assertBomFiles(String path, boolean aggregate) {
     assert bomFileXml.exists()
     assert bomFileJson.exists()
 
-    String analysis = aggregate ? "makeAggregateBom" : "makeBom"
+    String analysis = (aggregate ? "makeAggregateBom" : "makeBom") + ' compile+provided+runtime+system'
     assert bomFileXml.text.contains('<name>CycloneDX Maven plugin ' + analysis + '</name>')
     assert bomFileJson.text.contains('"name" : "CycloneDX Maven plugin ' + analysis + '"')
 }

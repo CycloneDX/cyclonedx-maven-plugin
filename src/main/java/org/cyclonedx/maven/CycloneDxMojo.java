@@ -112,7 +112,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
             }
         }
 
-        dependencies.addAll(buildBOMDependencies(null));
+        dependencies.addAll(extractBOMDependencies(getProject()));
 
         return "makeBom";
     }

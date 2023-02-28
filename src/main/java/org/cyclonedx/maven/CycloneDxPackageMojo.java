@@ -68,8 +68,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
             for (final Artifact artifact : mavenProject.getArtifacts()) {
                 final Component component = convert(artifact);
                 // ensure that only one component with the same bom-ref exists in the BOM
-                if (!componentRefs.contains(component.getBomRef())) {
-                    componentRefs.add(component.getBomRef());
+                if (componentRefs.add(component.getBomRef())) {
                     components.add(component);
                 }
             }

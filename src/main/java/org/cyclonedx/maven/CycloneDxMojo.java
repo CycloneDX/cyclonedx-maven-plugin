@@ -24,8 +24,10 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException;
 import org.codehaus.plexus.PlexusContainer;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.cyclonedx.model.Component;
@@ -47,48 +49,53 @@ import java.util.Set;
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     /**
-     * Specify the project dependency analyzer to use (plexus component role-hint). By default,
-     * <a href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare
-     * a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus
-     * role name, and you specify the role name here.
+     * Specify the Maven project dependency analyzer to use (plexus component role-hint). By default,
+     * <a href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a>'s one
+     * is used.
      *
-     * @since 2.2
+     * To use another implementation, you must declare a dependency for this plugin that contains the code for the analyzer
+     * and you specify its Plexus role name here.
+     *
+     * @since 2.1.0
      */
     @Parameter(property = "analyzer", defaultValue = "default")
-    private String analyzer;
+    private String analyzer; // https://github.com/CycloneDX/cyclonedx-maven-plugin/pull/65
 
     @org.apache.maven.plugins.annotations.Component
     private PlexusContainer plexusContainer;
 
     /**
-     * DependencyAnalyzer
+     * Maven ProjectDependencyAnalyzer analyzes a Maven project's declared dependencies and effective classes used to find which artifacts are
+     * used and declared, used but not declared, not used but declared.
      */
     protected ProjectDependencyAnalyzer dependencyAnalyzer;
 
-    /**
-     * @return {@link ProjectDependencyAnalyzer}
-     * @throws MojoExecutionException in case of an error.
-     */
-    protected ProjectDependencyAnalyzer createProjectDependencyAnalyzer() throws MojoExecutionException {
-        try {
-            return (ProjectDependencyAnalyzer) plexusContainer.lookup(ProjectDependencyAnalyzer.class, analyzer);
-        } catch (ComponentLookupException cle) {
-            throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role-hint " + analyzer, cle);
+    private ProjectDependencyAnalyzer getProjectDependencyAnalyzer() throws MojoExecutionException {
+        if (dependencyAnalyzer == null) {
+            try {
+                dependencyAnalyzer = (ProjectDependencyAnalyzer) plexusContainer.lookup(ProjectDependencyAnalyzer.class, analyzer);
+            } catch (ComponentLookupException cle) {
+                throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role-hint " + analyzer, cle);
+            }
         }
+        return dependencyAnalyzer;
+    }
+
+    protected ProjectDependencyAnalysis doProjectDependencyAnalysis(MavenProject mavenProject) throws MojoExecutionException {
+        try {
+            return getProjectDependencyAnalyzer().analyze(mavenProject);
+        } catch (ProjectDependencyAnalyzerException pdae) {
+            getLog().debug("Could not analyze " + mavenProject.getId(), pdae); // TODO should warn...
+        }
+        return null;
     }
 
     protected String analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
-        // Use default dependency analyzer
-        dependencyAnalyzer = createProjectDependencyAnalyzer();
+
         getLog().info(MESSAGE_RESOLVING_DEPS);
         if (getProject() != null && getProject().getArtifacts() != null) {
-            ProjectDependencyAnalysis dependencyAnalysis = null;
-            try {
-                dependencyAnalysis = dependencyAnalyzer.analyze(getProject());
-            } catch (Exception e) {
-                getLog().debug(e);
-            }
+            ProjectDependencyAnalysis dependencyAnalysis = doProjectDependencyAnalysis(getProject());
 
             // Add reference to BOM metadata component.
             // Without this, direct dependencies of the Maven project cannot be determined.
@@ -98,9 +105,8 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
             for (final Artifact artifact : getProject().getArtifacts()) {
                 final Component component = convert(artifact);
                 // ensure that only one component with the same bom-ref exists in the BOM
-                if (!componentRefs.contains(component.getBomRef())) {
-                    component.setScope(getComponentScope(component, artifact, dependencyAnalysis));
-                    componentRefs.add(component.getBomRef());
+                if (componentRefs.add(component.getBomRef())) {
+                    component.setScope(inferComponentScope(artifact, dependencyAnalysis));
                     components.add(component);
                 }
             }
@@ -112,30 +118,33 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     }
 
     /**
-     * Method to identify component scope based on dependency analysis
+     * Infer BOM component scope based on Maven project dependency analysis.
      *
-     * @param component Component
      * @param artifact Artifact from maven project
-     * @param dependencyAnalysis Dependency analysis data
+     * @param projectDependencyAnalysis Maven Project Dependency Analysis data
      *
-     * @return Component.Scope - Required: If the component is used. Optional: If it is unused
+     * @return Component.Scope - Required: If the component is used (as detected by project dependency analysis). Optional: If it is unused
      */
-    protected Component.Scope getComponentScope(Component component, Artifact artifact, ProjectDependencyAnalysis dependencyAnalysis) {
-        if (dependencyAnalysis == null) {
+    protected Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
+        if (projectDependencyAnalysis == null) {
             return null;
         }
-        Set<Artifact> usedDeclaredArtifacts = dependencyAnalysis.getUsedDeclaredArtifacts();
-        Set<Artifact> usedUndeclaredArtifacts = dependencyAnalysis.getUsedUndeclaredArtifacts();
-        Set<Artifact> unusedDeclaredArtifacts = dependencyAnalysis.getUnusedDeclaredArtifacts();
-        Set<Artifact> testArtifactsWithNonTestScope = dependencyAnalysis.getTestArtifactsWithNonTestScope();
+
+        Set<Artifact> usedDeclaredArtifacts = projectDependencyAnalysis.getUsedDeclaredArtifacts();
+        Set<Artifact> usedUndeclaredArtifacts = projectDependencyAnalysis.getUsedUndeclaredArtifacts();
+        Set<Artifact> unusedDeclaredArtifacts = projectDependencyAnalysis.getUnusedDeclaredArtifacts();
+        Set<Artifact> testArtifactsWithNonTestScope = projectDependencyAnalysis.getTestArtifactsWithNonTestScope();
+
         // Is the artifact used?
         if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
             return Component.Scope.REQUIRED;
         }
+
         // Is the artifact unused or test?
         if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
             return Component.Scope.OPTIONAL;
         }
+
         return null;
     }
 }

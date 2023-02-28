@@ -119,9 +119,9 @@
             
 <td><code>String</code></td>
             
-<td><code>2.2</code></td>
+<td><code>2.1.0</code></td>
             
-<td>Specify the project dependency analyzer to use (plexus component role-hint). By default, <a class="externalLink" href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus role name, and you specify the role name here.<br /><b>Default value is</b>: <code>default</code>.<br /><b>User property is</b>: <code>analyzer</code>.<br /></td>
+<td>Specify the Maven project dependency analyzer to use (plexus component role-hint). By default, <a class="externalLink" href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a>'s one is used. To use another implementation, you must declare a dependency for this plugin that contains the code for the analyzer and you specify its Plexus role name here.<br /><b>Default value is</b>: <code>default</code>.<br /><b>User property is</b>: <code>analyzer</code>.<br /></td>
           </tr>
           
 <tr class="a">
@@ -306,13 +306,13 @@
         <section>
 <h4><a name="a.3Canalyzer.3E"></a><b><a name="analyzer">&lt;analyzer&gt;</a></b></h4>
         
-<div>Specify the project dependency analyzer to use (plexus component role-hint). By default, <a class="externalLink" href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a> is used. To use this, you must declare a dependency for this plugin that contains the code for the analyzer. The analyzer must have a declared Plexus role name, and you specify the role name here.</div>
+<div>Specify the Maven project dependency analyzer to use (plexus component role-hint). By default, <a class="externalLink" href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a>'s one is used. To use another implementation, you must declare a dependency for this plugin that contains the code for the analyzer and you specify its Plexus role name here.</div>
         
 <ul>
           
 <li><b>Type</b>: <code>java.lang.String</code></li>
           
-<li><b>Since</b>: <code>2.2</code></li>
+<li><b>Since</b>: <code>2.1.0</code></li>
           
 <li><b>Required</b>: <code>No</code></li>
           

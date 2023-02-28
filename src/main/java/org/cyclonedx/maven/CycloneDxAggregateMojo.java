@@ -31,8 +31,10 @@ import org.cyclonedx.model.Dependency;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -132,9 +134,6 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 continue;
             }
 
-            final Set<String> projectComponentRefs = new LinkedHashSet<>();
-            final Set<Dependency> projectDependencies = new LinkedHashSet<>();
-
             // Add reference to BOM metadata component.
             // Without this, direct dependencies of the Maven project cannot be determined.
             final Component projectBomComponent = convert(mavenProject.getArtifact());
@@ -154,29 +153,36 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 if (componentRefs.add(component.getBomRef())) {
                     component.setScope(inferComponentScope(artifact, projectsDependencyAnalysis));
                     components.add(component);
-
-                    projectComponentRefs.add(component.getBomRef());
                 }
             }
 
-            projectDependencies.addAll(buildBOMDependencies(mavenProject));
-            dependencies.addAll(projectDependencies);
+            dependencies.addAll(buildBOMDependencies(mavenProject));
         }
 
-        addMavenProjectsAsDependencies(reactorProjects, dependencies);
+        addMavenProjectsAsParentDependencies(reactorProjects, dependencies);
 
         return "makeAggregateBom";
     }
 
-    private void addMavenProjectsAsDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {
-        for (final Dependency dependency: dependencies) {
-            for (final MavenProject project: reactorProjects) {
-                if (project.hasParent()) {
-                    final String parentRef = generatePackageUrl(project.getParentArtifact());
-                    if (dependency.getRef() != null && dependency.getRef().equals(parentRef)) {
-                        final Dependency child = new Dependency(generatePackageUrl(project.getArtifact()));
-                        dependency.addDependency(child);
-                    }
+    /**
+     * When a Maven project from the reactor has his Maven parent in the reactor, register it as a dependency of his parent.
+     * This completes the BOM dependency graph with references between projects in the reactor that don't have any
+     * code dependency, but only the build reactor.
+     *
+     * @param reactorProjects the Maven projects from the reactor
+     * @param dependencies all BOM dependencies found in reactor
+     */
+    private void addMavenProjectsAsParentDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {
+        Map<String, Dependency> dependenciesByRef = new HashMap<>();
+        dependencies.forEach(d -> dependenciesByRef.put(d.getRef(), d));
+
+        for (final MavenProject project: reactorProjects) {
+            if (project.hasParent()) {
+                final String parentRef = generatePackageUrl(project.getParentArtifact());
+                Dependency parentDependency = dependenciesByRef.get(parentRef);
+                if (parentDependency != null) {
+                    final Dependency child = new Dependency(generatePackageUrl(project.getArtifact()));
+                    parentDependency.addDependency(child);
                 }
             }
         }

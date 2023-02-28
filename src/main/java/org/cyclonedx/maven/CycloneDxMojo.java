@@ -90,7 +90,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return null;
     }
 
-    protected String analyze(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
+    protected String extractComponentsAndDependencies(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
         final Set<String> componentRefs = new LinkedHashSet<>();
 
         getLog().info(MESSAGE_RESOLVING_DEPS);
@@ -111,9 +111,9 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
                 }
             }
         }
-        if (schemaVersion().getVersion() >= 1.2) {
-            dependencies.addAll(buildDependencyGraph(null));
-        }
+
+        dependencies.addAll(buildBOMDependencies(null));
+
         return "makeBom";
     }
 

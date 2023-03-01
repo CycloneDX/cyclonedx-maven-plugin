@@ -20,8 +20,6 @@ package org.cyclonedx.maven;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
-import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -32,8 +30,7 @@ import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
-import org.apache.maven.shared.dependency.graph.DependencyNode;
-import org.apache.maven.shared.dependency.graph.traversal.CollectingDependencyNodeVisitor;
+import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollectorBuilder;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -46,16 +43,18 @@ import org.cyclonedx.model.Metadata;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.ArtifactProperties;
+import org.eclipse.aether.collection.CollectResult;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -177,6 +176,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
+    @org.apache.maven.plugins.annotations.Component(hint = "default")
+    private RepositorySystem aetherRepositorySystem;
+
     /**
      * Skip CycloneDX execution.
      */
@@ -204,9 +206,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
-
-    @org.apache.maven.plugins.annotations.Component
-    private DependencyCollectorBuilder dependencyCollectorBuilder;
 
     @org.apache.maven.plugins.annotations.Component
     private ModelConverter modelConverter;
@@ -238,6 +237,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected String generateVersionlessPackageUrl(final Artifact artifact) {
+        return modelConverter.generateVersionlessPackageUrl(artifact);
+    }
+
+    protected String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
+        return modelConverter.generatePackageUrl(artifact);
+    }
+
+    protected String generateVersionlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
         return modelConverter.generateVersionlessPackageUrl(artifact);
     }
 
@@ -413,111 +420,115 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Set<Dependency> buildBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
-        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
-
-        final Collection<String> scope = new HashSet<>();
-        if (includeCompileScope) scope.add("compile");
-        if (includeProvidedScope) scope.add("provided");
-        if (includeRuntimeScope) scope.add("runtime");
-        if (includeSystemScope) scope.add("system");
-        if (includeTestScope) scope.add("test");
-        final ArtifactFilter artifactFilter = new CumulativeScopeArtifactFilter(scope);
-
         if (mavenProject == null) {
             mavenProject = project;
         }
         final ProjectBuildingRequest buildingRequest = getProjectBuildingRequest(mavenProject);
 
-        // version-less PUrl to version-resolved PUrl
         final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
 
+        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
         try {
-            final DependencyNode rootNode = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, artifactFilter);
-            final Map<String, DependencyNode> excludedNodes = new HashMap<>();
+            final CycloneDxRepositorySystem cycloneRepositorySystem = new CycloneDxRepositorySystem(aetherRepositorySystem);
+            final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(cycloneRepositorySystem);
+            dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
+            final CollectResult collectResult = cycloneRepositorySystem.getCollectResult();
+            if (collectResult == null) {
+                throw new MojoExecutionException("Failed to generate aether dependency graph");
+            }
+            final DependencyNode root = collectResult.getRoot();
+
+            // Generate the tree, removing excluded and filtered nodes
             final Set<String> loggedReplacementPUrls = new HashSet<>();
-            buildDependencyGraphNode(dependencies, rootNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
-            final CollectingDependencyNodeVisitor visitor = new CollectingDependencyNodeVisitor() {
-                @Override
-                public boolean visit(final DependencyNode node) {
-                    // Do not visit excluded nodes
-                    if (isExcludedNode(node)) {
-                        return false;
-                    } else {
-                        return super.visit(node);
-                    }
-                }
-            };
-            rootNode.accept(visitor);
-            for (final DependencyNode dependencyNode : visitor.getNodes()) {
-                buildDependencyGraphNode(dependencies, dependencyNode, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
-            }
-
-            /*
-             Test and Runtime scope artifacts may hide transitive compile dependencies.
-             Test artifacts will hide other artifacts if includeTestScope is false, whereas Runtime artifacts
-             will hide other artifacts if both includeTestScope and includeRuntimeScope are false.
-             */
-            if ((includeCompileScope && !includeTestScope) || !excludedNodes.isEmpty()){
-                final ProjectBuildingRequest testBuildingRequest = getProjectBuildingRequest(mavenProject);
-                final Map<String, DependencyNode> hiddenNodes = new HashMap<>();
-                final Map<String, DependencyNode> hiddenEmptyNodes = new HashMap<>();
-                if (includeCompileScope && !includeTestScope) {
-                    final DependencyNode testRootNode = dependencyCollectorBuilder.collectDependencyGraph(testBuildingRequest, null);
-                    for (DependencyNode child: testRootNode.getChildren()) {
-                        if (Artifact.SCOPE_TEST.equals(child.getArtifact().getScope())) {
-                            collectNodes(hiddenNodes, hiddenEmptyNodes, child);
-                        }
-                    }
-                    if (!includeRuntimeScope) {
-                        collectRuntimeNodes(hiddenNodes, hiddenEmptyNodes, testRootNode);
-                    }
-                }
-                if (!excludedNodes.isEmpty()) {
-                    for (DependencyNode excluded: excludedNodes.values()) {
-                        collectNodes(hiddenNodes, hiddenEmptyNodes, excluded);
-                    }
-                }
-
-                final Set<String> loggedPurls = new HashSet<>();
-                final Deque<Dependency> toProcess = new ArrayDeque<>(dependencies.values());
-                while (!toProcess.isEmpty()) {
-                    final Dependency dependency = toProcess.remove();
-                    if ((dependency.getDependencies() == null) || dependency.getDependencies().isEmpty()) {
-                        final String purl = dependency.getRef();
-                        DependencyNode hiddenNode = hiddenNodes.get(purl);
-                        if (hiddenNode == null) {
-                            hiddenNode = hiddenEmptyNodes.get(purl);
-                        }
-                        if (hiddenNode != null) {
-                            if (!loggedPurls.contains(purl)) {
-                                if (getLog().isDebugEnabled()) {
-                                    getLog().debug("Populating hidden node: " + purl);
-                                }
-                                loggedPurls.add(purl);
-                            }
-                            for (DependencyNode child: hiddenNode.getChildren()) {
-                                buildDependencyGraphNode(dependencies, child, dependency, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
-                                buildDependencyGraphNode(dependencies, child, null, excludedNodes, resolvedPUrls, loggedReplacementPUrls);
-                            }
-                            final Dependency topLevelDependency = dependencies.get(dependency);
-                            if (topLevelDependency.getDependencies() != null) {
-                                toProcess.addAll(topLevelDependency.getDependencies());
-                            }
-                        }
-                    }
-                }
-            }
+            final Set<String> loggedFilteredArtifacts = new HashSet<>();
+            buildDependencyGraphNode(dependencies, root, null, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
         } catch (DependencyCollectorBuilderException e) {
-            if (mavenProject != null) {
-                // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
-                // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
-                getLog().warn("An error occurred building Maven dependency graph: " + e.getMessage());
-            } else {
-                throw new MojoExecutionException("An error occurred building dependency graph", e);
+            // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
+            // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
+            getLog().warn("An error occurred building dependency graph: " + e.getMessage());
+        }
+        return dependencies.keySet();
+    }
+
+    private boolean isFilteredNode(final DependencyNode node, final Set<String> loggedFilteredArtifacts) {
+        final Map<?, ?> nodeData = node.getData();
+        final String originalScope = (String)nodeData.get(ConflictResolver.NODE_DATA_ORIGINAL_SCOPE);
+        final String scope;
+        if (originalScope != null) {
+            scope = originalScope;
+        } else {
+            scope = node.getDependency().getScope();
+        }
+
+        final Boolean scoped ;
+        switch (scope) {
+            case Artifact.SCOPE_COMPILE:
+                scoped = includeCompileScope;
+                break;
+            case Artifact.SCOPE_PROVIDED:
+                scoped = includeProvidedScope;
+                break;
+            case Artifact.SCOPE_RUNTIME:
+                scoped = includeRuntimeScope;
+                break;
+            case Artifact.SCOPE_SYSTEM:
+                scoped = includeSystemScope;
+                break;
+            case Artifact.SCOPE_TEST:
+                scoped = includeTestScope;
+                break;
+            default:
+                scoped = Boolean.FALSE;
+        }
+        final boolean result = Boolean.FALSE.equals(scoped);
+        if (result) {
+            final String purl = generatePackageUrl(node.getArtifact());
+            final String key = purl + ":" + originalScope + ":" + node.getDependency().getScope();
+            if (loggedFilteredArtifacts.add(key) && getLog().isDebugEnabled()) {
+                getLog().debug("CycloneDX: Filtering " + purl + " with original scope " + originalScope + " and scope " + node.getDependency().getScope());
+            }
+        }
+        return result;
+    }
+
+    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, DependencyNode node, final Dependency parent,
+            final Map<String, String> resolvedPUrls, final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
+        String purl = generatePackageUrl(node.getArtifact());
+
+        if (isExcludedNode(node) || (parent != null && isFilteredNode(node, loggedFilteredArtifacts))) {
+            return;
+        }
+
+        // If the node has no children then it could be a marker node for conflict resolution
+        if (node.getChildren().isEmpty()) {
+            final Map<?,?> nodeData = node.getData();
+            final DependencyNode winner = (DependencyNode) nodeData.get(ConflictResolver.NODE_DATA_WINNER);
+            final String resolvedPurl = resolvedPUrls.get(generateVersionlessPackageUrl(node.getArtifact()));
+            if (!purl.equals(resolvedPurl)) {
+                if (!loggedReplacementPUrls.contains(purl)) {
+                    if (getLog().isDebugEnabled()) {
+                        getLog().debug("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
+                    }
+                    loggedReplacementPUrls.add(purl);
+                }
+                purl = resolvedPurl;
+            }
+            if (winner != null) {
+                node = winner;
             }
         }
 
-        return dependencies.keySet();
+        Dependency topDependency = new Dependency(purl);
+        final Dependency origDependency = dependencies.putIfAbsent(topDependency, topDependency);
+        if (origDependency != null) {
+            topDependency = origDependency;
+        }
+        if (parent != null) {
+            parent.addDependency(new Dependency(purl));
+        }
+        for (final DependencyNode childrenNode : node.getChildren()) {
+            buildDependencyGraphNode(dependencies, childrenNode, topDependency, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
+        }
     }
 
     /**
@@ -534,95 +545,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return resolvedPUrls;
     }
 
-    /**
-     * Add all runtime nodes with children into the map.  Key is purl, value is the node.
-     * @param hiddenNodes The map of references to hidden nodes with children
-     * @param hiddenEmptyNodes The map of references to hidden nodes without children
-     * @param node The node to add
-     */
-    private void collectRuntimeNodes(Map<String, DependencyNode> hiddenNodes, Map<String, DependencyNode> hiddenEmptyNodes, DependencyNode node) {
-        if (!node.getChildren().isEmpty()) {
-            if (Artifact.SCOPE_RUNTIME.equals(node.getArtifact().getScope())) {
-                final String purl = generatePackageUrl(node.getArtifact());
-                hiddenNodes.put(purl, node) ;
-                for (DependencyNode child: node.getChildren()) {
-                    collectNodes(hiddenNodes, hiddenEmptyNodes, child);
-                }
-            } else {
-                for (DependencyNode child: node.getChildren()) {
-                    collectRuntimeNodes(hiddenNodes, hiddenEmptyNodes, child);
-                }
-            }
-        }
-    }
-
-    /**
-     * Add all nodes with children into the map.  Key is purl, value is the node.
-     * @param hiddenNodes The map of references to hidden nodes with children
-     * @param hiddenEmptyNodes The map of references to hidden nodes without children
-     * @param node The node to add
-     */
-    private void collectNodes(Map<String, DependencyNode> hiddenNodes, Map<String, DependencyNode> hiddenEmptyNodes, DependencyNode node) {
-        final String purl = generatePackageUrl(node.getArtifact());
-        if (!node.getChildren().isEmpty()) {
-            hiddenNodes.put(purl, node) ;
-            for (DependencyNode child: node.getChildren()) {
-                collectNodes(hiddenNodes, hiddenEmptyNodes, child);
-            }
-        } else {
-            hiddenEmptyNodes.put(purl, node);
-        }
-    }
-
     private boolean isExcludedNode(final DependencyNode node) {
-        final String type = node.getArtifact().getType();
+        final String type = node.getArtifact().getProperties().get(ArtifactProperties.TYPE);
         return ((type == null) || getExcludeTypesSet().contains(type));
-    }
-
-    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, final DependencyNode artifactNode, final Dependency parent,
-            final Map<String, DependencyNode> excludedNodes, Map<String, String> resolvedPurls, Set<String> loggedReplacementPUrls) {
-        String purl = generatePackageUrl(artifactNode.getArtifact());
-        // If this is an excluded type then track in case it is hiding a transitive dependency
-        if (isExcludedNode(artifactNode)) {
-            excludedNodes.put(purl, artifactNode);
-            return;
-        }
-        // When adding hidden nodes we may inadvertently pull in runtime artifacts
-        if (!includeTestScope && !includeRuntimeScope && Artifact.SCOPE_RUNTIME.equals(artifactNode.getArtifact().getScope())) {
-            return;
-        }
-
-        // If the node has no children then it could be a marker node for conflict resolution
-        if (artifactNode.getChildren().isEmpty()) {
-            final String versionlessPurl = generateVersionlessPackageUrl(artifactNode.getArtifact());
-            final String resolvedPurl = resolvedPurls.get(versionlessPurl);
-            if (!purl.equals(resolvedPurl)) {
-                if (!loggedReplacementPUrls.contains(purl)) {
-                    if (getLog().isDebugEnabled()) {
-                        getLog().debug("replacing reference to " + purl + " with resolved package url " + resolvedPurl);
-                    }
-                    loggedReplacementPUrls.add(purl);
-                }
-                purl = resolvedPurl;
-            }
-        }
-
-        final Dependency dependency = new Dependency(purl);
-        addDependencyToGraph(dependencies, parent, dependency);
-        for (final DependencyNode childrenNode : artifactNode.getChildren()) {
-            buildDependencyGraphNode(dependencies, childrenNode, dependency, excludedNodes, resolvedPurls, loggedReplacementPUrls);
-        }
-    }
-
-    private void addDependencyToGraph(final Map<Dependency, Dependency> dependencies, final Dependency parent, final Dependency dependency) {
-        if (parent == null) {
-            dependencies.putIfAbsent(dependency, dependency);
-        } else if (!parent.getRef().equals(dependency.getRef())) {
-            final Dependency topLevelParent = dependencies.get(parent);
-            if (topLevelParent != null) {
-                topLevelParent.addDependency(dependency);
-            }
-        }
     }
 
     protected void logAdditionalParameters() {

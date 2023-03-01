@@ -51,6 +51,7 @@ import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
+import org.eclipse.aether.artifact.ArtifactProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,6 +98,34 @@ public class DefaultModelConverter implements ModelConverter {
             }
             if (artifact.getClassifier() != null) {
                 qualifiers.put("classifier", artifact.getClassifier());
+            }
+        }
+        final String version = includeVersion ? artifact.getBaseVersion() : null;
+        return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), version, qualifiers, null);
+    }
+
+    public String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
+        return generatePackageUrl(artifact, true);
+    }
+
+    public String generateVersionlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
+        return generatePackageUrl(artifact, false);
+    }
+
+    private boolean isEmpty(final String value) {
+        return (value == null) || (value.length() == 0);
+    }
+    private String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact, final boolean includeVersion) {
+        TreeMap<String, String> qualifiers = null;
+        final String type = artifact.getProperties().get(ArtifactProperties.TYPE);
+        final String classifier = artifact.getClassifier();
+        if (!isEmpty(type) || !isEmpty(classifier)) {
+            qualifiers = new TreeMap<>();
+            if (!isEmpty(type)) {
+                qualifiers.put("type", type);
+            }
+            if (!isEmpty(classifier)) {
+                qualifiers.put("classifier", classifier);
             }
         }
         final String version = includeVersion ? artifact.getBaseVersion() : null;

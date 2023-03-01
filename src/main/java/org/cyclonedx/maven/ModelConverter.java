@@ -33,6 +33,10 @@ public interface ModelConverter {
 
     String generateVersionlessPackageUrl(final Artifact artifact);
 
+    String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact);
+
+    String generateVersionlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact);
+
     /**
      * Converts a Maven artifact (dependency or transitive dependency) into a
      * CycloneDX component.

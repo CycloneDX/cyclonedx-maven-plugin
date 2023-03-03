@@ -1,27 +1,25 @@
 package org.cyclonedx.maven;
 
+import static org.cyclonedx.maven.TestUtils.getComponentNode;
+import static org.cyclonedx.maven.TestUtils.getComponentReferences;
+import static org.cyclonedx.maven.TestUtils.getDependencyNode;
+import static org.cyclonedx.maven.TestUtils.getDependencyReferences;
+import static org.cyclonedx.maven.TestUtils.readXML;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import io.takari.maven.testing.executor.MavenExecution;
 import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
 import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
@@ -57,7 +55,7 @@ public class BomDependenciesTest extends BaseMavenVerifier {
 
     @Test
     public void testBomDependencies() throws Exception {
-        final File projDir = cleanAndBuild(null);
+        final File projDir = cleanAndBuild("bom-dependencies", null);
         checkHiddenTestArtifacts(projDir);
         checkHiddenRuntimeArtifacts(projDir);
         checkExtraneousComponents(projDir);
@@ -221,7 +219,7 @@ public class BomDependenciesTest extends BaseMavenVerifier {
      */
     @Test
     public void testTypeExcludes() throws Exception {
-        final File projDir = cleanAndBuild(new String[]{"test-jar"});
+        final File projDir = cleanAndBuild("bom-dependencies", new String[]{"test-jar"});
 
         final Document bom = readXML(new File(projDir, "trustification/target/bom.xml"));
 
@@ -322,87 +320,5 @@ public class BomDependenciesTest extends BaseMavenVerifier {
         Set<String> versionedDependencyDependencies = getDependencyReferences(versionedDependencyNode);
         assertEquals("Invalid dependency count for versioned_dependency", 1, versionedDependencyDependencies.size());
         assertTrue("Missing dependency1 dependency for versioned_dependency", versionedDependencyDependencies.contains(DEPENDENCY1));
-    }
-
-    private File cleanAndBuild(final String[] excludeTypes) throws Exception {
-        File projDir = resources.getBasedir("bom-dependencies");
-
-        final MavenExecution initExecution = verifier
-                .forProject(projDir)
-                .withCliOption("-Dcurrent.version=" + getCurrentVersion()) // inject cyclonedx-maven-plugin version
-                .withCliOption("-X") // debug
-                .withCliOption("-B");
-        final MavenExecution execution;
-        if ((excludeTypes != null) && (excludeTypes.length > 0)) {
-            execution = initExecution.withCliOption("-DexcludeTypes=" + String.join(",", excludeTypes));
-        } else {
-            execution = initExecution;
-        }
-        execution.execute("clean", "package")
-            .assertErrorFreeLog();
-        return projDir;
-    }
-
-    private static Node getDependencyNode(final Node dependencies, final String ref) {
-        return getChildElement(dependencies, ref, "dependency", "ref");
-    }
-
-    private static Node getComponentNode(final Node components, final String ref) {
-        return getChildElement(components, ref, "component", "bom-ref");
-    }
-
-    private static Node getChildElement(final Node parent, final String ref, final String elementName, final String attrName) {
-        final NodeList children = parent.getChildNodes();
-        final int numChildNodes = children.getLength();
-        for (int index = 0 ; index < numChildNodes ; index++) {
-            final Node child = children.item(index);
-            if ((child.getNodeType() == Node.ELEMENT_NODE) && elementName.equals(child.getNodeName())) {
-                final Node refNode = child.getAttributes().getNamedItem(attrName);
-                if (ref.equals(refNode.getNodeValue())) {
-                    return child;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Set<String> getComponentReferences(final Node parent) {
-        return getReferences(null, parent, "component", "bom-ref");
-    }
-
-    private static Set<String> getDependencyReferences(final Node parent) {
-        return getReferences(null, parent, "dependency", "ref");
-    }
-
-    private static Set<String> getReferences(Set<String> references, final Node rootNode, final String elementName, final String attrName) {
-        if (references == null) {
-            references = new HashSet<>();
-        }
-        final NodeList children = rootNode.getChildNodes();
-        final int numChildNodes = children.getLength();
-        for (int index = 0 ; index < numChildNodes ; index++) {
-            final Node child = children.item(index);
-            if (child.getNodeType() == Node.ELEMENT_NODE) {
-                if (elementName.equals(child.getNodeName())) {
-                    final Node refNode = child.getAttributes().getNamedItem(attrName);
-                    if (refNode != null) {
-                        references.add(refNode.getNodeValue());
-                    }
-                }
-                getReferences(references, child, elementName, attrName);
-            }
-        }
-        return references;
-    }
-
-    private static Document readXML(File file) throws IOException, SAXException, ParserConfigurationException {
-        final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-
-        factory.setIgnoringComments(true);
-        factory.setIgnoringElementContentWhitespace(true);
-        factory.setValidating(false);
-
-        final DocumentBuilder builder = factory.newDocumentBuilder();
-        return builder.parse(file);
     }
 }

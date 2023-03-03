@@ -1,6 +1,7 @@
 package org.cyclonedx.maven;
 
 import io.takari.maven.testing.TestResources;
+import io.takari.maven.testing.executor.MavenExecution;
 import io.takari.maven.testing.executor.MavenRuntime;
 import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
 
@@ -47,5 +48,24 @@ public class BaseMavenVerifier {
             }
         }
         return sb.toString();
+    }
+
+    protected File cleanAndBuild(final String project, final String[] excludeTypes) throws Exception {
+        File projDir = resources.getBasedir(project);
+
+        final MavenExecution initExecution = verifier
+                .forProject(projDir)
+                .withCliOption("-Dcurrent.version=" + getCurrentVersion()) // inject cyclonedx-maven-plugin version
+                .withCliOption("-X") // debug
+                .withCliOption("-B");
+        final MavenExecution execution;
+        if ((excludeTypes != null) && (excludeTypes.length > 0)) {
+            execution = initExecution.withCliOption("-DexcludeTypes=" + String.join(",", excludeTypes));
+        } else {
+            execution = initExecution;
+        }
+        execution.execute("clean", "package")
+            .assertErrorFreeLog();
+        return projDir;
     }
 }

@@ -1,0 +1,132 @@
+package org.cyclonedx.maven;
+
+import java.util.Collection;
+import java.util.List;
+
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.SyncContext;
+import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.collection.CollectResult;
+import org.eclipse.aether.collection.DependencyCollectionException;
+import org.eclipse.aether.deployment.DeployRequest;
+import org.eclipse.aether.deployment.DeployResult;
+import org.eclipse.aether.deployment.DeploymentException;
+import org.eclipse.aether.installation.InstallRequest;
+import org.eclipse.aether.installation.InstallResult;
+import org.eclipse.aether.installation.InstallationException;
+import org.eclipse.aether.repository.LocalRepository;
+import org.eclipse.aether.repository.LocalRepositoryManager;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactDescriptorException;
+import org.eclipse.aether.resolution.ArtifactDescriptorRequest;
+import org.eclipse.aether.resolution.ArtifactDescriptorResult;
+import org.eclipse.aether.resolution.ArtifactRequest;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
+import org.eclipse.aether.resolution.ArtifactResult;
+import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResolutionException;
+import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.resolution.MetadataRequest;
+import org.eclipse.aether.resolution.MetadataResult;
+import org.eclipse.aether.resolution.VersionRangeRequest;
+import org.eclipse.aether.resolution.VersionRangeResolutionException;
+import org.eclipse.aether.resolution.VersionRangeResult;
+import org.eclipse.aether.resolution.VersionRequest;
+import org.eclipse.aether.resolution.VersionResolutionException;
+import org.eclipse.aether.resolution.VersionResult;
+
+class CycloneDxRepositorySystem implements RepositorySystem {
+    private final RepositorySystem repositorySystem;
+    private CollectResult collectResult;
+    public CycloneDxRepositorySystem(final RepositorySystem repositorySystem) {
+        this.repositorySystem = repositorySystem;
+    }
+
+    public CollectResult getCollectResult() {
+        return collectResult;
+    }
+
+    @Override
+    public CollectResult collectDependencies(final RepositorySystemSession session, final CollectRequest request)
+            throws DependencyCollectionException {
+        collectResult = repositorySystem.collectDependencies(session, request);
+        return collectResult;
+    }
+
+    @Override
+    public DeployResult deploy(final RepositorySystemSession session, final DeployRequest request)
+            throws DeploymentException {
+        return repositorySystem.deploy(session, request);
+    }
+
+    @Override
+    public InstallResult install(final RepositorySystemSession session, final InstallRequest request)
+            throws InstallationException {
+        return repositorySystem.install(session, request);
+    }
+
+    @Override
+    public RemoteRepository newDeploymentRepository(final RepositorySystemSession session, final RemoteRepository repository) {
+        return repositorySystem.newDeploymentRepository(session, repository);
+    }
+
+    @Override
+    public LocalRepositoryManager newLocalRepositoryManager(final RepositorySystemSession session,
+            final LocalRepository localRepository) {
+        return repositorySystem.newLocalRepositoryManager(session, localRepository);
+    }
+
+    @Override
+    public List<RemoteRepository> newResolutionRepositories(final RepositorySystemSession session,
+            final List<RemoteRepository> repositories) {
+        return repositorySystem.newResolutionRepositories(session, repositories);
+    }
+
+    @Override
+    public SyncContext newSyncContext(final RepositorySystemSession session, final boolean shared) {
+        return repositorySystem.newSyncContext(session, shared);
+    }
+
+    @Override
+    public ArtifactDescriptorResult readArtifactDescriptor(final RepositorySystemSession session,
+            final ArtifactDescriptorRequest request) throws ArtifactDescriptorException {
+        return repositorySystem.readArtifactDescriptor(null, request);
+    }
+
+    @Override
+    public ArtifactResult resolveArtifact(final RepositorySystemSession session, final ArtifactRequest request)
+            throws ArtifactResolutionException {
+        return repositorySystem.resolveArtifact(session, request);
+    }
+
+    @Override
+    public List<ArtifactResult> resolveArtifacts(final RepositorySystemSession session,
+            final Collection<? extends ArtifactRequest> requests) throws ArtifactResolutionException {
+        return repositorySystem.resolveArtifacts(session, requests);
+    }
+
+    @Override
+    public DependencyResult resolveDependencies(final RepositorySystemSession session, final DependencyRequest request)
+            throws DependencyResolutionException {
+        return repositorySystem.resolveDependencies(session, request);
+    }
+
+    @Override
+    public List<MetadataResult> resolveMetadata(final RepositorySystemSession session,
+            final Collection<? extends MetadataRequest> requests) {
+        return repositorySystem.resolveMetadata(session, requests);
+    }
+
+    @Override
+    public VersionResult resolveVersion(final RepositorySystemSession session, final VersionRequest request)
+            throws VersionResolutionException {
+        return repositorySystem.resolveVersion(session, request);
+    }
+
+    @Override
+    public VersionRangeResult resolveVersionRange(final RepositorySystemSession session, final VersionRangeRequest request)
+            throws VersionRangeResolutionException {
+        return repositorySystem.resolveVersionRange(session, request);
+    }
+}

@@ -73,7 +73,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 }
             }
 
-            dependencies.addAll(buildBOMDependencies(mavenProject));
+            dependencies.addAll(extractBOMDependencies(mavenProject));
         }
 
         return "makePackageBom";

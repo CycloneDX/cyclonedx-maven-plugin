@@ -24,13 +24,8 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
-import org.apache.maven.project.ProjectBuildingRequest;
-import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
-import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
-import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollectorBuilder;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -44,26 +39,16 @@ import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
 import org.eclipse.aether.RepositorySystem;
-import org.eclipse.aether.artifact.ArtifactProperties;
-import org.eclipse.aether.collection.CollectResult;
-import org.eclipse.aether.graph.DependencyNode;
-import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Map.Entry;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
@@ -119,7 +104,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeBomSerialNumber", defaultValue = "true", required = false)
-    private Boolean includeBomSerialNumber;
+    private boolean includeBomSerialNumber;
 
     /**
      * Should compile scoped artifacts be included in bom?
@@ -127,7 +112,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeCompileScope", defaultValue = "true", required = false)
-    private Boolean includeCompileScope;
+    private boolean includeCompileScope;
 
     /**
      * Should provided scoped artifacts be included in bom?
@@ -135,7 +120,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeProvidedScope", defaultValue = "true", required = false)
-    private Boolean includeProvidedScope;
+    private boolean includeProvidedScope;
 
     /**
      * Should runtime scoped artifacts be included in bom?
@@ -143,7 +128,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeRuntimeScope", defaultValue = "true", required = false)
-    private Boolean includeRuntimeScope;
+    private boolean includeRuntimeScope;
 
     /**
      * Should test scoped artifacts be included in bom?
@@ -151,7 +136,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeTestScope", defaultValue = "false", required = false)
-    private Boolean includeTestScope;
+    private boolean includeTestScope;
 
     /**
      * Should system scoped artifacts be included in bom?
@@ -159,7 +144,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
-    private Boolean includeSystemScope;
+    private boolean includeSystemScope;
 
     /**
      * Should license text be included in bom?
@@ -167,7 +152,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.1.0
      */
     @Parameter(property = "includeLicenseText", defaultValue = "false", required = false)
-    private Boolean includeLicenseText;
+    private boolean includeLicenseText;
 
     /**
      * Excluded types.
@@ -211,7 +196,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @org.apache.maven.plugins.annotations.Component
     private ModelConverter modelConverter;
 
-    private Set<String> excludeTypesSet;
+    @org.apache.maven.plugins.annotations.Component
+    private ProjectDependenciesConverter projectDependenciesConverter;
 
     /**
      * Various messages sent to console.
@@ -233,20 +219,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return project;
     }
 
-    protected String generatePackageUrl(Artifact artifact) {
+    protected String generatePackageUrl(final Artifact artifact) {
         return modelConverter.generatePackageUrl(artifact);
-    }
-
-    protected String generateVersionlessPackageUrl(final Artifact artifact) {
-        return modelConverter.generateVersionlessPackageUrl(artifact);
-    }
-
-    protected String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
-        return modelConverter.generatePackageUrl(artifact);
-    }
-
-    protected String generateVersionlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
-        return modelConverter.generateVersionlessPackageUrl(artifact);
     }
 
     protected Component convert(Artifact artifact) {
@@ -284,7 +258,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (includeTestScope) scopes.add("test");
 
             final Metadata metadata = modelConverter.convert(project, analysis + " " + String.join("+", scopes), projectType, schemaVersion(), includeLicenseText);
-            cleanupBomDependencies(metadata, components, dependencies);
+            projectDependenciesConverter.cleanupBomDependencies(metadata, components, dependencies);
 
             generateBom(analysis, metadata, components, dependencies);
         }
@@ -359,47 +333,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    /**
-     * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
-     * Maven dependency resolution graph but that are finally not kept in the effective dependencies list.
-     */
-    private void cleanupBomDependencies(Metadata metadata, Set<Component> components, Set<Dependency> dependencies) {
-        // map(component ref -> component)
-        final Map<String, Component> componentRefs = new HashMap<>();
-        components.forEach(c -> componentRefs.put(c.getBomRef(), c));
-
-        // set(dependencies refs) and set(dependencies of dependencies)
-        final Set<String> dependencyRefs = new HashSet<>();
-        final Set<String> dependsOns = new HashSet<>();
-        dependencies.forEach(d -> {
-            dependencyRefs.add(d.getRef());
-            if (d.getDependencies() != null) {
-                d.getDependencies().forEach(on -> dependsOns.add(on.getRef()));
-            }
-        });
-
-        // Check all BOM components have an associated BOM dependency
-        for (Entry<String, Component> entry: componentRefs.entrySet()) {
-            if (!dependencyRefs.contains(entry.getKey())) {
-                if (getLog().isDebugEnabled()) {
-                    getLog().debug("Component reference not listed in dependencies, pruning from bom components: " + entry.getKey());
-                }
-                components.remove(entry.getValue());
-            } else if (!dependsOns.contains(entry.getKey())) {
-                getLog().warn("BOM dependency listed but is not depended upon: " + entry.getKey());
-            }
-        }
-
-        // add BOM main component
-        Component main = metadata.getComponent();
-        componentRefs.put(main.getBomRef(), main);
-
-        // Check all BOM dependencies have a BOM component
-        for (String dependencyRef: dependencyRefs) {
-            if (!componentRefs.containsKey(dependencyRef)) {
-                getLog().warn("Dependency missing component entry: " + dependencyRef);
-            }
-        }
+    protected Set<Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
+        ProjectDependenciesConverter.Scopes include = new ProjectDependenciesConverter.Scopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
+        return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
     }
 
     /**
@@ -418,144 +354,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         } else {
             return CycloneDxSchema.Version.VERSION_14;
         }
-    }
-
-    private Set<String> getExcludeTypesSet() {
-        if (excludeTypesSet == null) {
-            excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
-        }
-        return excludeTypesSet;
-    }
-
-    protected Set<Dependency> buildBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
-        if (mavenProject == null) {
-            mavenProject = project;
-        }
-        final ProjectBuildingRequest buildingRequest = getProjectBuildingRequest(mavenProject);
-
-        final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
-
-        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
-        try {
-            final CycloneDxRepositorySystem cycloneRepositorySystem = new CycloneDxRepositorySystem(aetherRepositorySystem);
-            final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(cycloneRepositorySystem);
-            dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
-            final CollectResult collectResult = cycloneRepositorySystem.getCollectResult();
-            if (collectResult == null) {
-                throw new MojoExecutionException("Failed to generate aether dependency graph");
-            }
-            final DependencyNode root = collectResult.getRoot();
-
-            // Generate the tree, removing excluded and filtered nodes
-            final Set<String> loggedReplacementPUrls = new HashSet<>();
-            final Set<String> loggedFilteredArtifacts = new HashSet<>();
-            buildDependencyGraphNode(dependencies, root, null, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
-        } catch (DependencyCollectorBuilderException e) {
-            // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
-            // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
-            getLog().warn("An error occurred building dependency graph: " + e.getMessage());
-        }
-        return dependencies.keySet();
-    }
-
-    private boolean isFilteredNode(final DependencyNode node, final Set<String> loggedFilteredArtifacts) {
-        final Map<?, ?> nodeData = node.getData();
-        final String originalScope = (String)nodeData.get(ConflictResolver.NODE_DATA_ORIGINAL_SCOPE);
-        final String scope;
-        if (originalScope != null) {
-            scope = originalScope;
-        } else {
-            scope = node.getDependency().getScope();
-        }
-
-        final Boolean scoped ;
-        switch (scope) {
-            case Artifact.SCOPE_COMPILE:
-                scoped = includeCompileScope;
-                break;
-            case Artifact.SCOPE_PROVIDED:
-                scoped = includeProvidedScope;
-                break;
-            case Artifact.SCOPE_RUNTIME:
-                scoped = includeRuntimeScope;
-                break;
-            case Artifact.SCOPE_SYSTEM:
-                scoped = includeSystemScope;
-                break;
-            case Artifact.SCOPE_TEST:
-                scoped = includeTestScope;
-                break;
-            default:
-                scoped = Boolean.FALSE;
-        }
-        final boolean result = Boolean.FALSE.equals(scoped);
-        if (result) {
-            final String purl = generatePackageUrl(node.getArtifact());
-            final String key = purl + ":" + originalScope + ":" + node.getDependency().getScope();
-            if (loggedFilteredArtifacts.add(key) && getLog().isDebugEnabled()) {
-                getLog().debug("CycloneDX: Filtering " + purl + " with original scope " + originalScope + " and scope " + node.getDependency().getScope());
-            }
-        }
-        return result;
-    }
-
-    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, DependencyNode node, final Dependency parent,
-            final Map<String, String> resolvedPUrls, final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
-        String purl = generatePackageUrl(node.getArtifact());
-
-        if (isExcludedNode(node) || (parent != null && isFilteredNode(node, loggedFilteredArtifacts))) {
-            return;
-        }
-
-        // If the node has no children then it could be a marker node for conflict resolution
-        if (node.getChildren().isEmpty()) {
-            final Map<?,?> nodeData = node.getData();
-            final DependencyNode winner = (DependencyNode) nodeData.get(ConflictResolver.NODE_DATA_WINNER);
-            final String resolvedPurl = resolvedPUrls.get(generateVersionlessPackageUrl(node.getArtifact()));
-            if (!purl.equals(resolvedPurl)) {
-                if (!loggedReplacementPUrls.contains(purl)) {
-                    if (getLog().isDebugEnabled()) {
-                        getLog().debug("CycloneDX: replacing reference to " + purl + " with resolved package url " + resolvedPurl);
-                    }
-                    loggedReplacementPUrls.add(purl);
-                }
-                purl = resolvedPurl;
-            }
-            if (winner != null) {
-                node = winner;
-            }
-        }
-
-        Dependency topDependency = new Dependency(purl);
-        final Dependency origDependency = dependencies.putIfAbsent(topDependency, topDependency);
-        if (origDependency != null) {
-            topDependency = origDependency;
-        }
-        if (parent != null) {
-            parent.addDependency(new Dependency(purl));
-        }
-        for (final DependencyNode childrenNode : node.getChildren()) {
-            buildDependencyGraphNode(dependencies, childrenNode, topDependency, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
-        }
-    }
-
-    /**
-     * Generate a map of versionless purls to their resolved versioned purl
-     * @return the map of versionless purls to resolved versioned purls
-     */
-    private Map<String, String> generateResolvedPUrls(final MavenProject mavenProject) {
-        final Map<String, String> resolvedPUrls = new HashMap<>();
-        final Artifact projectArtifact = mavenProject.getArtifact();
-        resolvedPUrls.put(generateVersionlessPackageUrl(projectArtifact), generatePackageUrl(projectArtifact));
-        for (Artifact artifact: mavenProject.getArtifacts()) {
-            resolvedPUrls.put(generateVersionlessPackageUrl(artifact), generatePackageUrl(artifact));
-        }
-        return resolvedPUrls;
-    }
-
-    private boolean isExcludedNode(final DependencyNode node) {
-        final String type = node.getArtifact().getProperties().get(ArtifactProperties.TYPE);
-        return ((type == null) || getExcludeTypesSet().contains(type));
     }
 
     protected void logAdditionalParameters() {
@@ -579,16 +377,5 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
-    }
-
-    /**
-     * Create a project building request
-     * @param mavenProject The maven project associated with this build request
-     * @return The project building request
-     */
-    private ProjectBuildingRequest getProjectBuildingRequest(final MavenProject mavenProject) {
-        final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
-        buildingRequest.setProject(mavenProject);
-        return buildingRequest;
     }
 }

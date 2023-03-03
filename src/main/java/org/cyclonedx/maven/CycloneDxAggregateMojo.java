@@ -156,7 +156,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 }
             }
 
-            dependencies.addAll(buildBOMDependencies(mavenProject));
+            dependencies.addAll(extractBOMDependencies(mavenProject));
         }
 
         addMavenProjectsAsParentDependencies(reactorProjects, dependencies);

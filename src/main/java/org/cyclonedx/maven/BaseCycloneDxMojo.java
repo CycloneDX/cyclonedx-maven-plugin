@@ -187,8 +187,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @since 2.6.0
      */
     @SuppressWarnings("CanBeFinal")
-    @Parameter(property = "cyclonedx.verbose", defaultValue = "true", required = false)
-    private boolean verbose = true;
+    @Parameter(property = "cyclonedx.verbose", defaultValue = "false", required = false)
+    private boolean verbose = false;
 
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
@@ -204,10 +204,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected static final String MESSAGE_RESOLVING_DEPS = "CycloneDX: Resolving Dependencies";
     protected static final String MESSAGE_RESOLVING_AGGREGATED_DEPS = "CycloneDX: Resolving Aggregated Dependencies";
-    protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM";
+    protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM version %s with %d component(s)";
     static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
-    protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing BOM (%s): %s";
-    protected static final String MESSAGE_VALIDATING_BOM = "CycloneDX: Validating BOM (%s): %s";
+    protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing and validating BOM (%s): %s";
+    protected static final String MESSAGE_ATTACHING_BOM = "           attaching as %s-%s-cyclonedx.%s";
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
 
     /**
@@ -266,7 +266,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     private void generateBom(String analysis, Metadata metadata, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         try {
-            getLog().info(MESSAGE_CREATING_BOM);
+            getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
             final Bom bom = new Bom();
             bom.setComponents(new ArrayList<>(components));
 
@@ -323,12 +323,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         getLog().info(String.format(MESSAGE_WRITING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
         FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
 
-        getLog().info(String.format(MESSAGE_VALIDATING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
         if (!bomParser.isValid(bomFile, schemaVersion())) {
             throw new MojoExecutionException(MESSAGE_VALIDATION_FAILURE);
         }
 
         if (!skipAttach) {
+            getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
             mavenProjectHelper.attachArtifact(project, extension, "cyclonedx", bomFile);
         }
     }

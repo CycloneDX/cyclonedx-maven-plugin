@@ -25,10 +25,8 @@ assert 2 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Aggregated Dependencies/
 // 13 = 6 modules for main cyclonedx-makeAggregateBom execution
 //    + 1 for root module cyclonedx-makeAggregateBom-root-only execution
 //    + 6 modules for additional cyclonedx-makeBom execution
-assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Writing BOM \(XML\)/).size()
-assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Validating BOM \(XML\)/).size()
-assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Writing BOM \(JSON\)/).size()
-assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Validating BOM \(JSON\)/).size()
+assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(XML\)/).size()
+assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(JSON\)/).size()
 // cyclonedx-makeAggregateBom-root-only execution skips 5 non-root modules
 assert 5 == (buildLog =~ /\[INFO\] Skipping CycloneDX on non-execution root/).size()
 

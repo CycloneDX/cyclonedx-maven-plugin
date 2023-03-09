@@ -38,7 +38,7 @@ public class Issue116Test extends BaseMavenVerifier {
 
         // assert commons-lang3 has appeared in the dependency graph multiple times
         String bomContents = fileRead(new File(projDir, "target/bom.xml"), true);
-        int matches = StringUtils.countMatches(bomContents, "<dependency ref=\"pkg:maven/org.apache.commons/commons-lang3@3.1?type=jar\"/>");
+        int matches = StringUtils.countMatches(bomContents, "<dependency ref=\"pkg:maven/org.apache.commons/commons-lang3@3.1?");
         assertEquals(4, matches); // 1 for the definition, 3 for each of its usages
     }
 }

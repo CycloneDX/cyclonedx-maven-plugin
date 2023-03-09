@@ -18,6 +18,8 @@
  */
 package org.cyclonedx.maven;
 
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -27,6 +29,7 @@ import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollectorBuilder;
+import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
@@ -38,10 +41,18 @@ import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.packageurl.MalformedPackageURLException;
+import com.github.packageurl.PackageURL;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -65,7 +76,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private MavenDependencyScopes include;
 
     @Override
-    public Set<Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
+    public Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 
@@ -73,7 +84,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
 
         final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
 
-        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
+        final Map<String, Dependency> dependencies = new LinkedHashMap<>();
         try {
             final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
@@ -94,7 +105,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
             logger.warn("An error occurred building dependency graph: " + e.getMessage());
         }
-        return dependencies.keySet();
+        return dependencies;
     }
 
     private boolean isFilteredNode(final DependencyNode node, final Set<String> loggedFilteredArtifacts) {
@@ -143,7 +154,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         return ((type == null) || excludeTypesSet.contains(type));
     }
 
-    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, DependencyNode node,
+    private void buildDependencyGraphNode(final Map<String, Dependency> dependencies, DependencyNode node,
             final Dependency parent, final String parentClassifierlessPUrl, final Map<String, String> resolvedPUrls,
             final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
         String purl = modelConverter.generatePackageUrl(node.getArtifact());
@@ -172,7 +183,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         }
 
         Dependency topDependency = new Dependency(purl);
-        final Dependency origDependency = dependencies.putIfAbsent(topDependency, topDependency);
+        final Dependency origDependency = dependencies.putIfAbsent(purl, topDependency);
         if (origDependency != null) {
             topDependency = origDependency;
         }
@@ -214,42 +225,114 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     }
 
     @Override
-    public void cleanupBomDependencies(Metadata metadata, Set<Component> components, Set<Dependency> dependencies) {
-        // map(component ref -> component)
-        final Map<String, Component> componentRefs = new HashMap<>();
-        components.forEach(c -> componentRefs.put(c.getBomRef(), c));
-
+    public void cleanupBomDependencies(Metadata metadata, Map<String, Component> components, Map<String, Dependency> dependencies) {
         // set(dependencies refs) and set(dependencies of dependencies)
-        final Set<String> dependencyRefs = new HashSet<>();
         final Set<String> dependsOns = new HashSet<>();
-        dependencies.forEach(d -> {
-            dependencyRefs.add(d.getRef());
+        dependencies.values().forEach(d -> {
             if (d.getDependencies() != null) {
                 d.getDependencies().forEach(on -> dependsOns.add(on.getRef()));
             }
         });
 
         // Check all BOM components have an associated BOM dependency
-        for (Map.Entry<String, Component> entry: componentRefs.entrySet()) {
-            if (!dependencyRefs.contains(entry.getKey())) {
+
+        for (Iterator<Map.Entry<String, Component>> it = components.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<String, Component> entry = it.next();
+            if (!dependencies.containsKey(entry.getKey())) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Component reference not listed in dependencies, pruning from bom components: " + entry.getKey());
                 }
-                components.remove(entry.getValue());
+                it.remove();
             } else if (!dependsOns.contains(entry.getKey())) {
                 logger.warn("BOM dependency listed but is not depended upon: " + entry.getKey());
             }
         }
 
-        // add BOM main component
+        // include BOM main component
         Component main = metadata.getComponent();
-        componentRefs.put(main.getBomRef(), main);
+        final String mainBomRef = main.getBomRef();
 
         // Check all BOM dependencies have a BOM component
-        for (String dependencyRef: dependencyRefs) {
-            if (!componentRefs.containsKey(dependencyRef)) {
+        for (String dependencyRef: dependencies.keySet()) {
+            if (!mainBomRef.equals(dependencyRef) && !components.containsKey(dependencyRef)) {
                 logger.warn("Dependency missing component entry: " + dependencyRef);
             }
+        }
+    }
+
+    private String generateIdentity(final Map<String, String> purlToIdentity, final Map<String, Dependency> dependencies, final String ref) {
+        final String identity = purlToIdentity.get(ref);
+        if (identity != null) {
+            return identity;
+        } else {
+            final Dependency dependency = dependencies.get(ref);
+
+            final StringBuilder sb = new StringBuilder(ref);
+
+            if (dependency.getDependencies() != null) {
+                for (Dependency child: dependency.getDependencies()) {
+                    final String childIdentity = generateIdentity(purlToIdentity, dependencies, child.getRef());
+                    sb.append('+').append(childIdentity);
+                }
+            }
+
+            final MessageDigest digest = DigestUtils.getSha512Digest();
+            digest.update(sb.toString().getBytes(StandardCharsets.UTF_8));
+            final String hash = Hex.encodeHexString(digest.digest());
+
+            final PackageURL purl;
+            try {
+                purl = new PackageURL(ref);
+            } catch(final MalformedPackageURLException mpurle) {
+                logger.warn("An unexpected issue occurred attempting to parse PackageURL " + ref, mpurle);
+                return ref;
+            }
+
+            purl.getQualifiers().put("hash", hash);
+
+            final String newIdentity = purl.canonicalize();
+
+            purlToIdentity.put(ref, newIdentity);
+            return newIdentity;
+        }
+    }
+
+    private void generateIdentities(final Map<String, String> purlToIdentity, final Map<String, Dependency> dependencies) {
+        for(String ref: dependencies.keySet()) {
+            generateIdentity(purlToIdentity, dependencies, ref);
+        }
+    }
+
+    private Dependency normalizeDependency(final Dependency dependency, final Map<String, String> purlToIdentity) {
+        final Dependency normalizedDependency = new Dependency(purlToIdentity.get(dependency.getRef()));
+        final List<Dependency> children = new ArrayList<>();
+        if (dependency.getDependencies() != null) {
+            for(Dependency child: dependency.getDependencies()) {
+                children.add(new Dependency(purlToIdentity.get(child.getRef())));
+            }
+        }
+        normalizedDependency.setDependencies(children);
+        return normalizedDependency;
+    }
+
+    /**
+     * Normalize the dependencies, assigning distinct references based on their purl and dependencies.
+     * The map will be modified to reflect the distinct names, with references and the map keys
+     * being updated.
+     */
+    @Override
+    public void normalizeDependencies(final CycloneDxSchema.Version schemaVersion, final Map<String, Dependency> dependencies, final Map<String, String> purlToIdentity) {
+        // We only need to normalize dependencies if they are being included in the BOM, i.e. version 1.2 and above
+        if (schemaVersion.getVersion() >= 1.2) {
+            generateIdentities(purlToIdentity, dependencies);
+
+            final Map<String, Dependency> normalizedDependencies = new LinkedHashMap<>();
+            for (Dependency dependency: dependencies.values()) {
+                final Dependency normalizedDependency = normalizeDependency(dependency, purlToIdentity);
+                normalizedDependencies.put(normalizedDependency.getRef(), normalizedDependency);
+            }
+            dependencies.clear();
+            dependencies.putAll(normalizedDependencies);
         }
     }
 }

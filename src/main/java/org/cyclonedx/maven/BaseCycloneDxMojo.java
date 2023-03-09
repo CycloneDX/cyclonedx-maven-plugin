@@ -26,6 +26,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -35,6 +36,7 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
+import org.cyclonedx.model.Component.Scope;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
@@ -45,8 +47,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -197,7 +200,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private ModelConverter modelConverter;
 
     @org.apache.maven.plugins.annotations.Component
-    private ProjectDependenciesConverter projectDependenciesConverter;
+    protected ProjectDependenciesConverter projectDependenciesConverter;
 
     /**
      * Various messages sent to console.
@@ -230,12 +233,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     /**
      * Analyze the current Maven project to extract the BOM components list and their dependencies.
      *
-     * @param components the components set to fill
-     * @param dependencies the dependencies set to fill
+     * @param components the components map to fill
+     * @param dependencies the dependencies map to fill
+     * @param projectIdentities the map of project purls to identities for this build
      * @return the name of the analysis done to store as a BOM, or {@code null} to not save result.
      * @throws MojoExecutionException something weird happened...
      */
-    protected abstract String extractComponentsAndDependencies(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
+    protected abstract String extractComponentsAndDependencies(Map<String, Component> components, Map<String, Dependency> dependencies, Map<String, String> projectIdentities) throws MojoExecutionException;
 
     public void execute() throws MojoExecutionException {
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
@@ -245,10 +249,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
         logParameters();
 
-        final Set<Component> components = new LinkedHashSet<>();
-        final Set<Dependency> dependencies = new LinkedHashSet<>();
+        final Map<String, Component> componentMap = new LinkedHashMap<>();
+        final Map<String, Dependency> dependencyMap = new LinkedHashMap<>();
+        final Map<String, String> projectIdentities = new LinkedHashMap<>();
 
-        String analysis = extractComponentsAndDependencies(components, dependencies);
+        String analysis = extractComponentsAndDependencies(componentMap, dependencyMap, projectIdentities);
         if (analysis != null) {
             List<String> scopes = new ArrayList<>();
             if (includeCompileScope) scopes.add("compile");
@@ -258,17 +263,23 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (includeTestScope) scopes.add("test");
 
             final Metadata metadata = modelConverter.convert(project, analysis + " " + String.join("+", scopes), projectType, schemaVersion(), includeLicenseText);
-            projectDependenciesConverter.cleanupBomDependencies(metadata, components, dependencies);
+            final Component rootComponent = metadata.getComponent();
+            final String rootBomRef = projectIdentities.get(rootComponent.getPurl());
+            if (rootBomRef != null) {
+                componentMap.remove(rootBomRef);
+                metadata.getComponent().setBomRef(rootBomRef);
+            }
+            projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
 
-            generateBom(analysis, metadata, components, dependencies);
+            generateBom(analysis, metadata, componentMap, dependencyMap);
         }
     }
 
-    private void generateBom(String analysis, Metadata metadata, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
+    private void generateBom(String analysis, Metadata metadata, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
             final Bom bom = new Bom();
-            bom.setComponents(new ArrayList<>(components));
+            bom.setComponents(new ArrayList<>(components.values()));
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
@@ -276,7 +287,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             if (schemaVersion().getVersion() >= 1.2) {
                 bom.setMetadata(metadata);
-                bom.setDependencies(new ArrayList<>(dependencies));
+                bom.setDependencies(new ArrayList<>(dependencies.values()));
             }
 
             /*if (schemaVersion().getVersion() >= 1.3) {
@@ -333,7 +344,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected Set<Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
+    protected Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
         return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
     }
@@ -377,5 +388,79 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
+    }
+
+    protected void populateComponents(final Map<String, Component> components, final Set<Artifact> artifacts, final Map<String, String> purlToIdentity, final ProjectDependencyAnalysis dependencyAnalysis) {
+        for (Artifact artifact: artifacts) {
+            final String purl = generatePackageUrl(artifact);
+            final String identity = purlToIdentity.get(purl);
+            if (identity != null) {
+                final Scope artifactScope = (dependencyAnalysis != null ? inferComponentScope(artifact, dependencyAnalysis) : null);
+                final Component component = components.get(identity);
+                if (component == null) {
+                    final Component newComponent = convert(artifact);
+                    newComponent.setBomRef(identity);
+                    newComponent.setScope(artifactScope);
+                    components.put(identity, newComponent);
+                } else {
+                    component.setScope(mergeScopes(component.getScope(), artifactScope));
+                }
+            }
+        }
+    }
+
+    /**
+     * Infer BOM component scope based on Maven project dependency analysis.
+     *
+     * @param artifact Artifact from maven project
+     * @param projectDependencyAnalysis Maven Project Dependency Analysis data
+     *
+     * @return Component.Scope - Required: If the component is used (as detected by project dependency analysis). Optional: If it is unused
+     */
+    protected Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
+        if (projectDependencyAnalysis == null) {
+            return null;
+        }
+
+        Set<Artifact> usedDeclaredArtifacts = projectDependencyAnalysis.getUsedDeclaredArtifacts();
+        Set<Artifact> usedUndeclaredArtifacts = projectDependencyAnalysis.getUsedUndeclaredArtifacts();
+        Set<Artifact> unusedDeclaredArtifacts = projectDependencyAnalysis.getUnusedDeclaredArtifacts();
+        Set<Artifact> testArtifactsWithNonTestScope = projectDependencyAnalysis.getTestArtifactsWithNonTestScope();
+
+        // Is the artifact used?
+        if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
+            return Component.Scope.REQUIRED;
+        }
+
+        // Is the artifact unused or test?
+        if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
+            return Component.Scope.OPTIONAL;
+        }
+
+        return null;
+    }
+
+    private Scope mergeScopes(final Scope existing, final Scope project) {
+        // If scope is null we don't know anything about the artifact, so we assume it's not optional.
+        // This is likely a result of the dependency analysis part being unable to run.
+        final Scope merged;
+        if (existing == null) {
+            merged = (project == Scope.REQUIRED ? Scope.REQUIRED : null);
+        } else {
+            switch (existing) {
+                case REQUIRED:
+                    merged = Scope.REQUIRED;
+                    break;
+                case OPTIONAL:
+                    merged = (project == Scope.REQUIRED || project == null ? project : existing);
+                    break;
+                case EXCLUDED:
+                    merged = (project != Scope.EXCLUDED ? project : Scope.EXCLUDED);
+                    break;
+                default:
+                    merged = project;
+            }
+        }
+        return merged;
     }
 }

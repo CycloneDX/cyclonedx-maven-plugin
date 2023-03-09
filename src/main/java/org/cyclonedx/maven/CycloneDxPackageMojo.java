@@ -18,7 +18,6 @@
  */
 package org.cyclonedx.maven;
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -29,9 +28,9 @@ import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Creates a CycloneDX BOM for each Maven module with {@code war} or {@code ear} packaging.
@@ -56,8 +55,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
         return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
-    protected String extractComponentsAndDependencies(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
-        final Set<String> componentRefs = new LinkedHashSet<>();
+    protected String extractComponentsAndDependencies(Map<String, Component> components, Map<String, Dependency> dependencies, final Map<String, String> projectIdentities) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
         for (final MavenProject mavenProject : reactorProjects) {
@@ -65,15 +63,21 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 continue;
             }
             getLog().info("Analyzing " + mavenProject.getArtifactId());
-            for (final Artifact artifact : mavenProject.getArtifacts()) {
-                final Component component = convert(artifact);
-                // ensure that only one component with the same bom-ref exists in the BOM
-                if (componentRefs.add(component.getBomRef())) {
-                    components.add(component);
-                }
-            }
 
-            dependencies.addAll(extractBOMDependencies(mavenProject));
+            final Map<String, Dependency> projectDependencies = extractBOMDependencies(mavenProject);
+
+            final Map<String, String> projectPUrlToIdentity = new HashMap<>();
+            projectDependenciesConverter.normalizeDependencies(schemaVersion(), projectDependencies, projectPUrlToIdentity);
+
+            final Component projectBomComponent = convert(mavenProject.getArtifact());
+            final String identity = projectPUrlToIdentity.get(projectBomComponent.getPurl());
+            projectBomComponent.setBomRef(identity);
+            components.put(identity, projectBomComponent);
+
+            projectIdentities.put(projectBomComponent.getPurl(), projectBomComponent.getBomRef());
+
+            populateComponents(components, mavenProject.getArtifacts(), projectPUrlToIdentity, null);
+            dependencies.putAll(projectDependencies);
         }
 
         return "makePackageBom";

@@ -56,8 +56,8 @@ assertBomEqualsNonAggregate("impls/impl-B/target/bom")
 
 // dependencies for root component in makeAggregateBom is the list of modules
 String bom = new File(basedir, 'target/bom.xml').text
-String rootDependencies = bom.substring(bom.indexOf('<dependency ref="pkg:maven/org.cyclonedx.its/makeAggregateBom@1.0-SNAPSHOT?type=pom">'), bom.indexOf('</dependency>') + 13)
-assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/api@1.0-SNAPSHOT?type=jar"/>')
-assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/impls@1.0-SNAPSHOT?type=pom"/>')
-assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/util@1.0-SNAPSHOT?type=jar"/>')
+String rootDependencies = bom.substring(bom.indexOf('<dependency ref="pkg:maven/org.cyclonedx.its/makeAggregateBom@1.0-SNAPSHOT?'), bom.indexOf('</dependency>') + 13)
+assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/api@1.0-SNAPSHOT?')
+assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/impls@1.0-SNAPSHOT?')
+assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/util@1.0-SNAPSHOT?')
 assert 4 == (rootDependencies =~ /<dependency ref="pkg:maven/).size()

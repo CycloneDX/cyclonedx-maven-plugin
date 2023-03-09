@@ -18,7 +18,6 @@
  */
 package org.cyclonedx.maven;
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -32,8 +31,9 @@ import org.codehaus.plexus.PlexusContainer;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
-import java.util.LinkedHashSet;
-import java.util.Set;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Creates a CycloneDX BOM for each Maven module with its dependencies.
@@ -90,61 +90,24 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return null;
     }
 
-    protected String extractComponentsAndDependencies(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
-        final Set<String> componentRefs = new LinkedHashSet<>();
-
+    protected String extractComponentsAndDependencies(final Map<String, Component> components, final Map<String, Dependency> dependencies, final Map<String, String> projectIdentities) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
-        if (getProject() != null && getProject().getArtifacts() != null) {
-            ProjectDependencyAnalysis dependencyAnalysis = doProjectDependencyAnalysis(getProject());
 
-            // Add reference to BOM metadata component.
-            // Without this, direct dependencies of the Maven project cannot be determined.
-            final Component bomComponent = convert(getProject().getArtifact());
-            componentRefs.add(bomComponent.getBomRef());
+        final Map<String, Dependency> projectDependencies = extractBOMDependencies(getProject());
 
-            for (final Artifact artifact : getProject().getArtifacts()) {
-                final Component component = convert(artifact);
-                // ensure that only one component with the same bom-ref exists in the BOM
-                if (componentRefs.add(component.getBomRef())) {
-                    component.setScope(inferComponentScope(artifact, dependencyAnalysis));
-                    components.add(component);
-                }
-            }
-        }
+        final Map<String, String> projectPUrlToIdentity = new HashMap<>();
+        projectDependenciesConverter.normalizeDependencies(schemaVersion(), projectDependencies, projectPUrlToIdentity);
 
-        dependencies.addAll(extractBOMDependencies(getProject()));
+        final Component projectBomComponent = convert(getProject().getArtifact());
+        final String identity = projectPUrlToIdentity.get(projectBomComponent.getPurl());
+        projectBomComponent.setBomRef(identity);
+        components.put(identity, projectBomComponent);
+
+        projectIdentities.put(projectBomComponent.getPurl(), projectBomComponent.getBomRef());
+
+        populateComponents(components, getProject().getArtifacts(), projectPUrlToIdentity, doProjectDependencyAnalysis(getProject()));
+        dependencies.putAll(projectDependencies);
 
         return "makeBom";
-    }
-
-    /**
-     * Infer BOM component scope based on Maven project dependency analysis.
-     *
-     * @param artifact Artifact from maven project
-     * @param projectDependencyAnalysis Maven Project Dependency Analysis data
-     *
-     * @return Component.Scope - Required: If the component is used (as detected by project dependency analysis). Optional: If it is unused
-     */
-    protected Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
-        if (projectDependencyAnalysis == null) {
-            return null;
-        }
-
-        Set<Artifact> usedDeclaredArtifacts = projectDependencyAnalysis.getUsedDeclaredArtifacts();
-        Set<Artifact> usedUndeclaredArtifacts = projectDependencyAnalysis.getUsedUndeclaredArtifacts();
-        Set<Artifact> unusedDeclaredArtifacts = projectDependencyAnalysis.getUnusedDeclaredArtifacts();
-        Set<Artifact> testArtifactsWithNonTestScope = projectDependencyAnalysis.getTestArtifactsWithNonTestScope();
-
-        // Is the artifact used?
-        if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
-            return Component.Scope.REQUIRED;
-        }
-
-        // Is the artifact unused or test?
-        if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
-            return Component.Scope.OPTIONAL;
-        }
-
-        return null;
     }
 }

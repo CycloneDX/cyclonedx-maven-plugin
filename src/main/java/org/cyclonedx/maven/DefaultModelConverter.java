@@ -105,26 +105,31 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     public String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
-        return generatePackageUrl(artifact, true);
+        return generatePackageUrl(artifact, true, true);
     }
 
     public String generateVersionlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
-        return generatePackageUrl(artifact, false);
+        return generatePackageUrl(artifact, false, true);
+    }
+
+    public String generateClassifierlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
+        return generatePackageUrl(artifact, true, false);
     }
 
     private boolean isEmpty(final String value) {
         return (value == null) || (value.length() == 0);
     }
-    private String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact, final boolean includeVersion) {
+
+    private String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact, final boolean includeVersion, final boolean includeClassifier) {
         TreeMap<String, String> qualifiers = null;
         final String type = artifact.getProperties().get(ArtifactProperties.TYPE);
         final String classifier = artifact.getClassifier();
-        if (!isEmpty(type) || !isEmpty(classifier)) {
+        if (!isEmpty(type) || (includeClassifier && !isEmpty(classifier))) {
             qualifiers = new TreeMap<>();
             if (!isEmpty(type)) {
                 qualifiers.put("type", type);
             }
-            if (!isEmpty(classifier)) {
+            if (includeClassifier && !isEmpty(classifier)) {
                 qualifiers.put("classifier", classifier);
             }
         }

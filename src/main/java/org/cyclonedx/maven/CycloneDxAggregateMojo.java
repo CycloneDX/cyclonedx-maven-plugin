@@ -24,6 +24,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
@@ -121,13 +122,14 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 continue;
             }
 
-            final Map<String, Dependency> projectDependencies = extractBOMDependencies(mavenProject);
+            final BomDependencies bomDependencies = extractBOMDependencies(mavenProject);
+            final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
             final Component projectBomComponent = convert(mavenProject.getArtifact());
             components.put(projectBomComponent.getPurl(), projectBomComponent);
             topLevelComponents.add(projectBomComponent.getPurl());
 
-            populateComponents(topLevelComponents, components, mavenProject.getArtifacts(), doProjectDependencyAnalysis(mavenProject));
+            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject));
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

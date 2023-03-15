@@ -29,6 +29,7 @@ import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException;
 import org.codehaus.plexus.PlexusContainer;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
@@ -93,13 +94,14 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
-        final Map<String, Dependency> projectDependencies = extractBOMDependencies(getProject());
+        final BomDependencies bomDependencies = extractBOMDependencies(getProject());
+        final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
         final Component projectBomComponent = convert(getProject().getArtifact());
         components.put(projectBomComponent.getPurl(), projectBomComponent);
         topLevelComponents.add(projectBomComponent.getPurl());
 
-        populateComponents(topLevelComponents, components, getProject().getArtifacts(), doProjectDependencyAnalysis(getProject()));
+        populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(getProject()));
 
         projectDependencies.forEach(dependencies::putIfAbsent);
 

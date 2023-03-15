@@ -39,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -66,19 +65,21 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private MavenDependencyScopes include;
 
     @Override
-    public Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
+    public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 
         final ProjectBuildingRequest buildingRequest = getProjectBuildingRequest(mavenProject);
 
-        final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
-
         final Map<String, Dependency> dependencies = new LinkedHashMap<>();
+        final Map<String, Artifact> mavenArtifacts = new LinkedHashMap<>();
         try {
             final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
-            dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
+
+            final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
+            populateArtifactMap(mavenArtifacts, mavenRoot, false);
+
             final CollectResult collectResult = delegateRepositorySystem.getCollectResult();
             if (collectResult == null) {
                 throw new MojoExecutionException("Failed to generate aether dependency graph");
@@ -86,16 +87,25 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             final DependencyNode root = collectResult.getRoot();
 
             // Generate the tree, removing excluded and filtered nodes
-            final Set<String> loggedReplacementPUrls = new HashSet<>();
             final Set<String> loggedFilteredArtifacts = new HashSet<>();
 
-            buildDependencyGraphNode(dependencies, root, null, null, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
+            buildDependencyGraphNode(dependencies, root, null, null, loggedFilteredArtifacts);
         } catch (DependencyCollectorBuilderException e) {
             // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
             logger.warn("An error occurred building dependency graph: " + e.getMessage());
         }
-        return dependencies;
+        return new BomDependencies(dependencies, mavenArtifacts);
+    }
+
+    private void populateArtifactMap(final Map<String, Artifact> artifactMap, final org.apache.maven.shared.dependency.graph.DependencyNode node, final boolean resolve) {
+        final Artifact artifact = node.getArtifact();
+        final String purl = modelConverter.generatePackageUrl(artifact);
+        artifactMap.putIfAbsent(purl, artifact);
+
+        for (org.apache.maven.shared.dependency.graph.DependencyNode child: node.getChildren()) {
+            populateArtifactMap(artifactMap, child, true);
+        }
     }
 
     private boolean isFilteredNode(final DependencyNode node, final Set<String> loggedFilteredArtifacts) {
@@ -129,10 +139,10 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
                 scoped = Boolean.FALSE;
         }
         final boolean result = Boolean.FALSE.equals(scoped);
-        if (result) {
+        if (result && logger.isDebugEnabled()) {
             final String purl = modelConverter.generatePackageUrl(node.getArtifact());
             final String key = purl + ":" + originalScope + ":" + node.getDependency().getScope();
-            if (loggedFilteredArtifacts.add(key) && logger.isDebugEnabled()) {
+            if (loggedFilteredArtifacts.add(key)) {
                 logger.debug("Filtering " + purl + " with original scope " + originalScope + " and scope " + node.getDependency().getScope());
             }
         }
@@ -145,9 +155,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     }
 
     private void buildDependencyGraphNode(final Map<String, Dependency> dependencies, DependencyNode node,
-            final Dependency parent, final String parentClassifierlessPUrl, final Map<String, String> resolvedPUrls,
-            final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
-        String purl = modelConverter.generatePackageUrl(node.getArtifact());
+            final Dependency parent, final String parentClassifierlessPUrl, final Set<String> loggedFilteredArtifacts) {
 
         if (isExcludedNode(node) || (parent != null && isFilteredNode(node, loggedFilteredArtifacts))) {
             return;
@@ -157,50 +165,26 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         if (node.getChildren().isEmpty()) {
             final Map<?,?> nodeData = node.getData();
             final DependencyNode winner = (DependencyNode) nodeData.get(ConflictResolver.NODE_DATA_WINNER);
-            final String resolvedPurl = resolvedPUrls.get(modelConverter.generateVersionlessPackageUrl(node.getArtifact()));
-            if (!purl.equals(resolvedPurl)) {
-                if (!loggedReplacementPUrls.contains(purl)) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Replacing reference to " + purl + " with resolved package url " + resolvedPurl);
-                    }
-                    loggedReplacementPUrls.add(purl);
-                }
-                purl = resolvedPurl;
-            }
             if (winner != null) {
                 node = winner;
             }
         }
 
-        Dependency topDependency = new Dependency(purl);
-        final Dependency origDependency = dependencies.putIfAbsent(purl, topDependency);
-        if (origDependency != null) {
-            topDependency = origDependency;
+        String purl = modelConverter.generatePackageUrl(node.getArtifact());
+        if (!dependencies.containsKey(purl)) {
+            Dependency topDependency = new Dependency(purl);
+            dependencies.put(purl, topDependency);
+            final String nodeClassifierlessPUrl = modelConverter.generateClassifierlessPackageUrl(node.getArtifact());
+            if (!nodeClassifierlessPUrl.equals(parentClassifierlessPUrl)) {
+                for (final DependencyNode childrenNode : node.getChildren()) {
+                    buildDependencyGraphNode(dependencies, childrenNode, topDependency, nodeClassifierlessPUrl, loggedFilteredArtifacts);
+                }
+            }
         }
+
         if (parent != null) {
             parent.addDependency(new Dependency(purl));
         }
-
-        final String nodeClassifierlessPUrl = modelConverter.generateClassifierlessPackageUrl(node.getArtifact());
-        if (!nodeClassifierlessPUrl.equals(parentClassifierlessPUrl)) {
-            for (final DependencyNode childrenNode : node.getChildren()) {
-                buildDependencyGraphNode(dependencies, childrenNode, topDependency, nodeClassifierlessPUrl, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
-            }
-        }
-    }
-
-    /**
-     * Generate a map of versionless purls to their resolved versioned purl
-     * @return the map of versionless purls to resolved versioned purls
-     */
-    private Map<String, String> generateResolvedPUrls(final MavenProject mavenProject) {
-        final Map<String, String> resolvedPUrls = new HashMap<>();
-        final Artifact projectArtifact = mavenProject.getArtifact();
-        resolvedPUrls.put(modelConverter.generateVersionlessPackageUrl(projectArtifact), modelConverter.generatePackageUrl(projectArtifact));
-        for (Artifact artifact: mavenProject.getArtifacts()) {
-            resolvedPUrls.put(modelConverter.generateVersionlessPackageUrl(artifact), modelConverter.generatePackageUrl(artifact));
-        }
-        return resolvedPUrls;
     }
 
     /**

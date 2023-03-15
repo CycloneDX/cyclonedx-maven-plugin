@@ -18,16 +18,13 @@
  */
 package org.cyclonedx.maven;
 
-import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
-import org.apache.maven.artifact.resolver.filter.CumulativeScopeArtifactFilter;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -36,7 +33,7 @@ import java.util.Map;
  */
 public interface ProjectDependenciesConverter {
 
-    Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
+    BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
@@ -58,15 +55,23 @@ public interface ProjectDependenciesConverter {
             this.test = test;
             this.system = system;
         }
+    }
 
-        public ArtifactFilter getArtifactFilter() {
-            final Collection<String> scope = new HashSet<>();
-            if (compile) scope.add("compile");
-            if (provided) scope.add("provided");
-            if (runtime) scope.add("runtime");
-            if (system) scope.add("system");
-            if (test) scope.add("test");
-            return new CumulativeScopeArtifactFilter(scope);
+    public static class BomDependencies {
+        private final Map<String, Dependency> dependencies;
+        private final Map<String, Artifact> artifacts;
+
+        public BomDependencies(final Map<String, Dependency> dependencies, final Map<String, Artifact> artifacts) {
+            this.dependencies = dependencies;
+            this.artifacts = artifacts;
+        }
+
+        public final Map<String, Dependency> getDependencies() {
+            return dependencies;
+        }
+
+        public final Map<String, Artifact> getArtifacts() {
+            return artifacts;
         }
     }
 }

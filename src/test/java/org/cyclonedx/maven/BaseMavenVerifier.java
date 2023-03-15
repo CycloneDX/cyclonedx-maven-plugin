@@ -51,21 +51,32 @@ public class BaseMavenVerifier {
     }
 
     protected File cleanAndBuild(final String project, final String[] excludeTypes) throws Exception {
+        return cleanAndBuild(project, excludeTypes, null);
+    }
+
+    protected File cleanAndBuild(final String project, final String[] excludeTypes, final String[] profiles) throws Exception {
+        return mvnBuild(project, null, excludeTypes, null);
+    }
+
+    protected File mvnBuild(final String project, final String[] goals, final String[] excludeTypes, final String[] profiles) throws Exception {
         File projDir = resources.getBasedir(project);
 
-        final MavenExecution initExecution = verifier
+        MavenExecution execution = verifier
                 .forProject(projDir)
                 .withCliOption("-Dcurrent.version=" + getCurrentVersion()) // inject cyclonedx-maven-plugin version
                 .withCliOption("-X") // debug
                 .withCliOption("-B");
-        final MavenExecution execution;
         if ((excludeTypes != null) && (excludeTypes.length > 0)) {
-            execution = initExecution.withCliOption("-DexcludeTypes=" + String.join(",", excludeTypes));
-        } else {
-            execution = initExecution;
+            execution = execution.withCliOption("-DexcludeTypes=" + String.join(",", excludeTypes));
         }
-        execution.execute("clean", "package")
-            .assertErrorFreeLog();
+        if ((profiles != null) && (profiles.length > 0)) {
+            execution = execution.withCliOption("-P" + String.join(",", profiles));
+        }
+        if (goals != null && goals.length > 0) {
+            execution.execute(goals).assertErrorFreeLog();
+        } else {
+            execution.execute("clean", "package").assertErrorFreeLog();
+        }
         return projDir;
     }
 }

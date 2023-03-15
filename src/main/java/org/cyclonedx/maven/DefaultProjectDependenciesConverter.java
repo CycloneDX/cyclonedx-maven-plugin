@@ -87,7 +87,8 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             // Generate the tree, removing excluded and filtered nodes
             final Set<String> loggedReplacementPUrls = new HashSet<>();
             final Set<String> loggedFilteredArtifacts = new HashSet<>();
-            buildDependencyGraphNode(dependencies, root, null, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
+
+            buildDependencyGraphNode(dependencies, root, null, null, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
         } catch (DependencyCollectorBuilderException e) {
             // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
@@ -142,8 +143,9 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         return ((type == null) || excludeTypesSet.contains(type));
     }
 
-    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, DependencyNode node, final Dependency parent,
-            final Map<String, String> resolvedPUrls, final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
+    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, DependencyNode node,
+            final Dependency parent, final String parentClassifierlessPUrl, final Map<String, String> resolvedPUrls,
+            final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
         String purl = modelConverter.generatePackageUrl(node.getArtifact());
 
         if (isExcludedNode(node) || (parent != null && isFilteredNode(node, loggedFilteredArtifacts))) {
@@ -177,8 +179,12 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         if (parent != null) {
             parent.addDependency(new Dependency(purl));
         }
-        for (final DependencyNode childrenNode : node.getChildren()) {
-            buildDependencyGraphNode(dependencies, childrenNode, topDependency, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
+
+        final String nodeClassifierlessPUrl = modelConverter.generateClassifierlessPackageUrl(node.getArtifact());
+        if (!nodeClassifierlessPUrl.equals(parentClassifierlessPUrl)) {
+            for (final DependencyNode childrenNode : node.getChildren()) {
+                buildDependencyGraphNode(dependencies, childrenNode, topDependency, nodeClassifierlessPUrl, resolvedPUrls, loggedReplacementPUrls, loggedFilteredArtifacts);
+            }
         }
     }
 

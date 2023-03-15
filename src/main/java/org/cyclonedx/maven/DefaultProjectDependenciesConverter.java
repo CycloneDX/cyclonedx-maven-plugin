@@ -62,10 +62,10 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private RepositorySystem aetherRepositorySystem;
 
     private Set<String> excludeTypesSet;
-    private Scopes include;
+    private MavenDependencyScopes include;
 
     @Override
-    public Set<Dependency> extractBOMDependencies(MavenProject mavenProject, Scopes include, String[] excludeTypes) throws MojoExecutionException {
+    public Set<Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 

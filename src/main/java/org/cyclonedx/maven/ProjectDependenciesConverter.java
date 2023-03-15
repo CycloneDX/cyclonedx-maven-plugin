@@ -36,7 +36,7 @@ import java.util.Set;
  */
 public interface ProjectDependenciesConverter {
 
-    Set<Dependency> extractBOMDependencies(MavenProject mavenProject, Scopes include, String[] excludes) throws MojoExecutionException;
+    Set<Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
@@ -44,14 +44,14 @@ public interface ProjectDependenciesConverter {
      */
     void cleanupBomDependencies(Metadata metadata, Set<Component> components, Set<Dependency> dependencies);
 
-    public static class Scopes {
+    public static class MavenDependencyScopes {
         public final boolean compile;
         public final boolean provided;
         public final boolean runtime;
         public final boolean test;
         public final boolean system;
 
-        public Scopes(boolean compile, boolean provided, boolean runtime, boolean test, boolean system) {
+        public MavenDependencyScopes(boolean compile, boolean provided, boolean runtime, boolean test, boolean system) {
             this.compile = compile;
             this.provided = provided;
             this.runtime = runtime;

@@ -33,7 +33,7 @@ import java.util.Map;
  */
 public interface ProjectDependenciesConverter {
 
-    BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
+    BomDependencies extractBOMDependencies(MavenProject mavenProject, boolean generateConsumeTimeGraph, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the

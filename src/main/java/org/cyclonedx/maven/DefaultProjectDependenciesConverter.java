@@ -26,6 +26,7 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
+import org.apache.maven.shared.dependency.graph.DependencyCollectorRequest;
 import org.apache.maven.shared.dependency.graph.internal.ConflictData;
 import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollectorBuilder;
 import org.cyclonedx.model.Component;
@@ -34,6 +35,7 @@ import org.cyclonedx.model.Metadata;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.ArtifactProperties;
 import org.eclipse.aether.collection.CollectResult;
+import org.eclipse.aether.collection.DependencySelector;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 import org.slf4j.Logger;
@@ -67,7 +69,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private MavenDependencyScopes include;
 
     @Override
-    public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
+    public BomDependencies extractBOMDependencies(MavenProject mavenProject, boolean generateConsumeTimeGraph, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 
@@ -80,7 +82,13 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
 
-            final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
+            final DependencyCollectorRequest dependencyCollectorRequest = new DependencyCollectorRequest(buildingRequest, null);
+            if (generateConsumeTimeGraph) {
+                final DependencySelector dependencySelector = dependencyCollectorRequest.getDependencySelector();
+                dependencyCollectorRequest.dependencySelector(new TransitiveDependencySelector(dependencySelector));
+            }
+
+            final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(dependencyCollectorRequest);
             populateArtifactMap(mavenArtifacts, mavenDependencyArtifacts, mavenRoot, 0);
 
             final CollectResult collectResult = delegateRepositorySystem.getCollectResult();

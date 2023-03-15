@@ -167,6 +167,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
+    /**
+     * Generate the dependency graph as if the project was being consumed.  This will resolve dependencies while
+     * excluding dependencies with Optional, Test and Provided scopes.
+     *
+     * @since 2.7.9
+     */
+    @Parameter(property = "generateConsumeTimeGraph", defaultValue = "false", required = false)
+    private boolean generateConsumeTimeGraph;
+
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private RepositorySystem aetherRepositorySystem;
 
@@ -280,6 +289,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 if (includeSystemScope) scopes.add("system");
                 if (includeTestScope) scopes.add("test");
                 metadata.addProperty(newProperty("maven.scopes", String.join(",", scopes)));
+
+                metadata.addProperty(newProperty("graph.type", generateConsumeTimeGraph ? "Consume Time Graph" : "Build Time Graph"));
             }
 
             final Component rootComponent = metadata.getComponent();
@@ -378,7 +389,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     protected BomDependencies extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
-        return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
+        return projectDependenciesConverter.extractBOMDependencies(mavenProject, generateConsumeTimeGraph, include, excludeTypes);
     }
 
     /**

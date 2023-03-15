@@ -39,7 +39,7 @@ public class Issue311Test extends BaseMavenVerifier {
 
     @Test
     public void testLatestAndRelease() throws Exception {
-        final File projDir = mvnBuild("issue-311", new String[]{"clean", "install"}, null, null);
+        final File projDir = mvnBuild("issue-311", new String[]{"clean", "install"}, null, null, null);
 
         checkLatest(projDir);
         checkRelease(projDir);

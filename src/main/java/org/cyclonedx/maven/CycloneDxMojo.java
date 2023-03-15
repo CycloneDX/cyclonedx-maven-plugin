@@ -106,6 +106,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         projectIdentities.put(projectBomComponent.getPurl(), projectBomComponent.getBomRef());
 
         populateComponents(components, getProject().getArtifacts(), projectPUrlToIdentity, doProjectDependencyAnalysis(getProject()));
+
         dependencies.putAll(projectDependencies);
 
         return "makeBom";

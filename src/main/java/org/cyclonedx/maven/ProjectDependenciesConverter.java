@@ -44,7 +44,7 @@ public interface ProjectDependenciesConverter {
      * The map will be modified to reflect the distinct names, with references and the map keys
      * being updated.
      */
-    void normalizeDependencies(final CycloneDxSchema.Version schemaVersion, final Map<String, Dependency> dependencies, final Map<String, String> purlToIdentity) ;
+    void normalizeDependencies(CycloneDxSchema.Version schemaVersion, Map<String, Dependency> dependencies, Map<String, String> purlToIdentity) ;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the

@@ -77,6 +77,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
             projectIdentities.put(projectBomComponent.getPurl(), projectBomComponent.getBomRef());
 
             populateComponents(components, mavenProject.getArtifacts(), projectPUrlToIdentity, null);
+
             dependencies.putAll(projectDependencies);
         }
 

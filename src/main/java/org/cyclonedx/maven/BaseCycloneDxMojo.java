@@ -36,7 +36,6 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
-import org.cyclonedx.model.Component.Scope;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
@@ -263,23 +262,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (includeTestScope) scopes.add("test");
 
             final Metadata metadata = modelConverter.convert(project, analysis + " " + String.join("+", scopes), projectType, schemaVersion(), includeLicenseText);
+
             final Component rootComponent = metadata.getComponent();
             final String rootBomRef = projectIdentities.get(rootComponent.getPurl());
             if (rootBomRef != null) {
                 componentMap.remove(rootBomRef);
                 metadata.getComponent().setBomRef(rootBomRef);
             }
+
             projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
 
-            generateBom(analysis, metadata, componentMap, dependencyMap);
+            generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
         }
     }
 
-    private void generateBom(String analysis, Metadata metadata, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException {
+    private void generateBom(String analysis, Metadata metadata, List<Component> components, List<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
             final Bom bom = new Bom();
-            bom.setComponents(new ArrayList<>(components.values()));
+            bom.setComponents(components);
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
@@ -287,7 +288,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             if (schemaVersion().getVersion() >= 1.2) {
                 bom.setMetadata(metadata);
-                bom.setDependencies(new ArrayList<>(dependencies.values()));
+                bom.setDependencies(dependencies);
             }
 
             /*if (schemaVersion().getVersion() >= 1.3) {
@@ -395,7 +396,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final String purl = generatePackageUrl(artifact);
             final String identity = purlToIdentity.get(purl);
             if (identity != null) {
-                final Scope artifactScope = (dependencyAnalysis != null ? inferComponentScope(artifact, dependencyAnalysis) : null);
+                final Component.Scope artifactScope = (dependencyAnalysis != null ? inferComponentScope(artifact, dependencyAnalysis) : null);
                 final Component component = components.get(identity);
                 if (component == null) {
                     final Component newComponent = convert(artifact);
@@ -410,12 +411,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
-     * Infer BOM component scope based on Maven project dependency analysis.
+     * Infer BOM component scope (required/optional/excluded) based on Maven project dependency analysis.
      *
      * @param artifact Artifact from maven project
      * @param projectDependencyAnalysis Maven Project Dependency Analysis data
      *
-     * @return Component.Scope - Required: If the component is used (as detected by project dependency analysis). Optional: If it is unused
+     * @return Component.Scope - REQUIRED: If the component is used (as detected by project dependency analysis). OPTIONAL: If it is unused
      */
     protected Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
         if (projectDependencyAnalysis == null) {
@@ -440,22 +441,22 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return null;
     }
 
-    private Scope mergeScopes(final Scope existing, final Scope project) {
+    private Component.Scope mergeScopes(final Component.Scope existing, final Component.Scope project) {
         // If scope is null we don't know anything about the artifact, so we assume it's not optional.
         // This is likely a result of the dependency analysis part being unable to run.
-        final Scope merged;
+        final Component.Scope merged;
         if (existing == null) {
-            merged = (project == Scope.REQUIRED ? Scope.REQUIRED : null);
+            merged = (project == Component.Scope.REQUIRED ? Component.Scope.REQUIRED : null);
         } else {
             switch (existing) {
                 case REQUIRED:
-                    merged = Scope.REQUIRED;
+                    merged = Component.Scope.REQUIRED;
                     break;
                 case OPTIONAL:
-                    merged = (project == Scope.REQUIRED || project == null ? project : existing);
+                    merged = (project == Component.Scope.REQUIRED || project == null ? project : existing);
                     break;
                 case EXCLUDED:
-                    merged = (project != Scope.EXCLUDED ? project : Scope.EXCLUDED);
+                    merged = (project != Component.Scope.EXCLUDED ? project : Component.Scope.EXCLUDED);
                     break;
                 default:
                     merged = project;

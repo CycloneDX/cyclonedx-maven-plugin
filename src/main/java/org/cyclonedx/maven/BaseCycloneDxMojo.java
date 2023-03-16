@@ -167,6 +167,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "excludeTypes", required = false)
     private String[] excludeTypes;
 
+    /**
+     * Use the original mechanism for determining whether an artifact is OPTIONAL/REQUIRED, relying on bytecode analysis
+     * of the compiled classes instead of the maven declaration of optional.
+     *
+     * @since 2.7.9
+     */
+    @Parameter(property = "detectUnusedForOptionalScope", defaultValue = "false")
+    protected boolean detectUnusedForOptionalScope;
+
     @org.apache.maven.plugins.annotations.Component(hint = "default")
     private RepositorySystem aetherRepositorySystem;
 
@@ -280,6 +289,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 if (includeSystemScope) scopes.add("system");
                 if (includeTestScope) scopes.add("test");
                 metadata.addProperty(newProperty("maven.scopes", String.join(",", scopes)));
+
+                metadata.addProperty(newProperty("maven.optional", Boolean.toString(!detectUnusedForOptionalScope)));
             }
 
             final Component rootComponent = metadata.getComponent();
@@ -426,7 +437,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         for (Map.Entry<String, Artifact> entry: artifacts.entrySet()) {
             final String purl = entry.getKey();
             final Artifact artifact = entry.getValue();
-            final Component.Scope artifactScope = (dependencyAnalysis != null ? inferComponentScope(artifact, dependencyAnalysis) : null);
+            final Component.Scope artifactScope = getComponentScope(artifact, dependencyAnalysis);
             final Component component = components.get(purl);
             if (component == null) {
                 final Component newComponent = convert(artifact);
@@ -439,6 +450,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
+     * Get the BOM component scope (required/optional/excluded).  The scope can either be determined through bytecode
+     * analysis or through maven dependency resolution.
+     *
+     * @param artifact Artifact from maven project
+     * @param projectDependencyAnalysis Maven Project Dependency Analysis data
+     *
+     * @return Component.Scope - REQUIRED, OPTIONAL or null if it cannot be determined
+     *
+     * @see detectUnusedForOptionalScope
+     */
+    private Component.Scope getComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
+        if (detectUnusedForOptionalScope) {
+            return inferComponentScope(artifact, projectDependencyAnalysis);
+        } else {
+            return (artifact.isOptional() ? Component.Scope.OPTIONAL : Component.Scope.REQUIRED);
+        }
+    }
+
+    /**
      * Infer BOM component scope (required/optional/excluded) based on Maven project dependency analysis.
      *
      * @param artifact Artifact from maven project
@@ -446,7 +476,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @return Component.Scope - REQUIRED: If the component is used (as detected by project dependency analysis). OPTIONAL: If it is unused
      */
-    protected Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
+    private Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
         if (projectDependencyAnalysis == null) {
             return null;
         }

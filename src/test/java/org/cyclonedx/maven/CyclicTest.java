@@ -43,7 +43,7 @@ public class CyclicTest extends BaseMavenVerifier {
         cleanAndBuild("cyclic", null);
         File projDir = null;
         try {
-            projDir = mvnBuild("cyclic", new String[]{"package"}, null, new String[] {"profile"});
+            projDir = mvnBuild("cyclic", new String[]{"package"}, null, new String[] {"profile"}, null);
         } catch (final Exception ex) {
             fail("Failed to generate SBOM", ex);
         }

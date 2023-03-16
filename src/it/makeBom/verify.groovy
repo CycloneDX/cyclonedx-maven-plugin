@@ -6,6 +6,8 @@ assert bomFileJson.exists()
 
 assert bomFileXml.text.contains('<reference type="website"><url>https://github.com/CycloneDX/cyclonedx-maven-plugin</url></reference>')
 
+assert bomFileXml.text.contains('<property name="maven.optional">true</property>')
+
 // Reproducible Builds
 assert !bomFileJson.text.contains('"serialNumber"')
 assert !bomFileJson.text.contains('"timestamp"')

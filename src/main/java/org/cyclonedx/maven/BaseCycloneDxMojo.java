@@ -107,7 +107,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeBomSerialNumber;
 
     /**
-     * Should compile scoped artifacts be included in bom?
+     * Should compile scoped Maven dependencies be included in bom?
      *
      * @since 2.1.0
      */
@@ -115,7 +115,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeCompileScope;
 
     /**
-     * Should provided scoped artifacts be included in bom?
+     * Should provided scoped Maven dependencies be included in bom?
      *
      * @since 2.1.0
      */
@@ -123,7 +123,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeProvidedScope;
 
     /**
-     * Should runtime scoped artifacts be included in bom?
+     * Should runtime scoped Maven dependencies be included in bom?
      *
      * @since 2.1.0
      */
@@ -131,7 +131,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeRuntimeScope;
 
     /**
-     * Should test scoped artifacts be included in bom?
+     * Should test scoped Maven dependencies be included in bom?
      *
      * @since 2.1.0
      */
@@ -139,7 +139,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeTestScope;
 
     /**
-     * Should system scoped artifacts be included in bom?
+     * Should system scoped Maven dependencies be included in bom?
      *
      * @since 2.1.0
      */
@@ -334,7 +334,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Set<Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
-        ProjectDependenciesConverter.Scopes include = new ProjectDependenciesConverter.Scopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
+        ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
         return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
     }
 

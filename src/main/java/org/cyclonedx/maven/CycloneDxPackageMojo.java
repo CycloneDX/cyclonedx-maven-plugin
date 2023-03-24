@@ -55,13 +55,21 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
     }
 
     protected String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException {
-        getLog().info(MESSAGE_RESOLVING_DEPS);
+        if (verbose) {
+            getLog().info(MESSAGE_RESOLVING_DEPS);
+        } else {
+            getLog().debug(MESSAGE_RESOLVING_DEPS);
+        }
 
         for (final MavenProject mavenProject : reactorProjects) {
             if (!shouldInclude(mavenProject)) {
                 continue;
             }
-            getLog().info("Analyzing " + mavenProject.getArtifactId());
+            if (verbose) {
+                getLog().info("Analyzing " + mavenProject.getArtifactId());
+            } else {
+                getLog().debug("Analyzing " + mavenProject.getArtifactId());
+            }
 
             final BomDependencies bomDependencies = extractBOMDependencies(mavenProject);
             final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();

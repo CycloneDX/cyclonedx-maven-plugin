@@ -89,6 +89,9 @@
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
                 <version>@project.version@</version>
+                <configuration>
+                    <verbose>true</verbose>
+                </configuration>
                 <!-- intentionally use default configuration -->
                 <executions>
                     <execution>

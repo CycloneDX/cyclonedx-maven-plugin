@@ -206,7 +206,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.verbose", defaultValue = "false", required = false)
-    private boolean verbose = false;
+    protected boolean verbose = false;
 
     /**
      * Timestamp for reproducible output archive entries, either formatted as ISO 8601
@@ -361,7 +361,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     private void generateBom(String analysis, Metadata metadata, List<Component> components, List<Dependency> dependencies) throws MojoExecutionException {
         try {
-            getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
+            if (verbose) {
+                getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
+            } else {
+                getLog().debug(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
+            }
             final Bom bom = new Bom();
             bom.setComponents(components);
 
@@ -447,7 +451,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private void saveBomToFile(String bomString, String extension, Parser bomParser) throws IOException, MojoExecutionException {
         final File bomFile = new File(outputDirectory, outputName + "." + extension);
 
-        getLog().info(String.format(MESSAGE_WRITING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
+        if (verbose) {
+            getLog().info(String.format(MESSAGE_WRITING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
+        } else {
+            getLog().debug(String.format(MESSAGE_WRITING_BOM, extension.toUpperCase(), bomFile.getAbsolutePath()));
+        }
         FileUtils.write(bomFile, bomString, StandardCharsets.UTF_8, false);
 
         if (!bomParser.isValid(bomFile, schemaVersion())) {
@@ -455,7 +463,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
 
         if (!skipAttach) {
-            getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
+            if (verbose) {
+                getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
+            } else {
+                getLog().debug(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
+            }
             mavenProjectHelper.attachArtifact(project, extension, "cyclonedx", bomFile);
         }
     }

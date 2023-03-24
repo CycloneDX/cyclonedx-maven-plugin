@@ -118,7 +118,11 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     }
 
     protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
-        getLog().info(MESSAGE_RESOLVING_DEPS);
+        if (verbose) {
+            getLog().info(MESSAGE_RESOLVING_DEPS);
+        } else {
+            getLog().debug(MESSAGE_RESOLVING_DEPS);
+        }
 
         final BomDependencies bomDependencies = extractBOMDependencies(getProject());
         final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();

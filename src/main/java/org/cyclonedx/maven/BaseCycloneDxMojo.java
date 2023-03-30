@@ -95,7 +95,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @since 2.7.5
      */
-    @Parameter(defaultValue = "${project.build.directory}", required = false)
+    @Parameter(property = "outputDirectory", defaultValue = "${project.build.directory}", required = false)
     private File outputDirectory;
 
     /**

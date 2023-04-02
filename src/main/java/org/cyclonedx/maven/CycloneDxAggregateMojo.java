@@ -28,6 +28,7 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,7 +88,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
     @Parameter(property = "excludeTestProject", defaultValue = "false", required = false)
     protected Boolean excludeTestProject;
 
-    protected boolean shouldExclude(MavenProject mavenProject) {
+    protected boolean shouldExclude(@NotNull MavenProject mavenProject) {
         boolean shouldExclude = false;
         if (excludeArtifactId != null && excludeArtifactId.length > 0) {
             shouldExclude = Arrays.asList(excludeArtifactId).contains(mavenProject.getArtifactId());
@@ -98,7 +99,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         if (excludeTestProject && mavenProject.getArtifactId().contains("test")) {
             shouldExclude = true;
         }
-        return shouldExclude;
+        return excludeTestProject && mavenProject.getArtifactId().contains("test");
     }
 
     @Override

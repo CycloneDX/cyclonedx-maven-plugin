@@ -49,6 +49,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import org.apache.commons.io.input.BOMInputStream;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
@@ -61,7 +65,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     /**
      * The component type associated to the SBOM metadata. See
      * <a href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported
-     * values. 
+     * values.
      */
     @Parameter(property = "projectType", defaultValue = "library", required = false)
     private String projectType;
@@ -199,6 +203,21 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @org.apache.maven.plugins.annotations.Component
     private ProjectDependenciesConverter projectDependenciesConverter;
 
+    @Parameter(property = "enforceExcludeArtifactId", required = false)
+    protected String[] enforceExcludeArtifactId;
+
+    @Parameter(property = "enforceComponentsSameVersion", defaultValue = "true", required = false)
+    protected boolean enforceComponentsSameVersion = true;
+
+    @Parameter(property = "enforceLicensesBlackList", required = false)
+    protected String[] enforceLicensesBlackList;
+
+    @Parameter(property = "enforceLicensesWhiteList", required = false)
+    protected String[] enforceLicensesWhiteList;
+
+    @Parameter(property = "mergeBomFile", required = false)
+    protected File mergeBomFile;
+
     /**
      * Various messages sent to console.
      */
@@ -267,7 +286,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private void generateBom(String analysis, Metadata metadata, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
-            final Bom bom = new Bom();
+            Bom bom = new Bom();
             bom.setComponents(new ArrayList<>(components));
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
@@ -291,6 +310,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if ("all".equalsIgnoreCase(outputFormat)
                     || "xml".equalsIgnoreCase(outputFormat)
                     || "json".equalsIgnoreCase(outputFormat)) {
+                bom = postProcessingBom(bom);
                 saveBom(bom);
             } else {
                 getLog().error("Unsupported output format. Valid options are XML and JSON");
@@ -298,6 +318,43 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         } catch (GeneratorException | ParserConfigurationException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
+    }
+
+    @NotNull
+    protected Bom postProcessingBom(@NotNull Bom bom) throws MojoExecutionException {
+        if (mergeBomFile != null) {
+            Bom mergeBom;
+            try {
+                try {
+                    mergeBom = new JsonParser().parse(mergeBomFile);
+                } catch (Exception e) {
+                    mergeBom = new XmlParser().parse(mergeBomFile);
+                }
+            } catch (Exception e) {
+                throw new MojoExecutionException("parse failed", e);
+            }
+            {
+                LinkedHashSet<Component> components = new LinkedHashSet<>();
+                if (mergeBom.getComponents() != null) {
+                    components.addAll(mergeBom.getComponents());
+                }
+                if (bom.getComponents() != null) {
+                    components.addAll(bom.getComponents());
+                }
+                bom.setComponents(new ArrayList<>(components));
+            }
+            {
+                LinkedHashSet<Dependency> dependencies = new LinkedHashSet<>();
+                if (mergeBom.getDependencies() != null) {
+                    dependencies.addAll(mergeBom.getDependencies());
+                }
+                if (bom.getDependencies() != null) {
+                    dependencies.addAll(bom.getDependencies());
+                }
+                bom.setDependencies(new ArrayList<>(dependencies));
+            }
+        }
+        return bom;
     }
 
     private void saveBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,

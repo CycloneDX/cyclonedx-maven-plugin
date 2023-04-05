@@ -26,6 +26,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -45,8 +46,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -230,12 +233,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     /**
      * Analyze the current Maven project to extract the BOM components list and their dependencies.
      *
-     * @param components the components set to fill
-     * @param dependencies the dependencies set to fill
+     * @param topLevelComponents the PURLs for all top level components
+     * @param components the components map to fill
+     * @param dependencies the dependencies map to fill
      * @return the name of the analysis done to store as a BOM, or {@code null} to not save result.
      * @throws MojoExecutionException something weird happened...
      */
-    protected abstract String extractComponentsAndDependencies(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException;
+    protected abstract String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException;
 
     public void execute() throws MojoExecutionException {
         final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
@@ -245,10 +249,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
         logParameters();
 
-        final Set<Component> components = new LinkedHashSet<>();
-        final Set<Dependency> dependencies = new LinkedHashSet<>();
+        // top level components do not currently set their scope, we track these to prevent merging of scopes
+        final Set<String> topLevelComponents = new LinkedHashSet<>();
+        final Map<String, Component> componentMap = new LinkedHashMap<>();
+        final Map<String, Dependency> dependencyMap = new LinkedHashMap<>();
 
-        String analysis = extractComponentsAndDependencies(components, dependencies);
+        String analysis = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
         if (analysis != null) {
             List<String> scopes = new ArrayList<>();
             if (includeCompileScope) scopes.add("compile");
@@ -258,17 +264,21 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (includeTestScope) scopes.add("test");
 
             final Metadata metadata = modelConverter.convert(project, analysis + " " + String.join("+", scopes), projectType, schemaVersion(), includeLicenseText);
-            projectDependenciesConverter.cleanupBomDependencies(metadata, components, dependencies);
 
-            generateBom(analysis, metadata, components, dependencies);
+            final Component rootComponent = metadata.getComponent();
+            componentMap.remove(rootComponent.getPurl());
+
+            projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
+
+            generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
         }
     }
 
-    private void generateBom(String analysis, Metadata metadata, Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
+    private void generateBom(String analysis, Metadata metadata, List<Component> components, List<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
             final Bom bom = new Bom();
-            bom.setComponents(new ArrayList<>(components));
+            bom.setComponents(components);
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
@@ -276,7 +286,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             if (schemaVersion().getVersion() >= 1.2) {
                 bom.setMetadata(metadata);
-                bom.setDependencies(new ArrayList<>(dependencies));
+                bom.setDependencies(dependencies);
             }
 
             /*if (schemaVersion().getVersion() >= 1.3) {
@@ -333,7 +343,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected Set<Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
+    protected Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
         return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
     }
@@ -377,5 +387,62 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }
+    }
+
+    protected void populateComponents(final Set<String> topLevelComponents, final Map<String, Component> components, final Set<Artifact> artifacts, final ProjectDependencyAnalysis dependencyAnalysis) {
+        for (Artifact artifact: artifacts) {
+            final String purl = generatePackageUrl(artifact);
+            final Component.Scope artifactScope = (dependencyAnalysis != null ? inferComponentScope(artifact, dependencyAnalysis) : null);
+            final Component component = components.get(purl);
+            if (component == null) {
+                final Component newComponent = convert(artifact);
+                newComponent.setScope(artifactScope);
+                components.put(purl, newComponent);
+            } else if (!topLevelComponents.contains(purl)) {
+                component.setScope(mergeScopes(component.getScope(), artifactScope));
+            }
+        }
+    }
+
+    /**
+     * Infer BOM component scope (required/optional/excluded) based on Maven project dependency analysis.
+     *
+     * @param artifact Artifact from maven project
+     * @param projectDependencyAnalysis Maven Project Dependency Analysis data
+     *
+     * @return Component.Scope - REQUIRED: If the component is used (as detected by project dependency analysis). OPTIONAL: If it is unused
+     */
+    protected Component.Scope inferComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
+        if (projectDependencyAnalysis == null) {
+            return null;
+        }
+
+        Set<Artifact> usedDeclaredArtifacts = projectDependencyAnalysis.getUsedDeclaredArtifacts();
+        Set<Artifact> usedUndeclaredArtifacts = projectDependencyAnalysis.getUsedUndeclaredArtifacts();
+        Set<Artifact> unusedDeclaredArtifacts = projectDependencyAnalysis.getUnusedDeclaredArtifacts();
+        Set<Artifact> testArtifactsWithNonTestScope = projectDependencyAnalysis.getTestArtifactsWithNonTestScope();
+
+        // Is the artifact used?
+        if (usedDeclaredArtifacts.contains(artifact) || usedUndeclaredArtifacts.contains(artifact)) {
+            return Component.Scope.REQUIRED;
+        }
+
+        // Is the artifact unused or test?
+        if (unusedDeclaredArtifacts.contains(artifact) || testArtifactsWithNonTestScope.contains(artifact)) {
+            return Component.Scope.OPTIONAL;
+        }
+
+        return null;
+    }
+
+    // Merging of scopes follows the method previously implemented in the aggregate code.  This needs to be fixed in a future PR.
+    private Component.Scope mergeScopes(final Component.Scope existing, final Component.Scope project) {
+        if ((Component.Scope.REQUIRED == existing) || (Component.Scope.REQUIRED == project)) {
+            return Component.Scope.REQUIRED;
+        }
+        if (null == existing) {
+            return project;
+        }
+        return existing;
     }
 }

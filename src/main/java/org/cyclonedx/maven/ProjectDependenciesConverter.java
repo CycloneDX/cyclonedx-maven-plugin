@@ -28,7 +28,7 @@ import org.cyclonedx.model.Metadata;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Converts a Maven Project with its Maven dependencies resolution graph transformed into a SBOM dependencies list
@@ -36,13 +36,13 @@ import java.util.Set;
  */
 public interface ProjectDependenciesConverter {
 
-    Set<Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException;
+    Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
      * Maven dependency resolution graph but that are finally not kept in the effective dependencies list.
      */
-    void cleanupBomDependencies(Metadata metadata, Set<Component> components, Set<Dependency> dependencies);
+    void cleanupBomDependencies(Metadata metadata, Map<String, Component> components, Map<String, Dependency> dependencies);
 
     public static class MavenDependencyScopes {
         public final boolean compile;

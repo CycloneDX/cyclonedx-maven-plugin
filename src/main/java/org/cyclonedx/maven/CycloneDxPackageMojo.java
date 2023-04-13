@@ -18,7 +18,6 @@
  */
 package org.cyclonedx.maven;
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -29,8 +28,8 @@ import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -56,8 +55,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
         return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
-    protected String extractComponentsAndDependencies(Set<Component> components, Set<Dependency> dependencies) throws MojoExecutionException {
-        final Set<String> componentRefs = new LinkedHashSet<>();
+    protected String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
         for (final MavenProject mavenProject : reactorProjects) {
@@ -65,15 +63,16 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
                 continue;
             }
             getLog().info("Analyzing " + mavenProject.getArtifactId());
-            for (final Artifact artifact : mavenProject.getArtifacts()) {
-                final Component component = convert(artifact);
-                // ensure that only one component with the same bom-ref exists in the BOM
-                if (componentRefs.add(component.getBomRef())) {
-                    components.add(component);
-                }
-            }
 
-            dependencies.addAll(extractBOMDependencies(mavenProject));
+            final Map<String, Dependency> projectDependencies = extractBOMDependencies(mavenProject);
+
+            final Component projectBomComponent = convert(mavenProject.getArtifact());
+            components.put(projectBomComponent.getPurl(), projectBomComponent);
+            topLevelComponents.add(projectBomComponent.getPurl());
+
+            populateComponents(topLevelComponents, components, mavenProject.getArtifacts(), null);
+
+            projectDependencies.forEach(dependencies::putIfAbsent);
         }
 
         return "makePackageBom";

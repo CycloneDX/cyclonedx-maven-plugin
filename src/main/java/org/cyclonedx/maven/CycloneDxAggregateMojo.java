@@ -18,21 +18,16 @@
  */
 package org.cyclonedx.maven;
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,11 +101,12 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         getLog().info("outputReactorProjects  : " + outputReactorProjects);
     }
 
-    protected String extractComponentsAndDependencies(final Set<Component> components, final Set<Dependency> dependencies) throws MojoExecutionException {
+    @Override
+    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         if (! getProject().isExecutionRoot()) {
             // non-root project: let parent class create a module-only BOM?
             if (outputReactorProjects) {
-                return super.extractComponentsAndDependencies(components, dependencies);
+                return super.extractComponentsAndDependencies(topLevelComponents, components, dependencies);
             }
             getLog().info("Skipping CycloneDX on non-execution root");
             return null;
@@ -118,15 +114,6 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
 
         // root project: analyze and aggregate all the modules
         getLog().info((reactorProjects.size() <= 1) ? MESSAGE_RESOLVING_DEPS : MESSAGE_RESOLVING_AGGREGATED_DEPS);
-        final Set<String> componentRefs = new LinkedHashSet<>();
-
-        // Perform used/unused dependencies analysis for all projects upfront
-        final List<ProjectDependencyAnalysis> projectsDependencyAnalysis = prepareMavenDependencyAnalysis();
-
-        // Add reference to BOM metadata component.
-        // Without this, direct dependencies of the Maven project cannot be determined.
-        final Component bomComponent = convert(getProject().getArtifact());
-        componentRefs.add(bomComponent.getBomRef());
 
         for (final MavenProject mavenProject : reactorProjects) {
             if (shouldExclude(mavenProject)) {
@@ -134,29 +121,15 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
                 continue;
             }
 
-            // Add reference to BOM metadata component.
-            // Without this, direct dependencies of the Maven project cannot be determined.
+            final Map<String, Dependency> projectDependencies = extractBOMDependencies(mavenProject);
+
             final Component projectBomComponent = convert(mavenProject.getArtifact());
-            if (! mavenProject.isExecutionRoot()) {
-                // DO NOT include root project as it's already been included as a bom metadata component
-                // Also, ensure that only one project component with the same bom-ref exists in the BOM
-                if (!componentRefs.contains(projectBomComponent.getBomRef())) {
-                    components.add(projectBomComponent);
-                }
-            }
-            componentRefs.add(projectBomComponent.getBomRef());
+            components.put(projectBomComponent.getPurl(), projectBomComponent);
+            topLevelComponents.add(projectBomComponent.getPurl());
 
-            for (final Artifact artifact : mavenProject.getArtifacts()) {
-                final Component component = convert(artifact);
+            populateComponents(topLevelComponents, components, mavenProject.getArtifacts(), doProjectDependencyAnalysis(mavenProject));
 
-                // ensure that only one component with the same bom-ref exists in the BOM
-                if (componentRefs.add(component.getBomRef())) {
-                    component.setScope(inferComponentScope(artifact, projectsDependencyAnalysis));
-                    components.add(component);
-                }
-            }
-
-            dependencies.addAll(extractBOMDependencies(mavenProject));
+            projectDependencies.forEach(dependencies::putIfAbsent);
         }
 
         addMavenProjectsAsParentDependencies(reactorProjects, dependencies);
@@ -172,51 +145,16 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
      * @param reactorProjects the Maven projects from the reactor
      * @param dependencies all BOM dependencies found in reactor
      */
-    private void addMavenProjectsAsParentDependencies(List<MavenProject> reactorProjects, Set<Dependency> dependencies) {
-        Map<String, Dependency> dependenciesByRef = new HashMap<>();
-        dependencies.forEach(d -> dependenciesByRef.put(d.getRef(), d));
-
+    private void addMavenProjectsAsParentDependencies(List<MavenProject> reactorProjects, Map<String, Dependency> dependencies) {
         for (final MavenProject project: reactorProjects) {
             if (project.hasParent()) {
                 final String parentRef = generatePackageUrl(project.getParent().getArtifact());
-                Dependency parentDependency = dependenciesByRef.get(parentRef);
+                Dependency parentDependency = dependencies.get(parentRef);
                 if (parentDependency != null) {
-                    final Dependency child = new Dependency(generatePackageUrl(project.getArtifact()));
-                    parentDependency.addDependency(child);
+                    final String projectRef = generatePackageUrl(project.getArtifact());
+                    parentDependency.addDependency(new Dependency(projectRef));
                 }
             }
         }
-    }
-
-    private List<ProjectDependencyAnalysis> prepareMavenDependencyAnalysis() throws MojoExecutionException {
-        final List<ProjectDependencyAnalysis> dependencyAnalysisMap = new ArrayList<>();
-        for (final MavenProject mavenProject : reactorProjects) {
-            if (shouldExclude(mavenProject)) {
-                continue;
-            }
-            ProjectDependencyAnalysis dependencyAnalysis = doProjectDependencyAnalysis(mavenProject);
-            if (dependencyAnalysis != null) {
-                dependencyAnalysisMap.add(dependencyAnalysis);
-            }
-        }
-        return dependencyAnalysisMap;
-    }
-
-    private Component.Scope inferComponentScope(Artifact artifact, List<ProjectDependencyAnalysis> projectsDependencyAnalysis) {
-        Component.Scope componentScope = null;
-        for (ProjectDependencyAnalysis dependencyAnalysis : projectsDependencyAnalysis) {
-            Component.Scope currentProjectScope = inferComponentScope(artifact, dependencyAnalysis);
-
-            // Set scope to required if the component is used in any project
-            if (Component.Scope.REQUIRED.equals(currentProjectScope)) {
-                return Component.Scope.REQUIRED;
-            }
-
-            if (componentScope == null && currentProjectScope != null) {
-                // Set optional or excluded scope
-                componentScope = currentProjectScope;
-            }
-        }
-        return componentScope;
     }
 }

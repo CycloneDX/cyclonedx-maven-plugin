@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +66,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private MavenDependencyScopes include;
 
     @Override
-    public Set<Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
+    public Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 
@@ -73,7 +74,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
 
         final Map<String, String> resolvedPUrls = generateResolvedPUrls(mavenProject);
 
-        final Map<Dependency, Dependency> dependencies = new LinkedHashMap<>();
+        final Map<String, Dependency> dependencies = new LinkedHashMap<>();
         try {
             final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
@@ -94,7 +95,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
             logger.warn("An error occurred building dependency graph: " + e.getMessage());
         }
-        return dependencies.keySet();
+        return dependencies;
     }
 
     private boolean isFilteredNode(final DependencyNode node, final Set<String> loggedFilteredArtifacts) {
@@ -143,7 +144,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         return ((type == null) || excludeTypesSet.contains(type));
     }
 
-    private void buildDependencyGraphNode(final Map<Dependency, Dependency> dependencies, DependencyNode node,
+    private void buildDependencyGraphNode(final Map<String, Dependency> dependencies, DependencyNode node,
             final Dependency parent, final String parentClassifierlessPUrl, final Map<String, String> resolvedPUrls,
             final Set<String> loggedReplacementPUrls, final Set<String> loggedFilteredArtifacts) {
         String purl = modelConverter.generatePackageUrl(node.getArtifact());
@@ -172,7 +173,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         }
 
         Dependency topDependency = new Dependency(purl);
-        final Dependency origDependency = dependencies.putIfAbsent(topDependency, topDependency);
+        final Dependency origDependency = dependencies.putIfAbsent(purl, topDependency);
         if (origDependency != null) {
             topDependency = origDependency;
         }
@@ -214,40 +215,36 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     }
 
     @Override
-    public void cleanupBomDependencies(Metadata metadata, Set<Component> components, Set<Dependency> dependencies) {
-        // map(component ref -> component)
-        final Map<String, Component> componentRefs = new HashMap<>();
-        components.forEach(c -> componentRefs.put(c.getBomRef(), c));
-
+    public void cleanupBomDependencies(Metadata metadata, Map<String, Component> components, Map<String, Dependency> dependencies) {
         // set(dependencies refs) and set(dependencies of dependencies)
-        final Set<String> dependencyRefs = new HashSet<>();
         final Set<String> dependsOns = new HashSet<>();
-        dependencies.forEach(d -> {
-            dependencyRefs.add(d.getRef());
+        dependencies.values().forEach(d -> {
             if (d.getDependencies() != null) {
                 d.getDependencies().forEach(on -> dependsOns.add(on.getRef()));
             }
         });
 
         // Check all BOM components have an associated BOM dependency
-        for (Map.Entry<String, Component> entry: componentRefs.entrySet()) {
-            if (!dependencyRefs.contains(entry.getKey())) {
+
+        for (Iterator<Map.Entry<String, Component>> it = components.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<String, Component> entry = it.next();
+            if (!dependencies.containsKey(entry.getKey())) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Component reference not listed in dependencies, pruning from bom components: " + entry.getKey());
                 }
-                components.remove(entry.getValue());
+                it.remove();
             } else if (!dependsOns.contains(entry.getKey())) {
                 logger.warn("BOM dependency listed but is not depended upon: " + entry.getKey());
             }
         }
 
-        // add BOM main component
+        // include BOM main component
         Component main = metadata.getComponent();
-        componentRefs.put(main.getBomRef(), main);
+        final String mainBomRef = main.getBomRef();
 
         // Check all BOM dependencies have a BOM component
-        for (String dependencyRef: dependencyRefs) {
-            if (!componentRefs.containsKey(dependencyRef)) {
+        for (String dependencyRef: dependencies.keySet()) {
+            if (!mainBomRef.equals(dependencyRef) && !components.containsKey(dependencyRef)) {
                 logger.warn("Dependency missing component entry: " + dependencyRef);
             }
         }

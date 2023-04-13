@@ -148,7 +148,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
     private void addMavenProjectsAsParentDependencies(List<MavenProject> reactorProjects, Map<String, Dependency> dependencies) {
         for (final MavenProject project: reactorProjects) {
             if (project.hasParent()) {
-                final String parentRef = generatePackageUrl(project.getParentArtifact());
+                final String parentRef = generatePackageUrl(project.getParent().getArtifact());
                 Dependency parentDependency = dependencies.get(parentRef);
                 if (parentDependency != null) {
                     final String projectRef = generatePackageUrl(project.getArtifact());

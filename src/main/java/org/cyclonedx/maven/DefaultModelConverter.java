@@ -81,10 +81,12 @@ public class DefaultModelConverter implements ModelConverter {
     public DefaultModelConverter() {
     }
 
+    @Override
     public String generatePackageUrl(final Artifact artifact) {
         return generatePackageUrl(artifact, true);
     }
 
+    @Override
     public String generateVersionlessPackageUrl(final Artifact artifact) {
         return generatePackageUrl(artifact, false);
     }
@@ -104,14 +106,17 @@ public class DefaultModelConverter implements ModelConverter {
         return generatePackageUrl(artifact.getGroupId(), artifact.getArtifactId(), version, qualifiers, null);
     }
 
+    @Override
     public String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
         return generatePackageUrl(artifact, true, true);
     }
 
+    @Override
     public String generateVersionlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
         return generatePackageUrl(artifact, false, true);
     }
 
+    @Override
     public String generateClassifierlessPackageUrl(final org.eclipse.aether.artifact.Artifact artifact) {
         return generatePackageUrl(artifact, true, false);
     }
@@ -147,6 +152,7 @@ public class DefaultModelConverter implements ModelConverter {
         return null;
     }
 
+    @Override
     public Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
@@ -221,48 +227,30 @@ public class DefaultModelConverter implements ModelConverter {
             }
         }
         if (CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
-            if (project.getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.WEBSITE)) {
-                    addExternalReference(ExternalReference.Type.WEBSITE, project.getUrl(), component);
-                }
+            addExternalReference(ExternalReference.Type.WEBSITE, project.getUrl(), component);
+            if (project.getCiManagement() != null) {
+                addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
             }
-            if (project.getCiManagement() != null && project.getCiManagement().getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.BUILD_SYSTEM)) {
-                    addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
-                }
-            }
-            if (project.getDistributionManagement() != null && project.getDistributionManagement().getDownloadUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
-                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
-                }
-            }
-            if (project.getDistributionManagement() != null && project.getDistributionManagement().getRepository() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.DISTRIBUTION)) {
+            if (project.getDistributionManagement() != null) {
+                addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
+                if (project.getDistributionManagement().getRepository() != null) {
                     addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
                 }
             }
-            if (project.getIssueManagement() != null && project.getIssueManagement().getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.ISSUE_TRACKER)) {
-                    addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
-                }
+            if (project.getIssueManagement() != null) {
+                addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
             }
             if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
                 for (MailingList list : project.getMailingLists()) {
-                    if (list.getArchive() != null) {
-                        if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
-                            addExternalReference(ExternalReference.Type.MAILING_LIST, list.getArchive(), component);
-                        }
-                    } else if (list.getSubscribe() != null) {
-                        if (!doesComponentHaveExternalReference(component, ExternalReference.Type.MAILING_LIST)) {
-                            addExternalReference(ExternalReference.Type.MAILING_LIST, list.getSubscribe(), component);
-                        }
+                    String url = list.getArchive();
+                    if (url == null) {
+                        url = list.getSubscribe();
                     }
+                    addExternalReference(ExternalReference.Type.MAILING_LIST, url, component);
                 }
             }
-            if (project.getScm() != null && project.getScm().getUrl() != null) {
-                if (!doesComponentHaveExternalReference(component, ExternalReference.Type.VCS)) {
-                    addExternalReference(ExternalReference.Type.VCS, project.getScm().getUrl(), component);
-                }
+            if (project.getScm() != null) {
+                addExternalReference(ExternalReference.Type.VCS, project.getScm().getUrl(), component);
             }
         }
     }
@@ -281,6 +269,9 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private void addExternalReference(final ExternalReference.Type referenceType, final String url, final Component component) {
+        if (url == null || doesComponentHaveExternalReference(component, referenceType)) {
+            return;
+        }
         try {
             final URI uri = new URI(url.trim());
             final ExternalReference ref = new ExternalReference();
@@ -292,10 +283,10 @@ public class DefaultModelConverter implements ModelConverter {
         }
     }
 
-    private boolean doesComponentHaveExternalReference(final Component component, final ExternalReference.Type type) {
+    private boolean doesComponentHaveExternalReference(final Component component, final ExternalReference.Type referenceType) {
         if (component.getExternalReferences() != null && !component.getExternalReferences().isEmpty()) {
             for (final ExternalReference ref : component.getExternalReferences()) {
-                if (type == ref.getType()) {
+                if (referenceType == ref.getType()) {
                     return true;
                 }
             }

@@ -5,9 +5,13 @@ void assertBomFiles(String path, boolean aggregate) {
     assert bomFileXml.exists()
     assert bomFileJson.exists()
 
-    String analysis = (aggregate ? "makeAggregateBom" : "makeBom") + ' compile+provided+runtime+system'
-    assert bomFileXml.text.contains('<name>CycloneDX Maven plugin ' + analysis + '</name>')
-    assert bomFileJson.text.contains('"name" : "CycloneDX Maven plugin ' + analysis + '"')
+    String analysis = aggregate ? "makeAggregateBom" : "makeBom"
+    assert bomFileXml.text.contains('<property name="maven.goal">' + analysis + '</property>')
+    assert bomFileXml.text.contains('<property name="maven.scopes">compile,provided,runtime,system</property>')
+    assert bomFileJson.text.contains('"name" : "maven.goal",')
+    assert bomFileJson.text.contains('"value" : "' + analysis + '"')
+    assert bomFileJson.text.contains('"name" : "maven.scopes",')
+    assert bomFileJson.text.contains('"value" : "compile,provided,runtime,system"')
 }
 
 assertBomFiles("target/bom", true) // aggregate

@@ -349,11 +349,12 @@ public class DefaultModelConverter implements ModelConverter {
         return false;
     }
 
-    public Metadata convert(final MavenProject project, String analysis, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    @Override
+    public Metadata convert(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
         final Tool tool = new Tool();
         final Properties properties = readPluginProperties();
         tool.setVendor(properties.getProperty("vendor"));
-        tool.setName(properties.getProperty("name") + ' ' + analysis);
+        tool.setName(properties.getProperty("name"));
         tool.setVersion(properties.getProperty("version"));
         // Attempt to add hash values from the current mojo
         final Artifact self = new DefaultArtifact(properties.getProperty("groupId"), properties.getProperty("artifactId"),

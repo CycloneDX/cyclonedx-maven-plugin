@@ -36,6 +36,7 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
+import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
@@ -256,14 +257,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         String analysis = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
         if (analysis != null) {
-            List<String> scopes = new ArrayList<>();
-            if (includeCompileScope) scopes.add("compile");
-            if (includeProvidedScope) scopes.add("provided");
-            if (includeRuntimeScope) scopes.add("runtime");
-            if (includeSystemScope) scopes.add("system");
-            if (includeTestScope) scopes.add("test");
+            final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText);
 
-            final Metadata metadata = modelConverter.convert(project, analysis + " " + String.join("+", scopes), projectType, schemaVersion(), includeLicenseText);
+            if (schemaVersion().getVersion() >= 1.3) {
+                metadata.addProperty(newProperty("maven.goal", analysis));
+
+                List<String> scopes = new ArrayList<>();
+                if (includeCompileScope) scopes.add("compile");
+                if (includeProvidedScope) scopes.add("provided");
+                if (includeRuntimeScope) scopes.add("runtime");
+                if (includeSystemScope) scopes.add("system");
+                if (includeTestScope) scopes.add("test");
+                metadata.addProperty(newProperty("maven.scopes", String.join(",", scopes)));
+            }
 
             final Component rootComponent = metadata.getComponent();
             componentMap.remove(rootComponent.getPurl());
@@ -272,6 +278,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
         }
+    }
+
+    private Property newProperty(String name, String value) {
+        Property property = new Property();
+        property.setName(name);
+        property.setValue(value);
+        return property;
     }
 
     private void generateBom(String analysis, Metadata metadata, List<Component> components, List<Dependency> dependencies) throws MojoExecutionException {

@@ -12,6 +12,8 @@ import org.eclipse.aether.collection.DependencyCollectionException;
 import org.eclipse.aether.deployment.DeployRequest;
 import org.eclipse.aether.deployment.DeployResult;
 import org.eclipse.aether.deployment.DeploymentException;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.graph.DependencyVisitor;
 import org.eclipse.aether.installation.InstallRequest;
 import org.eclipse.aether.installation.InstallResult;
 import org.eclipse.aether.installation.InstallationException;
@@ -35,6 +37,7 @@ import org.eclipse.aether.resolution.VersionRangeResult;
 import org.eclipse.aether.resolution.VersionRequest;
 import org.eclipse.aether.resolution.VersionResolutionException;
 import org.eclipse.aether.resolution.VersionResult;
+import org.eclipse.aether.util.graph.visitor.TreeDependencyVisitor;
 
 /**
  * Maven Resolver (Aether) repository system that delegates to provided system, but keep tracks of
@@ -58,6 +61,27 @@ class DelegatingRepositorySystem implements RepositorySystem {
     public CollectResult collectDependencies(final RepositorySystemSession session, final CollectRequest request)
             throws DependencyCollectionException {
         collectResult = delegate.collectDependencies(session, request);
+        final DependencyNode root = collectResult.getRoot();
+        root.accept(new TreeDependencyVisitor( new DependencyVisitor()
+        {
+            @Override
+            public boolean visitEnter(final DependencyNode node)
+            {
+                if (root != node)
+                try {
+                    final ArtifactResult resolveArtifact = resolveArtifact(session, new ArtifactRequest(node));
+                    node.setArtifact(resolveArtifact.getArtifact());
+                } catch (ArtifactResolutionException e) {}
+                return true;
+            }
+
+            @Override
+            public boolean visitLeave(final DependencyNode dependencyNode)
+            {
+                return true;
+            }
+        } ) );
+
         return collectResult;
     }
 

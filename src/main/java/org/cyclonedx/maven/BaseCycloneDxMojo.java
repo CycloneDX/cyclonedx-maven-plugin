@@ -32,6 +32,7 @@ import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.generators.xml.BomXmlGenerator;
+import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
@@ -356,7 +357,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected Map<String, Dependency> extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
+    protected BomDependencies extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
         return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
     }
@@ -402,9 +403,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected void populateComponents(final Set<String> topLevelComponents, final Map<String, Component> components, final Set<Artifact> artifacts, final ProjectDependencyAnalysis dependencyAnalysis) {
-        for (Artifact artifact: artifacts) {
-            final String purl = generatePackageUrl(artifact);
+    protected void populateComponents(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Artifact> artifacts, final ProjectDependencyAnalysis dependencyAnalysis) {
+        for (Map.Entry<String, Artifact> entry: artifacts.entrySet()) {
+            final String purl = entry.getKey();
+            final Artifact artifact = entry.getValue();
             final Component.Scope artifactScope = (dependencyAnalysis != null ? inferComponentScope(artifact, dependencyAnalysis) : null);
             final Component component = components.get(purl);
             if (component == null) {

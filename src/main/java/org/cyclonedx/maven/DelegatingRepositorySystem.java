@@ -62,16 +62,16 @@ class DelegatingRepositorySystem implements RepositorySystem {
             throws DependencyCollectionException {
         collectResult = delegate.collectDependencies(session, request);
         final DependencyNode root = collectResult.getRoot();
-        root.accept(new TreeDependencyVisitor( new DependencyVisitor()
-        {
+        root.accept(new TreeDependencyVisitor(new DependencyVisitor() {
             @Override
             public boolean visitEnter(final DependencyNode node)
             {
-                if (root != node)
-                try {
-                    final ArtifactResult resolveArtifact = resolveArtifact(session, new ArtifactRequest(node));
-                    node.setArtifact(resolveArtifact.getArtifact());
-                } catch (ArtifactResolutionException e) {}
+                if (root != node) {
+                    try {
+                        final ArtifactResult resolveArtifact = resolveArtifact(session, new ArtifactRequest(node));
+                        node.setArtifact(resolveArtifact.getArtifact());
+                    } catch (ArtifactResolutionException e) {} // ignored
+                }
                 return true;
             }
 
@@ -80,7 +80,7 @@ class DelegatingRepositorySystem implements RepositorySystem {
             {
                 return true;
             }
-        } ) );
+        }));
 
         return collectResult;
     }

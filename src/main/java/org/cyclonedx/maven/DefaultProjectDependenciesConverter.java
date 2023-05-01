@@ -26,6 +26,7 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
+import org.apache.maven.shared.dependency.graph.internal.ConflictData;
 import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollectorBuilder;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
@@ -38,6 +39,7 @@ import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -73,12 +75,13 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
 
         final Map<String, Dependency> dependencies = new LinkedHashMap<>();
         final Map<String, Artifact> mavenArtifacts = new LinkedHashMap<>();
+        final Map<String, Artifact> mavenDependencyArtifacts = new LinkedHashMap<>();
         try {
             final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
 
             final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
-            populateArtifactMap(mavenArtifacts, mavenRoot, false);
+            populateArtifactMap(mavenArtifacts, mavenDependencyArtifacts, mavenRoot, 0);
 
             final CollectResult collectResult = delegateRepositorySystem.getCollectResult();
             if (collectResult == null) {
@@ -95,16 +98,45 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
             logger.warn("An error occurred building dependency graph: " + e.getMessage());
         }
-        return new BomDependencies(dependencies, mavenArtifacts);
+        return new BomDependencies(dependencies, mavenArtifacts, mavenDependencyArtifacts);
     }
 
-    private void populateArtifactMap(final Map<String, Artifact> artifactMap, final org.apache.maven.shared.dependency.graph.DependencyNode node, final boolean resolve) {
+    private void populateArtifactMap(final Map<String, Artifact> artifactMap, final Map<String, Artifact> dependencyArtifactMap, final org.apache.maven.shared.dependency.graph.DependencyNode node, final int level) {
+        final ConflictData conflictData = getConflictData(node);
+        if ((conflictData != null) && (conflictData.getWinnerVersion() != null)) {
+            return;
+        }
+
         final Artifact artifact = node.getArtifact();
         final String purl = modelConverter.generatePackageUrl(artifact);
-        artifactMap.putIfAbsent(purl, artifact);
+        if (level > 0) {
+            artifactMap.putIfAbsent(purl, artifact);
+        }
+        if (level == 1) {
+            dependencyArtifactMap.putIfAbsent(purl, artifact);
+        }
 
+        final int childLevel = level + 1;
         for (org.apache.maven.shared.dependency.graph.DependencyNode child: node.getChildren()) {
-            populateArtifactMap(artifactMap, child, true);
+            populateArtifactMap(artifactMap, dependencyArtifactMap, child, childLevel);
+        }
+    }
+
+    private ConflictData getConflictData(final org.apache.maven.shared.dependency.graph.DependencyNode node) {
+        if (!node.getChildren().isEmpty()) {
+            return null;
+        }
+        final Field field ;
+        try {
+            field = node.getClass().getDeclaredField("data");
+        } catch (final NoSuchFieldException nsfe) {
+            return null;
+        }
+        field.setAccessible(true);
+        try {
+            return (ConflictData)field.get(node);
+        } catch (final IllegalAccessException iae) {
+            return null;
         }
     }
 

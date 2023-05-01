@@ -43,9 +43,7 @@ import java.util.Set;
         defaultPhase = LifecyclePhase.PACKAGE,
         threadSafe = true,
         aggregator = true,
-        requiresOnline = true,
-        requiresDependencyCollection = ResolutionScope.TEST,
-        requiresDependencyResolution = ResolutionScope.TEST
+        requiresOnline = true
 )
 public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
     @Parameter(property = "reactorProjects", readonly = true, required = true)

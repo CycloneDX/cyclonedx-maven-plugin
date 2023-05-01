@@ -43,9 +43,7 @@ import java.util.Set;
         defaultPhase = LifecyclePhase.PACKAGE,
         threadSafe = true,
         aggregator = true,
-        requiresOnline = true,
-        requiresDependencyCollection = ResolutionScope.TEST,
-        requiresDependencyResolution = ResolutionScope.TEST
+        requiresOnline = true
 )
 public class CycloneDxAggregateMojo extends CycloneDxMojo {
     @Parameter(property = "reactorProjects", readonly = true, required = true)
@@ -129,7 +127,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             components.put(projectBomComponent.getPurl(), projectBomComponent);
             topLevelComponents.add(projectBomComponent.getPurl());
 
-            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject));
+            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

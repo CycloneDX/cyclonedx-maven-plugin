@@ -60,14 +60,20 @@ public interface ProjectDependenciesConverter {
     public static class BomDependencies {
         private final Map<String, Dependency> dependencies;
         private final Map<String, Artifact> artifacts;
+        private final Map<String, Artifact> dependencyArtifacts;
 
-        public BomDependencies(final Map<String, Dependency> dependencies, final Map<String, Artifact> artifacts) {
+        public BomDependencies(final Map<String, Dependency> dependencies, final Map<String, Artifact> artifacts, final Map<String, Artifact> dependencyArtifacts) {
             this.dependencies = dependencies;
             this.artifacts = artifacts;
+            this.dependencyArtifacts = dependencyArtifacts;
         }
 
         public final Map<String, Dependency> getDependencies() {
             return dependencies;
+        }
+
+        public final Map<String, Artifact> getDependencyArtifacts() {
+            return dependencyArtifacts;
         }
 
         public final Map<String, Artifact> getArtifacts() {

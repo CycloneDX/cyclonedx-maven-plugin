@@ -6,6 +6,10 @@ assert bomFileJson.exists()
 
 assert bomFileXml.text.contains('<reference type="website"><url>https://github.com/CycloneDX/cyclonedx-maven-plugin</url></reference>')
 
+// Reproducible Builds
+assert !bomFileJson.text.contains('"serialNumber"')
+assert !bomFileJson.text.contains('"timestamp"')
+
 File bomAggregateFileXml = new File(basedir, "target/bom-makeAggregateBom.xml")
 File bomAggregateFileJson = new File(basedir, "target/bom-makeAggregateBom.json")
 

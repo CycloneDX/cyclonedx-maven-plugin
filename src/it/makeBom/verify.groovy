@@ -9,6 +9,8 @@ assert bomFileXml.text.contains('<reference type="website"><url>https://github.c
 // Reproducible Builds
 assert !bomFileJson.text.contains('"serialNumber"')
 assert !bomFileJson.text.contains('"timestamp"')
+assert bomFileJson.text.contains('"name" : "maven.reproducible",')
+assert bomFileJson.text.contains('"value" : "enabled"')
 
 File bomAggregateFileXml = new File(basedir, "target/bom-makeAggregateBom.xml")
 File bomAggregateFileJson = new File(basedir, "target/bom-makeAggregateBom.json")

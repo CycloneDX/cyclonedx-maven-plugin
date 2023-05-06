@@ -18,6 +18,7 @@
  */
 package org.cyclonedx.maven;
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -33,6 +34,7 @@ import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,9 +45,7 @@ import java.util.Set;
         name = "makeBom",
         defaultPhase = LifecyclePhase.PACKAGE,
         threadSafe = true,
-        requiresOnline = true,
-        requiresDependencyCollection = ResolutionScope.TEST,
-        requiresDependencyResolution = ResolutionScope.TEST
+        requiresOnline = true
 )
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
@@ -82,9 +82,12 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return dependencyAnalyzer;
     }
 
-    protected ProjectDependencyAnalysis doProjectDependencyAnalysis(MavenProject mavenProject) throws MojoExecutionException {
+    protected ProjectDependencyAnalysis doProjectDependencyAnalysis(final MavenProject mavenProject, final BomDependencies bomDependencies) throws MojoExecutionException {
+        final MavenProject localMavenProject = new MavenProject(mavenProject);
+        localMavenProject.setArtifacts(new LinkedHashSet<>(bomDependencies.getArtifacts().values()));
+        localMavenProject.setDependencyArtifacts(new LinkedHashSet<>(bomDependencies.getDependencyArtifacts().values()));
         try {
-            return getProjectDependencyAnalyzer().analyze(mavenProject);
+            return getProjectDependencyAnalyzer().analyze(localMavenProject);
         } catch (ProjectDependencyAnalyzerException pdae) {
             getLog().debug("Could not analyze " + mavenProject.getId(), pdae); // TODO should warn...
         }
@@ -101,7 +104,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         components.put(projectBomComponent.getPurl(), projectBomComponent);
         topLevelComponents.add(projectBomComponent.getPurl());
 
-        populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(getProject()));
+        populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(getProject(), bomDependencies));
 
         projectDependencies.forEach(dependencies::putIfAbsent);
 

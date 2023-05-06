@@ -195,6 +195,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "cyclonedx.verbose", defaultValue = "false", required = false)
     private boolean verbose = false;
 
+    /**
+     * Timestamp for reproducible output archive entries, either formatted as ISO 8601
+     * <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like
+     * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
+     *
+     * @since 2.7.9
+     */
+    @Parameter( defaultValue = "${project.build.outputTimestamp}" )
+    private String outputTimestamp;
+
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
 
@@ -293,6 +303,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
             final Bom bom = new Bom();
             bom.setComponents(components);
+
+            if (outputTimestamp != null) {
+                // activate Reproducible Builds mode
+                includeBomSerialNumber = false;
+                metadata.setTimestamp(null);
+                if (schemaVersion().getVersion() >= 1.3) {
+                    metadata.addProperty(newProperty("maven.reproducible", "enabled"));
+                }
+            }
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
                 bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());

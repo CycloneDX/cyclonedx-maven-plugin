@@ -23,17 +23,17 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * Fix BOM handling of conflicting dependency tree graphs
+ * Test optional detection as Maven dependency optional vs bytecode analysis of unused.
  */
 @RunWith(MavenJUnitTestRunner.class)
 @MavenVersions({"3.6.3"})
-public class Issue314Test extends BaseMavenVerifier {
+public class Issue314OptionalTest extends BaseMavenVerifier {
 
     private static final String ISSUE_314_DEPENDENCY_B = "pkg:maven/com.example.issue_314/dependency_B@1.0.0?type=jar";
     private static final String ISSUE_314_DEPENDENCY_C = "pkg:maven/com.example.issue_314/dependency_C@1.0.0?type=jar";
     private static final String ISSUE_314_DEPENDENCY_D = "pkg:maven/com.example.issue_314/dependency_D@1.0.0?type=jar";
 
-    public Issue314Test(MavenRuntimeBuilder runtimeBuilder) throws Exception {
+    public Issue314OptionalTest(MavenRuntimeBuilder runtimeBuilder) throws Exception {
         super(runtimeBuilder);
     }
 
@@ -77,6 +77,7 @@ public class Issue314Test extends BaseMavenVerifier {
     /**
      * Validate the maven optional components.
      * - com.example.issue_314:dependency_C:1.0.0 and com.example.issue_314:dependency_D:1.0.0 *should* be marked as optional
+     * because dependency_A declares dependency_C as optional, which depends on dependency_D
      */
     @Test
     public void testMavenOptionalDependencyTree() throws Exception {

@@ -168,8 +168,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private String[] excludeTypes;
 
     /**
-     * Use the original mechanism for determining whether an artifact is OPTIONAL/REQUIRED, relying on bytecode analysis
-     * of the compiled classes instead of the maven declaration of optional.
+     * Use the original mechanism for determining whether a component has OPTIONAL or REQUIRED scope,
+     * relying on bytecode analysis of the compiled classes instead of the Maven dependency declaration of optional.
      *
      * @since 2.7.9
      */
@@ -290,7 +290,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 if (includeTestScope) scopes.add("test");
                 metadata.addProperty(newProperty("maven.scopes", String.join(",", scopes)));
 
-                metadata.addProperty(newProperty("maven.optional", Boolean.toString(!detectUnusedForOptionalScope)));
+                if (detectUnusedForOptionalScope) {
+                    metadata.addProperty(newProperty("maven.optional.unused", Boolean.toString(detectUnusedForOptionalScope)));
+                }
             }
 
             final Component rootComponent = metadata.getComponent();

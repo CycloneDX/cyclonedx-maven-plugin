@@ -14,12 +14,6 @@
     <artifactId>dependency_A</artifactId>
 
     <name>Dependency A</name>
-
-    <properties>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.example.issue_314</groupId>
@@ -50,18 +44,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <projectType>library</projectType>
-                    <schemaVersion>1.4</schemaVersion>
-                    <includeBomSerialNumber>true</includeBomSerialNumber>
-                    <includeCompileScope>true</includeCompileScope>
-                    <includeProvidedScope>true</includeProvidedScope>
-                    <includeRuntimeScope>false</includeRuntimeScope>
-                    <includeSystemScope>false</includeSystemScope>
-                    <includeTestScope>false</includeTestScope>
-                    <includeLicenseText>false</includeLicenseText>
-                    <outputFormat>xml</outputFormat>
-                </configuration>
             </plugin>
         </plugins>
     </build>

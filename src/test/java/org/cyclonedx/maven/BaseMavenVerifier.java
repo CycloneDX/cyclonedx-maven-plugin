@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Map;
 import java.util.Properties;
 import org.junit.Rule;
 
@@ -55,10 +56,14 @@ public class BaseMavenVerifier {
     }
 
     protected File cleanAndBuild(final String project, final String[] excludeTypes, final String[] profiles) throws Exception {
-        return mvnBuild(project, null, excludeTypes, null);
+        return mvnBuild(project, null, excludeTypes, profiles, null);
     }
 
-    protected File mvnBuild(final String project, final String[] goals, final String[] excludeTypes, final String[] profiles) throws Exception {
+    protected File cleanAndBuild(final String project, final Map<String, String> properties, final String[] excludeTypes) throws Exception {
+        return mvnBuild(project, null, excludeTypes, null, properties);
+    }
+
+    protected File mvnBuild(final String project, final String[] goals, final String[] excludeTypes, final String[] profiles, final Map<String, String> properties) throws Exception {
         File projDir = resources.getBasedir(project);
 
         MavenExecution execution = verifier
@@ -70,7 +75,12 @@ public class BaseMavenVerifier {
             execution = execution.withCliOption("-DexcludeTypes=" + String.join(",", excludeTypes));
         }
         if ((profiles != null) && (profiles.length > 0)) {
-            execution = execution.withCliOption("-P" + String.join(",", profiles));
+            execution.withCliOption("-P" + String.join(",", profiles));
+        }
+        if (properties != null) {
+            for (Map.Entry<String, String> entry: properties.entrySet()) {
+                execution.withCliOption("-D" + entry.getKey() + "=" + entry.getValue());
+            }
         }
         if (goals != null && goals.length > 0) {
             execution.execute(goals).assertErrorFreeLog();

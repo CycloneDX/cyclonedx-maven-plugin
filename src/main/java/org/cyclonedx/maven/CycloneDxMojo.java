@@ -83,13 +83,15 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     }
 
     protected ProjectDependencyAnalysis doProjectDependencyAnalysis(final MavenProject mavenProject, final BomDependencies bomDependencies) throws MojoExecutionException {
-        final MavenProject localMavenProject = new MavenProject(mavenProject);
-        localMavenProject.setArtifacts(new LinkedHashSet<>(bomDependencies.getArtifacts().values()));
-        localMavenProject.setDependencyArtifacts(new LinkedHashSet<>(bomDependencies.getDependencyArtifacts().values()));
-        try {
-            return getProjectDependencyAnalyzer().analyze(localMavenProject);
-        } catch (ProjectDependencyAnalyzerException pdae) {
-            getLog().debug("Could not analyze " + mavenProject.getId(), pdae); // TODO should warn...
+        if (detectUnusedForOptionalScope) {
+            final MavenProject localMavenProject = new MavenProject(mavenProject);
+            localMavenProject.setArtifacts(new LinkedHashSet<>(bomDependencies.getArtifacts().values()));
+            localMavenProject.setDependencyArtifacts(new LinkedHashSet<>(bomDependencies.getDependencyArtifacts().values()));
+            try {
+                return getProjectDependencyAnalyzer().analyze(localMavenProject);
+            } catch (ProjectDependencyAnalyzerException pdae) {
+                getLog().debug("Could not analyze " + mavenProject.getId(), pdae); // TODO should warn...
+            }
         }
         return null;
     }

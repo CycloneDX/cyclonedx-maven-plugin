@@ -10,20 +10,38 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 class TestUtils {
-    static Node getDependencyNode(final Node dependencies, final String ref) {
+    static Element getElement(final Element parent, final String elementName) throws Exception {
+        Element element = null;
+        Node child = parent.getFirstChild();
+        while (child != null) {
+            if (Node.ELEMENT_NODE == child.getNodeType()) {
+                if (child.getNodeName().equals(elementName)) {
+                    if (element != null) {
+                        throw new Exception("Second instance of element " + elementName + " discovered in " + parent.getNodeName());
+                    }
+                    element = (Element)child;
+                }
+            }
+            child = child.getNextSibling();
+        }
+        return element;
+    }
+
+    static Element getDependencyNode(final Node dependencies, final String ref) {
         return getChildElement(dependencies, ref, "dependency", "ref");
     }
 
-    static Node getComponentNode(final Node components, final String ref) {
+    static Element getComponentNode(final Node components, final String ref) {
         return getChildElement(components, ref, "component", "bom-ref");
     }
 
-    private static Node getChildElement(final Node parent, final String ref, final String elementName, final String attrName) {
+    private static Element getChildElement(final Node parent, final String ref, final String elementName, final String attrName) {
         final NodeList children = parent.getChildNodes();
         final int numChildNodes = children.getLength();
         for (int index = 0 ; index < numChildNodes ; index++) {
@@ -31,7 +49,7 @@ class TestUtils {
             if ((child.getNodeType() == Node.ELEMENT_NODE) && elementName.equals(child.getNodeName())) {
                 final Node refNode = child.getAttributes().getNamedItem(attrName);
                 if (ref.equals(refNode.getNodeValue())) {
-                    return child;
+                    return (Element)child;
                 }
             }
         }

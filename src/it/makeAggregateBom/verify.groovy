@@ -8,6 +8,7 @@ void assertBomFiles(String path, boolean aggregate) {
     String analysis = aggregate ? "makeAggregateBom" : "makeBom"
     assert bomFileXml.text.contains('<property name="maven.goal">' + analysis + '</property>')
     assert bomFileXml.text.contains('<property name="maven.scopes">compile,provided,runtime,system</property>')
+    assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
     assert bomFileJson.text.contains('"name" : "maven.goal",')
     assert bomFileJson.text.contains('"value" : "' + analysis + '"')
     assert bomFileJson.text.contains('"name" : "maven.scopes",')

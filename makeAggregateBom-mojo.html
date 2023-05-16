@@ -128,6 +128,17 @@
           
 <tr class="a">
             
+<td align="left"><code><a href="#detectUnusedForOptionalScope">&lt;detectUnusedForOptionalScope&gt;</a></code></td>
+            
+<td><code>boolean</code></td>
+            
+<td><code>2.7.9</code></td>
+            
+<td>Use the original mechanism for determining whether a component has OPTIONAL or REQUIRED scope, relying on bytecode analysis of the compiled classes instead of the Maven dependency declaration of optional.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>detectUnusedForOptionalScope</code>.<br /></td>
+          </tr>
+          
+<tr class="b">
+            
 <td align="left"><code><a href="#excludeArtifactId">&lt;excludeArtifactId&gt;</a></code></td>
             
 <td><code>String[]</code></td>
@@ -137,7 +148,7 @@
 <td>Excluded reactor project (aka module) ArtifactIds from aggregate BOM.<br /><b>User property is</b>: <code>excludeArtifactId</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#excludeGroupId">&lt;excludeGroupId&gt;</a></code></td>
             
@@ -148,7 +159,7 @@
 <td>Excluded reactor project (aka module) GroupIds from aggregate BOM.<br /><b>User property is</b>: <code>excludeGroupId</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#excludeTestProject">&lt;excludeTestProject&gt;</a></code></td>
             
@@ -159,7 +170,7 @@
 <td>Should reactor project (aka module) artifactId with the word &quot;test&quot; be excluded from aggregate BOM?<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>excludeTestProject</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#excludeTypes">&lt;excludeTypes&gt;</a></code></td>
             
@@ -170,7 +181,7 @@
 <td>Excluded types.<br /><b>User property is</b>: <code>excludeTypes</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#includeBomSerialNumber">&lt;includeBomSerialNumber&gt;</a></code></td>
             
@@ -181,7 +192,7 @@
 <td>Should the resulting BOM contain a unique serial number?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeBomSerialNumber</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#includeCompileScope">&lt;includeCompileScope&gt;</a></code></td>
             
@@ -192,7 +203,7 @@
 <td>Should compile scoped Maven dependencies be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeCompileScope</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#includeLicenseText">&lt;includeLicenseText&gt;</a></code></td>
             
@@ -203,7 +214,7 @@
 <td>Should license text be included in bom?<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>includeLicenseText</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#includeProvidedScope">&lt;includeProvidedScope&gt;</a></code></td>
             
@@ -214,7 +225,7 @@
 <td>Should provided scoped Maven dependencies be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeProvidedScope</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#includeRuntimeScope">&lt;includeRuntimeScope&gt;</a></code></td>
             
@@ -225,7 +236,7 @@
 <td>Should runtime scoped Maven dependencies be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeRuntimeScope</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#includeSystemScope">&lt;includeSystemScope&gt;</a></code></td>
             
@@ -236,7 +247,7 @@
 <td>Should system scoped Maven dependencies be included in bom?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>includeSystemScope</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#includeTestScope">&lt;includeTestScope&gt;</a></code></td>
             
@@ -247,7 +258,7 @@
 <td>Should test scoped Maven dependencies be included in bom?<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>includeTestScope</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#outputDirectory">&lt;outputDirectory&gt;</a></code></td>
             
@@ -258,7 +269,7 @@
 <td>The output directory where to store generated CycloneDX output files.<br /><b>Default value is</b>: <code>${project.build.directory}</code>.<br /><b>User property is</b>: <code>outputDirectory</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#outputFormat">&lt;outputFormat&gt;</a></code></td>
             
@@ -269,7 +280,7 @@
 <td>The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).<br /><b>Default value is</b>: <code>all</code>.<br /><b>User property is</b>: <code>outputFormat</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#outputName">&lt;outputName&gt;</a></code></td>
             
@@ -280,7 +291,7 @@
 <td>The CycloneDX output file name (without extension) that should be generated (in <code>outputDirectory</code> directory).<br /><b>Default value is</b>: <code>bom</code>.<br /><b>User property is</b>: <code>outputName</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#outputReactorProjects">&lt;outputReactorProjects&gt;</a></code></td>
             
@@ -291,7 +302,7 @@
 <td>Should non-root reactor projects create a module-only BOM?<br /><b>Default value is</b>: <code>true</code>.<br /><b>User property is</b>: <code>outputReactorProjects</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#outputTimestamp">&lt;outputTimestamp&gt;</a></code></td>
             
@@ -302,7 +313,7 @@
 <td>Timestamp for reproducible output archive entries, either formatted as ISO 8601 <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like <a class="externalLink" href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).<br /><b>Default value is</b>: <code>${project.build.outputTimestamp}</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#projectType">&lt;projectType&gt;</a></code></td>
             
@@ -313,7 +324,7 @@
 <td>The component type associated to the SBOM metadata. See <a class="externalLink" href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported values.<br /><b>Default value is</b>: <code>library</code>.<br /><b>User property is</b>: <code>projectType</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#schemaVersion">&lt;schemaVersion&gt;</a></code></td>
             
@@ -324,7 +335,7 @@
 <td>The CycloneDX schema version the BOM will comply with.<br /><b>Default value is</b>: <code>1.4</code>.<br /><b>User property is</b>: <code>schemaVersion</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#skip">&lt;skip&gt;</a></code></td>
             
@@ -335,7 +346,7 @@
 <td>Skip CycloneDX execution.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skip</code>.<br /></td>
           </tr>
           
-<tr class="b">
+<tr class="a">
             
 <td align="left"><code><a href="#skipAttach">&lt;skipAttach&gt;</a></code></td>
             
@@ -346,7 +357,7 @@
 <td>Don't attach bom.<br /><b>Default value is</b>: <code>false</code>.<br /><b>User property is</b>: <code>cyclonedx.skipAttach</code>.<br /></td>
           </tr>
           
-<tr class="a">
+<tr class="b">
             
 <td align="left"><code><a href="#verbose">&lt;verbose&gt;</a></code></td>
             
@@ -376,6 +387,22 @@
 <li><b>User Property</b>: <code>analyzer</code></li>
           
 <li><b>Default</b>: <code>default</code></li>
+        </ul><hr /></section><section>
+<h4><a name="a.3CdetectUnusedForOptionalScope.3E"></a><b><a name="detectUnusedForOptionalScope">&lt;detectUnusedForOptionalScope&gt;</a></b></h4>
+        
+<div>Use the original mechanism for determining whether a component has OPTIONAL or REQUIRED scope, relying on bytecode analysis of the compiled classes instead of the Maven dependency declaration of optional.</div>
+        
+<ul>
+          
+<li><b>Type</b>: <code>boolean</code></li>
+          
+<li><b>Since</b>: <code>2.7.9</code></li>
+          
+<li><b>Required</b>: <code>No</code></li>
+          
+<li><b>User Property</b>: <code>detectUnusedForOptionalScope</code></li>
+          
+<li><b>Default</b>: <code>false</code></li>
         </ul><hr /></section><section>
 <h4><a name="a.3CexcludeArtifactId.3E"></a><b><a name="excludeArtifactId">&lt;excludeArtifactId&gt;</a></b></h4>
         

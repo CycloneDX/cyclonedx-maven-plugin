@@ -360,7 +360,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             MojoExecutionException {
         if ("all".equalsIgnoreCase(outputFormat) || "xml".equalsIgnoreCase(outputFormat)) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
-            bomGenerator.generate();
+            //bomGenerator.generate();
 
             final String bomString = bomGenerator.toXmlString();
             saveBomToFile(bomString, "xml", new XmlParser());

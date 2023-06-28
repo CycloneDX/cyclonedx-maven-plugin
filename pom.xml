@@ -328,6 +328,11 @@
                     <artifactId>maven-site-plugin</artifactId>
                     <version>3.12.1</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-project-info-reports-plugin</artifactId>
+                    <version>3.4.5</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <resources>
@@ -430,7 +435,7 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-plugin-plugin</artifactId>
+                <artifactId>maven-plugin-report-plugin</artifactId>
                 <version>3.9.0</version>
             </plugin>
         </plugins>

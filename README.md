@@ -63,6 +63,21 @@ Default Values
 </plugins>
 ```
 
+Project Type
+------------
+In the configuration a `<projectType>` can be set. The default value is `library` but there are more choices:
+
+* application
+* container
+* device
+* file
+* firmware
+* framework
+* library (default)
+* operating-system
+
+Using an unsupported project type will result in applying the default value `library`.
+
 Excluding Projects
 -------------------
 With `makeAggregateBom` goal, it is possible to exclude certain Maven reactor projects (aka modules) from getting included in the aggregate BOM:

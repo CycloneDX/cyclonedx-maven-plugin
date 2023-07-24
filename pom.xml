@@ -70,7 +70,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.build.outputTimestamp>2023-05-16T18:58:39Z</project.build.outputTimestamp>
         <junit.version>4.13.2</junit.version>
-        <junit5.version>5.9.3</junit5.version>
+        <junit5.version>5.10.0</junit5.version>
     </properties>
 
     <scm>

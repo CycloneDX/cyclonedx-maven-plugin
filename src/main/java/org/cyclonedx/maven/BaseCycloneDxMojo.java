@@ -322,7 +322,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 includeBomSerialNumber = false;
                 metadata.setTimestamp(null);
                 if (schemaVersion().getVersion() >= 1.3) {
-                    metadata.addProperty(newProperty("maven.reproducible", "enabled"));
+                    metadata.addProperty(newProperty("cdx:reproducible", "enabled"));
                 }
             }
 

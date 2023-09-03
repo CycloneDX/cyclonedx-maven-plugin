@@ -11,7 +11,7 @@ assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
 // Reproducible Builds
 assert !bomFileJson.text.contains('"serialNumber"')
 assert !bomFileJson.text.contains('"timestamp"')
-assert bomFileJson.text.contains('"name" : "maven.reproducible",')
+assert bomFileJson.text.contains('"name" : "cdx:reproducible",')
 assert bomFileJson.text.contains('"value" : "enabled"')
 
 File bomAggregateFileXml = new File(basedir, "target/bom-makeAggregateBom.xml")

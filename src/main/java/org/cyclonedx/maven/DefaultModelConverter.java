@@ -269,7 +269,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private void addExternalReference(final ExternalReference.Type referenceType, final String url, final Component component) {
-        if (url == null || doesComponentHaveExternalReference(component, referenceType)) {
+        if (isURLBlank(url) || doesComponentHaveExternalReference(component, referenceType)) {
             return;
         }
         try {
@@ -397,5 +397,9 @@ public class DefaultModelConverter implements ModelConverter {
             logger.warn("  " + type.getTypeName());
         }
         return Component.Type.LIBRARY;
+    }
+
+    private static boolean isURLBlank(String url) {
+        return url == null || url.isEmpty() || url.trim().length() == 0;
     }
 }

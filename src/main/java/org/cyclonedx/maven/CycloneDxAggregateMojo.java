@@ -91,6 +91,9 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         if (excludeTestProject && mavenProject.getArtifactId().contains("test")) {
             shouldExclude = true;
         }
+        if (!BaseCycloneDxMojo.isDeployable(mavenProject)) {
+            shouldExclude = true;
+        }
         return shouldExclude;
     }
 
@@ -146,7 +149,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
      */
     private void addMavenProjectsAsParentDependencies(List<MavenProject> reactorProjects, Map<String, Dependency> dependencies) {
         for (final MavenProject project: reactorProjects) {
-            if (project.hasParent()) {
+            if (project.hasParent() && !shouldExclude(project)) {
                 final String parentRef = generatePackageUrl(project.getParent().getArtifact());
                 Dependency parentDependency = dependencies.get(parentRef);
                 if (parentDependency != null) {

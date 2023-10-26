@@ -79,6 +79,7 @@
     <modules>
         <module>api</module>
         <module>impls</module>
+        <module>skipped</module>
         <module>util</module>
     </modules>
 

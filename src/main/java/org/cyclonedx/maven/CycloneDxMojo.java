@@ -94,6 +94,12 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return null;
     }
 
+    @Override
+    protected boolean shouldSkip() {
+        // The list of artifacts would be empty
+        return super.shouldSkip() || !isDeployable(getProject());
+    }
+
     protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 

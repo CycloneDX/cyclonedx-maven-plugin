@@ -21,12 +21,15 @@ package org.cyclonedx.maven;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.cyclonedx.BomGeneratorFactory;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.GeneratorException;
@@ -235,6 +238,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
 
     /**
+     * Maven plugins that deploy artifacts.
+     */
+    private static final String MAVEN_DEPLOY_PLUGIN = "org.apache.maven.plugins:maven-deploy-plugin";
+    private static final String NEXUS_STAGING_PLUGIN = "org.sonatype.plugins:nexus-staging-maven-plugin";
+
+    /**
      * Returns a reference to the current project.
      *
      * @return returns a reference to the current project
@@ -262,9 +271,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected abstract String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException;
 
+    /**
+     * @return {@literal true} if the execution should be skipped.
+     */
+    protected boolean shouldSkip() {
+        return Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
+    }
+
     public void execute() throws MojoExecutionException {
-        final boolean shouldSkip = Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
-        if (shouldSkip) {
+        if (shouldSkip()) {
             getLog().info("Skipping CycloneDX");
             return;
         }
@@ -510,5 +525,45 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             return project;
         }
         return existing;
+    }
+
+    static boolean isDeployable(final MavenProject project) {
+        return isDeployable(project,
+                        MAVEN_DEPLOY_PLUGIN,
+                        "skip",
+                        "maven.deploy.skip")
+                || isDeployable(project,
+                        NEXUS_STAGING_PLUGIN,
+                        "skipNexusStagingDeployMojo",
+                        "skipNexusStagingDeployMojo");
+    }
+
+    private static boolean isDeployable(final MavenProject project,
+                                        final String pluginKey,
+                                        final String parameter,
+                                        final String propertyName) {
+        final Plugin plugin = project.getPlugin(pluginKey);
+        if (plugin != null) {
+            // Default skip value
+            final String property = System.getProperty(propertyName, project.getProperties().getProperty(propertyName));
+            final boolean defaultSkipValue = property != null ? Boolean.parseBoolean(property) : false;
+            // Find an execution that is not skipped
+            for (final PluginExecution execution : plugin.getExecutions()) {
+                if (execution.getGoals().contains("deploy")) {
+                    final Xpp3Dom executionConf = (Xpp3Dom) execution.getConfiguration();
+                    boolean skipValue = defaultSkipValue;
+                    if (executionConf != null) {
+                        Xpp3Dom target = executionConf.getChild(parameter);
+                        if (target != null) {
+                            skipValue = Boolean.parseBoolean(target.getValue());
+                        }
+                    }
+                    if (!skipValue) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

@@ -63,20 +63,7 @@ Default Values
 </plugins>
 ```
 
-Project Type
-------------
-In the configuration a `<projectType>` can be set. The default value is `library` but there are more choices:
-
-* application
-* container
-* device
-* file
-* firmware
-* framework
-* library (default)
-* operating-system
-
-Using an unsupported project type will result in applying the default value `library`.
+`<projectType>` default value is `library` but there are [more choices defined in the CycloneDX specification](https://cyclonedx.org/docs/1.5/json/#metadata_component_type).
 
 Excluding Projects
 -------------------

@@ -334,7 +334,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             if (outputTimestamp != null) {
                 // activate Reproducible Builds mode
-                includeBomSerialNumber = false;
                 metadata.setTimestamp(null);
                 if (schemaVersion().getVersion() >= 1.3) {
                     metadata.addProperty(newProperty("cdx:reproducible", "enabled"));
@@ -342,7 +341,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
-                bom.setSerialNumber("urn:uuid:" + UUID.randomUUID());
+                String serialNumber = generateSerialNumber();
+                bom.setSerialNumber(serialNumber);
             }
 
             if (schemaVersion().getVersion() >= 1.2) {
@@ -369,6 +369,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         } catch (GeneratorException | ParserConfigurationException | IOException e) {
             throw new MojoExecutionException("An error occurred executing " + this.getClass().getName() + ": " + e.getMessage(), e);
         }
+    }
+
+    private String generateSerialNumber() {
+        String seed = String.format("%s:%s:%s", project.getGroupId(), project.getArtifactId(), project.getVersion());
+        UUID uuid = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+        return String.format("urn:uuid:%s", uuid);
     }
 
     private void saveBom(Bom bom) throws ParserConfigurationException, IOException, GeneratorException,

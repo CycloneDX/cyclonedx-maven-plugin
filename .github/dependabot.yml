@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      # JsonUnit `2.x` is the last Java 8 compatible major release
+      - dependency-name: "net.javacrumbs.json-unit:*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

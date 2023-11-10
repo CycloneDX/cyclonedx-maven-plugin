@@ -19,6 +19,7 @@
 package org.cyclonedx.maven;
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.project.MavenProject;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
@@ -43,21 +44,24 @@ public interface ModelConverter {
      * Converts a Maven artifact (dependency or transitive dependency) into a
      * CycloneDX component.
      *
+     * @param execution the associated execution
      * @param artifact the artifact to convert
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
      * @return a CycloneDX component
      */
-    Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
+    Component convert(MojoExecution execution, Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
 
     /**
      * Converts a MavenProject into a Metadata object.
      *
      * @param project the MavenProject to convert
      * @param projectType the target CycloneDX component type
+     * @param execution the associated execution
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
      * @return a CycloneDX Metadata object
      */
-    Metadata convert(MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
+    Metadata convert(MavenProject project, String projectType, MojoExecution execution, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
+
 }

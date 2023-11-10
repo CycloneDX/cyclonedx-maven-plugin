@@ -22,26 +22,38 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.MailingList;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.model.building.ModelBuildingRequest;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuilder;
 import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.ExternalReference;
@@ -153,7 +165,9 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    public Component convert(MojoExecution execution, Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+
+        // Populate basic fields from the `Artifact` instance
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
@@ -172,21 +186,99 @@ public class DefaultModelConverter implements ModelConverter {
         if (CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
             component.setBomRef(component.getPurl());
         }
-        if (isDescribedArtifact(artifact)) {
-            try {
-                final MavenProject project = getEffectiveMavenProject(artifact);
-                if (project != null) {
-                    extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
-                }
-            } catch (ProjectBuildingException e) {
-                if (logger.isDebugEnabled()) {
-                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
-                } else {
-                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
-                }
+
+        // Read the project
+        MavenProject project = null;
+        try {
+            project = getEffectiveMavenProject(artifact);
+        } catch (ProjectBuildingException error) {
+            if (logger.isDebugEnabled()) {
+                logger.warn("Unable to create Maven project for `{}` from repository.", artifact.getId(), error);
+            } else {
+                logger.warn("Unable to create Maven project for `{}` from repository.", artifact.getId());
             }
         }
+
+        if (project != null) {
+
+            // Populate external references
+            List<ExternalReference> externalReferences = extractExternalReferences(project, execution);
+            component.setExternalReferences(externalReferences);
+
+            // Extract the rest of the metadata for JARs, i.e., *described* artifacts
+            if (isDescribedArtifact(artifact)) {
+                extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
+            }
+
+        }
+
+        // Return the enriched component
         return component;
+
+    }
+
+    private List<ExternalReference> extractExternalReferences(MavenProject project, MojoExecution activeExecution) {
+        Plugin activePlugin = activeExecution.getPlugin();
+        return project
+                .getBuild()
+                .getPlugins()
+                .stream()
+                .filter(plugin -> activePlugin.getGroupId().equals(plugin.getGroupId()) && activePlugin.getArtifactId().equals(plugin.getArtifactId()))
+                .findFirst()
+                .map(plugin -> extractExternalReferences(plugin, activeExecution))
+                .orElseGet(ArrayList::new);
+    }
+
+    private static List<ExternalReference> extractExternalReferences(Plugin plugin, MojoExecution activeExecution) {
+
+        // Collect external references from the execution configuration
+        List<ExternalReference> executionExternalReferences = plugin
+                .getExecutions()
+                .stream()
+                .filter(execution -> activeExecution.getExecutionId().equals(execution.getId()))
+                .flatMap(execution -> {
+                    Xpp3Dom executionConfig = (Xpp3Dom) execution.getConfiguration();
+                    return ExternalReferenceConfigDto.parseDom(executionConfig).stream();
+                })
+                .collect(Collectors.toList());
+
+        // Collect external references from the plugin configuration
+        Xpp3Dom pluginConfig = (Xpp3Dom) plugin.getConfiguration();
+        List<ExternalReference> pluginExternalReferences = ExternalReferenceConfigDto.parseDom(pluginConfig);
+
+        // Combine collected external references
+        return Stream
+                .concat(executionExternalReferences.stream(), pluginExternalReferences.stream())
+                .distinct()
+                .collect(Collectors.toList());
+
+    }
+
+    private static final class ExternalReferenceConfigDto {
+
+        private static final XmlMapper MAPPER = XmlMapper
+                .builder()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
+                .build();
+
+        private static List<ExternalReference> parseDom(@Nullable Xpp3Dom dom) {
+            if (dom == null) {
+                return new ArrayList<>();
+            }
+            String xml = dom.toString();
+            try {
+                ExternalReferenceConfigDto dto = MAPPER.readValue(xml, ExternalReferenceConfigDto.class);
+                @Nullable List<ExternalReference> externalReferences = dto.externalReferences;
+                return externalReferences != null ? externalReferences : new ArrayList<>();
+            } catch (JsonProcessingException error) {
+                throw new RuntimeException(error);
+            }
+        }
+
+        @JsonProperty
+        private List<ExternalReference> externalReferences;
+
     }
 
     private boolean isModified(Artifact artifact) {
@@ -341,7 +433,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Metadata convert(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    public Metadata convert(final MavenProject project, String projectType, MojoExecution execution, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
         final Tool tool = new Tool();
         final Properties properties = readPluginProperties();
         tool.setVendor(properties.getProperty("vendor"));
@@ -367,6 +459,9 @@ public class DefaultModelConverter implements ModelConverter {
         component.setType(resolveProjectType(projectType));
         component.setPurl(generatePackageUrl(project.getArtifact()));
         component.setBomRef(component.getPurl());
+
+        List<ExternalReference> externalReferences = extractExternalReferences(project, execution);
+        component.setExternalReferences(externalReferences);
         extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
 
         final Metadata metadata = new Metadata();

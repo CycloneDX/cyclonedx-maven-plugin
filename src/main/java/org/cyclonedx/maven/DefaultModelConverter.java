@@ -172,18 +172,16 @@ public class DefaultModelConverter implements ModelConverter {
         if (CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
             component.setBomRef(component.getPurl());
         }
-        if (isDescribedArtifact(artifact)) {
-            try {
-                final MavenProject project = getEffectiveMavenProject(artifact);
-                if (project != null) {
-                    extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
-                }
-            } catch (ProjectBuildingException e) {
-                if (logger.isDebugEnabled()) {
-                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
-                } else {
-                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
-                }
+        try {
+            final MavenProject project = getEffectiveMavenProject(artifact);
+            if (project != null) {
+                extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
+            }
+        } catch (ProjectBuildingException e) {
+            if (logger.isDebugEnabled()) {
+                logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
+            } else {
+                logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
             }
         }
         return component;
@@ -202,16 +200,6 @@ public class DefaultModelConverter implements ModelConverter {
     private boolean isModified(Artifact artifact) {
         //todo: compare hashes + GAV with what the artifact says against Maven Central to determine if component has been modified.
         return false;
-    }
-
-    /**
-     * Returns true for any artifact type which will positively have a POM that
-     * describes the artifact.
-     * @param artifact the artifact
-     * @return true if artifact will have a POM, false if not
-     */
-    private boolean isDescribedArtifact(Artifact artifact) {
-        return artifact.getType().equalsIgnoreCase("jar");
     }
 
     /**

@@ -208,6 +208,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean verbose = false;
 
     /**
+     * Classifier of the attached sbom
+     *
+     * @since 2.7.12
+     */
+    @Parameter(property = "cyclonedx.classifier", defaultValue = "cyclonedx")
+    private String classifier;
+
+    /**
      * Timestamp for reproducible output archive entries, either formatted as ISO 8601
      * <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like
      * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
@@ -400,7 +408,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         if (!skipAttach) {
             getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
-            mavenProjectHelper.attachArtifact(project, extension, "cyclonedx", bomFile);
+            mavenProjectHelper.attachArtifact(project, extension, classifier, bomFile);
         }
     }
 

@@ -82,7 +82,7 @@ The CycloneDX Maven plugin contains the following three goals:
 * `makeAggregateBom`: creates an aggregate BOM at build root (with dependencies from the whole multi-modules build), and eventually a BOM for each module,
 * `makePackageBom`: creates a BOM for each Maven module with `war` or `ear` packaging.
 
-By default, the BOM(s) will be attached as an additional artifacts with `cyclonedx` classifier and `xml` or `json` extension during a Maven `install` or `deploy`:
+By default, the BOM(s) will be attached as an additional artifacts with `cyclonedx` classifier (can be customized by setting `cyclonedx.classifier`) and `xml` or `json` extension during a Maven `install` or `deploy`:
 
 * `${project.artifactId}-${project.version}-cyclonedx.xml`
 * `${project.artifactId}-${project.version}-cyclonedx.json`

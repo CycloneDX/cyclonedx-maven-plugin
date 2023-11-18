@@ -200,6 +200,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean skipAttach = false;
 
     /**
+     * Classifier of the attached sbom
+     *
+     * @since 2.8.1
+     */
+    @Parameter(property = "cyclonedx.classifier", defaultValue = "cyclonedx")
+    private String classifier;
+
+    /**
      * Verbose output.
      *
      * @since 2.6.0
@@ -456,7 +464,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         if (!skipAttach) {
             getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
-            mavenProjectHelper.attachArtifact(project, extension, "cyclonedx", bomFile);
+            mavenProjectHelper.attachArtifact(project, extension, classifier, bomFile);
         }
     }
 

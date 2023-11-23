@@ -91,7 +91,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         if (excludeTestProject && mavenProject.getArtifactId().contains("test")) {
             shouldExclude = true;
         }
-        if (!BaseCycloneDxMojo.isDeployable(mavenProject)) {
+        if (skipNotDeployed && !BaseCycloneDxMojo.isDeployable(mavenProject)) {
             shouldExclude = true;
         }
         return shouldExclude;

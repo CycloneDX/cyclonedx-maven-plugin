@@ -48,6 +48,14 @@ import java.util.Set;
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     /**
+     * Only runs this goal if the module does not skip deploy.
+     *
+     * @since 2.8.0
+     */
+    @Parameter(property = "cyclonedx.skipNotDeployed", defaultValue = "true", required = false)
+    protected boolean skipNotDeployed = true;
+
+    /**
      * Specify the Maven project dependency analyzer to use (plexus component role-hint). By default,
      * <a href="https://maven.apache.org/shared/maven-dependency-analyzer/">maven-dependency-analyzer</a>'s one
      * is used.
@@ -97,7 +105,15 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     @Override
     protected boolean shouldSkip() {
         // The list of artifacts would be empty
-        return super.shouldSkip() || !isDeployable(getProject());
+        return super.shouldSkip() || skipNotDeployed && !isDeployable(getProject());
+    }
+
+    @Override
+    protected String getSkipReason() {
+        if (super.shouldSkip()) {
+            return super.getSkipReason();
+        }
+        return "module skips deploy";
     }
 
     protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {

@@ -23,18 +23,13 @@
 
     <parent>
         <groupId>org.cyclonedx.its</groupId>
-        <artifactId>makeAggregateBom</artifactId>
+        <artifactId>skipped</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>skipped</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>deploy-property-force</artifactId>
 
-    <modules>
-      <module>deploy-property</module>
-      <module>deploy-property-force</module>
-      <module>deploy-config</module>
-      <module>deploy-config-force</module>
-      <module>nexus-property</module>
-      <module>nexus-config</module>
-    </modules>
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <cyclonedx.skipNotDeployed>false</cyclonedx.skipNotDeployed>
+    </properties>
 </project>

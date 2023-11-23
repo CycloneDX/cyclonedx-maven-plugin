@@ -278,9 +278,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return Boolean.parseBoolean(System.getProperty("cyclonedx.skip", Boolean.toString(skip)));
     }
 
+    protected String getSkipReason() {
+        return null;
+    }
+
     public void execute() throws MojoExecutionException {
         if (shouldSkip()) {
-            getLog().info("Skipping CycloneDX");
+            final String skipReason = getSkipReason();
+            if (skipReason != null) {
+                getLog().info("Skipping CycloneDX goal, because " + skipReason);
+            } else {
+                getLog().info("Skipping CycloneDX goal");
+            }
             return;
         }
         logParameters();
@@ -490,7 +499,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @return Component.Scope - REQUIRED, OPTIONAL or null if it cannot be determined
      *
-     * @see detectUnusedForOptionalScope
+     * @see #detectUnusedForOptionalScope
      */
     private Component.Scope getComponentScope(Artifact artifact, ProjectDependencyAnalysis projectDependencyAnalysis) {
         if (detectUnusedForOptionalScope) {

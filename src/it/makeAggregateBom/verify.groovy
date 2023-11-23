@@ -30,6 +30,8 @@ assertBomFiles("impls/target/bom", false)
 assertBomFiles("impls/impl-A/target/bom", false)
 assertBomFiles("impls/impl-B/target/bom", false)
 assertBomFiles("skipped/target/bom", false)
+assertBomFiles("skipped/deploy-config-force/target/bom", false)
+assertBomFiles("skipped/deploy-property-force/target/bom", false)
 
 assertNoBomFiles("skipped/deploy-config/target/bom")
 assertNoBomFiles("skipped/deploy-property/target/bom")
@@ -38,16 +40,16 @@ assertNoBomFiles("skipped/nexus-property/target/bom")
 
 var buildLog = new File(basedir, "build.log").text
 
-assert 13 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Dependencies/).size()
+assert 17 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Dependencies/).size()
 assert 2 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Aggregated Dependencies/).size()
 
-// 15 = 7 modules for main cyclonedx-makeAggregateBom execution
+// 19 = 9 modules for main cyclonedx-makeAggregateBom execution
 //    + 1 for root module cyclonedx-makeAggregateBom-root-only execution
-//    + 7 modules for additional cyclonedx-makeBom execution
-assert 15 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(XML\)/).size()
-assert 15 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(JSON\)/).size()
-// cyclonedx-makeAggregateBom-root-only execution skips 5 non-root modules
-assert 6 == (buildLog =~ /\[INFO\] Skipping CycloneDX on non-execution root/).size()
+//    + 9 modules for additional cyclonedx-makeBom execution
+assert 19 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(XML\)/).size()
+assert 19 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(JSON\)/).size()
+// cyclonedx-makeAggregateBom-root-only execution skips 7 non-root modules
+assert 8 == (buildLog =~ /\[INFO\] Skipping CycloneDX on non-execution root/).size()
 
 // [WARNING] artifact org.cyclonedx.its:api:xml:cyclonedx:1.0-SNAPSHOT already attached, replace previous instance
 assert 0 == (buildLog =~ /-SNAPSHOT already attached, replace previous instance/).size()
@@ -72,6 +74,8 @@ assertBomEqualsNonAggregate("util/target/bom")
 assertBomEqualsNonAggregate("impls/target/bom")
 assertBomEqualsNonAggregate("impls/impl-A/target/bom")
 assertBomEqualsNonAggregate("impls/impl-B/target/bom")
+assertBomEqualsNonAggregate("skipped/deploy-config-force/target/bom")
+assertBomEqualsNonAggregate("skipped/deploy-property-force/target/bom")
 
 // dependencies for root component in makeAggregateBom is the list of modules
 String bom = new File(basedir, 'target/bom.xml').text

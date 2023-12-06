@@ -341,7 +341,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
 
             if (schemaVersion().getVersion() >= 1.1 && includeBomSerialNumber) {
-                String serialNumber = generateSerialNumber();
+                String serialNumber = generateSerialNumber(metadata.getProperties());
                 bom.setSerialNumber(serialNumber);
             }
 
@@ -371,9 +371,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    private String generateSerialNumber() {
-        String seed = String.format("%s:%s:%s", project.getGroupId(), project.getArtifactId(), project.getVersion());
-        UUID uuid = UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
+    private String generateSerialNumber(List<Property> properties) {
+        String gav = String.format("%s:%s:%s", project.getGroupId(), project.getArtifactId(), project.getVersion());
+        StringBuilder sb = new StringBuilder(gav);
+        if (properties != null) {
+            for(Property prop: properties) {
+                sb.append(';');
+                sb.append(prop.getName());
+                sb.append('=');
+                sb.append(prop.getValue());
+            }
+        }
+        UUID uuid = UUID.nameUUIDFromBytes(sb.toString().getBytes(StandardCharsets.UTF_8));
         return String.format("urn:uuid:%s", uuid);
     }
 

@@ -9,7 +9,6 @@ assert bomFileXml.text.contains('<reference type="website"><url>https://github.c
 assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
 
 // Reproducible Builds
-assert !bomFileJson.text.contains('"serialNumber"')
 assert !bomFileJson.text.contains('"timestamp"')
 assert bomFileJson.text.contains('"name" : "cdx:reproducible",')
 assert bomFileJson.text.contains('"value" : "enabled"')

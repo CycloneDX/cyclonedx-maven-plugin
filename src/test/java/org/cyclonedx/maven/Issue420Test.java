@@ -22,15 +22,13 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 @MavenVersions({"3.6.3"})
 public class Issue420Test extends BaseMavenVerifier {
 
-    private static final String SERIAL_NUMBER = "urn:uuid:f1a73cb3-dab9-3592-a2a9-825cf9eab862";
-
     public Issue420Test(MavenRuntimeBuilder runtimeBuilder) throws Exception {
         super(runtimeBuilder);
     }
 
     @Test
     public void testDefaults() throws Exception {
-        test(new String[0], SERIAL_NUMBER);
+        test(new String[0], "urn:uuid:af111a48-2091-3e2e-ad2e-60b1975b651d");
     }
 
     @Test
@@ -40,7 +38,7 @@ public class Issue420Test extends BaseMavenVerifier {
 
     @Test
     public void testWhenOutputTimestampIsSet() throws Exception {
-        test(new String[]{"-Dproject.build.outputTimestamp=2023-11-08T00:00:00Z"}, SERIAL_NUMBER);
+        test(new String[]{"-Dproject.build.outputTimestamp=2023-11-08T00:00:00Z"}, "urn:uuid:3e383c4c-ef61-3eba-8214-3ecd46c4bbee");
     }
 
     @Test

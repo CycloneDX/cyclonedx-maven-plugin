@@ -48,9 +48,9 @@ import java.util.Set;
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 
     /**
-     * Only runs this goal if the module does not skip deploy.
+     * Only runs this goal or adds to aggregate SBOM if the module does not skip deploy.
      *
-     * @since 2.8.0
+     * @since 2.7.11
      */
     @Parameter(property = "cyclonedx.skipNotDeployed", defaultValue = "true", required = false)
     protected boolean skipNotDeployed = true;

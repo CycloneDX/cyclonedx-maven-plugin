@@ -24,7 +24,6 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -37,7 +36,12 @@ import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.generators.xml.BomXmlGenerator;
 import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
-import org.cyclonedx.model.*;
+import org.cyclonedx.model.Bom;
+import org.cyclonedx.model.Component;
+import org.cyclonedx.model.Dependency;
+import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.Metadata;
+import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
@@ -215,20 +219,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private String outputTimestamp;
 
     /**
-     * External references to be added.
-     * <p>
-     * They will be injected in two locations:
-     * </p>
-     * <ol>
-     * <li><code>$.metadata.component.externalReferences[]</code></li>
-     * <li><code>$.components[].externalReferences[]</code> (only for <code>$.components[]</code> provided by the project)</li>
-     * </ol>
+     * External references to be added to <code>$.metadata.component.externalReferences[]</code>.
      */
     @Parameter
     private ExternalReference[] externalReferences;
-
-    @Parameter(defaultValue = "${mojoExecution}", readonly = true, required = true)
-    private MojoExecution execution;
 
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
@@ -270,7 +264,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Component convert(Artifact artifact) {
-        return modelConverter.convert(execution, artifact, schemaVersion(), includeLicenseText);
+        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText, externalReferences);
     }
 
     /**
@@ -314,7 +308,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         String analysis = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
         if (analysis != null) {
-            final Metadata metadata = modelConverter.convert(project, projectType, execution, schemaVersion(), includeLicenseText);
+            final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
 
             if (schemaVersion().getVersion() >= 1.3) {
                 metadata.addProperty(newProperty("maven.goal", analysis));

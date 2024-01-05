@@ -45,12 +45,6 @@ public class ExternalReferenceTest extends BaseMavenVerifier {
                 "$.metadata.component.externalReferences[?(@.type=='chat')].url",
                 Collections.singleton("https://acme.com/parent"));
 
-        // Verify parent components
-        assertExternalReferences(
-                new File(projDir, "target/bom.json"),
-                "$.components[?(@.name=='child')].externalReferences[?(@.type=='chat')].url",
-                Arrays.asList("https://acme.com/parent", "https://acme.com/child"));
-
         // Verify child metadata
         assertExternalReferences(
                 new File(projDir, "child/target/bom.json"),

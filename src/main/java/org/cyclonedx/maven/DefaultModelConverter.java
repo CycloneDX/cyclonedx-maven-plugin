@@ -18,18 +18,8 @@
  */
 package org.cyclonedx.maven;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Properties;
-import java.util.TreeMap;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Singleton;
-
+import com.github.packageurl.MalformedPackageURLException;
+import com.github.packageurl.PackageURL;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DefaultArtifact;
@@ -55,8 +45,18 @@ import org.eclipse.aether.artifact.ArtifactProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.packageurl.MalformedPackageURLException;
-import com.github.packageurl.PackageURL;
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Singleton
 @Named
@@ -187,6 +187,16 @@ public class DefaultModelConverter implements ModelConverter {
             }
         }
         return component;
+
+    }
+
+    private static void setExternalReferences(Component component, ExternalReference[] externalReferences) {
+        if (externalReferences == null || externalReferences.length == 0) {
+            return;
+        }
+        // We need a mutable `List`, hence `Arrays.asList()` won't work.
+        List<ExternalReference> externalReferences_ = Arrays.stream(externalReferences).collect(Collectors.toList());
+        component.setExternalReferences(externalReferences_);
     }
 
     private boolean isModified(Artifact artifact) {
@@ -341,7 +351,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Metadata convert(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    public Metadata convert(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
         final Tool tool = new Tool();
         final Properties properties = readPluginProperties();
         tool.setVendor(properties.getProperty("vendor"));
@@ -367,6 +377,7 @@ public class DefaultModelConverter implements ModelConverter {
         component.setType(resolveProjectType(projectType));
         component.setPurl(generatePackageUrl(project.getArtifact()));
         component.setBomRef(component.getPurl());
+        setExternalReferences(component, externalReferences);
         extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
 
         final Metadata metadata = new Metadata();

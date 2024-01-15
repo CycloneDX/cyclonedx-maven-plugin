@@ -22,6 +22,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.project.MavenProject;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.Metadata;
 
 /**
@@ -57,7 +58,9 @@ public interface ModelConverter {
      * @param projectType the target CycloneDX component type
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
+     * @param externalReferences the external references
      * @return a CycloneDX Metadata object
      */
-    Metadata convert(MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
+    Metadata convert(MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences);
+
 }

@@ -39,6 +39,7 @@ import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
+import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
@@ -217,6 +218,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter( defaultValue = "${project.build.outputTimestamp}" )
     private String outputTimestamp;
 
+    /**
+     * External references to be added to <code>$.metadata.component.externalReferences[]</code>.
+     *
+     * @since 2.7.11
+     */
+    @Parameter
+    private ExternalReference[] externalReferences;
+
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
 
@@ -301,7 +310,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         String analysis = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
         if (analysis != null) {
-            final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText);
+            final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
 
             if (schemaVersion().getVersion() >= 1.3) {
                 metadata.addProperty(newProperty("maven.goal", analysis));

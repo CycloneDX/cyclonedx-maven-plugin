@@ -153,9 +153,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
-
-        // Populate basic fields from the `Artifact` instance
+    public Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
@@ -174,32 +172,20 @@ public class DefaultModelConverter implements ModelConverter {
         if (CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
             component.setBomRef(component.getPurl());
         }
-
-        // Read the project
-        MavenProject project = null;
-        try {
-            project = getEffectiveMavenProject(artifact);
-        } catch (ProjectBuildingException error) {
-            if (logger.isDebugEnabled()) {
-                logger.warn("Unable to create Maven project for `{}` from repository.", artifact.getId(), error);
-            } else {
-                logger.warn("Unable to create Maven project for `{}` from repository.", artifact.getId());
+        if (isDescribedArtifact(artifact)) {
+            try {
+                final MavenProject project = getEffectiveMavenProject(artifact);
+                if (project != null) {
+                    extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
+                }
+            } catch (ProjectBuildingException e) {
+                if (logger.isDebugEnabled()) {
+                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
+                } else {
+                    logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
+                }
             }
         }
-
-        if (project != null) {
-
-            // Populate external references
-            setExternalReferences(component, externalReferences);
-
-            // Extract the rest of the metadata for JARs, i.e., *described* artifacts
-            if (isDescribedArtifact(artifact)) {
-                extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
-            }
-
-        }
-
-        // Return the enriched component
         return component;
 
     }

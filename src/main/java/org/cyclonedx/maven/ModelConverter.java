@@ -47,10 +47,9 @@ public interface ModelConverter {
      * @param artifact the artifact to convert
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
-     * @param externalReferences the external references
      * @return a CycloneDX component
      */
-    Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences);
+    Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText);
 
     /**
      * Converts a MavenProject into a Metadata object.

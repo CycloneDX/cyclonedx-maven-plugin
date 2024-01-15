@@ -266,7 +266,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Component convert(Artifact artifact) {
-        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText, externalReferences);
+        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText);
     }
 
     /**

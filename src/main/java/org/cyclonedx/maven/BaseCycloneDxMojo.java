@@ -220,6 +220,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     /**
      * External references to be added to <code>$.metadata.component.externalReferences[]</code>.
+     *
+     * @since 2.7.11
      */
     @Parameter
     private ExternalReference[] externalReferences;

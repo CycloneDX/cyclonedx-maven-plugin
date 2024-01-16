@@ -20,7 +20,6 @@ package org.cyclonedx.maven;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
@@ -45,7 +44,6 @@ import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
-import org.eclipse.aether.RepositorySystem;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
@@ -61,9 +59,6 @@ import java.util.UUID;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
-    @Parameter(property = "session", readonly = true, required = true)
-    private MavenSession session;
-
     @Parameter(property = "project", readonly = true, required = true)
     private MavenProject project;
 
@@ -71,6 +66,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * The component type associated to the SBOM metadata. See
      * <a href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported
      * values. 
+     *
+     * @since 2.0.0
      */
     @Parameter(property = "projectType", defaultValue = "library", required = false)
     private String projectType;
@@ -180,11 +177,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter(property = "detectUnusedForOptionalScope", defaultValue = "false")
     protected boolean detectUnusedForOptionalScope;
 
-    @org.apache.maven.plugins.annotations.Component(hint = "default")
-    private RepositorySystem aetherRepositorySystem;
-
     /**
      * Skip CycloneDX execution.
+     *
+     * @since 1.1.3
      */
     @SuppressWarnings("CanBeFinal")
     @Parameter(property = "cyclonedx.skip", defaultValue = "false", required = false)

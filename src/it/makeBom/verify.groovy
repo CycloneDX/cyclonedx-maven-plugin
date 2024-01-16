@@ -13,6 +13,10 @@ assert !bomFileJson.text.contains('"timestamp"')
 assert bomFileJson.text.contains('"name" : "cdx:reproducible",')
 assert bomFileJson.text.contains('"value" : "enabled"')
 
+// dependency type=zip: check that artifact is described with license info (issue #431)
+assert bomFileJson.text.contains('"group" : "com.ibm.websphere.appserver.features"')
+assert bomFileJson.text.contains('"name" : "IBM International License Agreement for Non-Warranted Programs",')
+
 File bomAggregateFileXml = new File(basedir, "target/bom-makeAggregateBom.xml")
 File bomAggregateFileJson = new File(basedir, "target/bom-makeAggregateBom.json")
 

@@ -8,6 +8,8 @@ assert bomFileXml.text.contains('<reference type="website"><url>https://github.c
 
 assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
 
+assert bomFileJson.text.contains('"specVersion" : "1.5"')
+
 // Reproducible Builds
 assert !bomFileJson.text.contains('"timestamp"')
 assert bomFileJson.text.contains('"name" : "cdx:reproducible",')

@@ -45,7 +45,7 @@ Default Values
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <configuration>
             <projectType>library</projectType>
-            <schemaVersion>1.4</schemaVersion>
+            <schemaVersion>1.5</schemaVersion>
             <includeBomSerialNumber>true</includeBomSerialNumber>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>
@@ -96,12 +96,13 @@ as well as the output format options. Use the latest possible version of this pl
 the CycloneDX version supported by the target system.
 
 | Version | Schema Version | Format(s) |
-| ------- | -------------- | --------- |
-| 2.6.x | CycloneDX v1.4 | XML/JSON |
-| 2.5.x | CycloneDX v1.3 | XML/JSON |
-| 2.0.x | CycloneDX v1.2 | XML/JSON |
-| 1.4.x | CycloneDX v1.1 | XML |
-| 1.0x | CycloneDX v1.0 | XML |
+|---------|----------------| --------- |
+| 2.8.x   | CycloneDX v1.5 | XML/JSON |
+| 2.6.x   | CycloneDX v1.4 | XML/JSON |
+| 2.5.x   | CycloneDX v1.3 | XML/JSON |
+| 2.0.x   | CycloneDX v1.2 | XML/JSON |
+| 1.4.x   | CycloneDX v1.1 | XML |
+| 1.0x    | CycloneDX v1.0 | XML |
 
 ## Maven Plugin Documentation
 

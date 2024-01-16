@@ -64,7 +64,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     /**
      * The component type associated to the SBOM metadata. See
-     * <a href="https://cyclonedx.org/docs/1.4/json/#metadata_component_type">CycloneDX reference</a> for supported
+     * <a href="https://cyclonedx.org/docs/1.5/json/#metadata_component_type">CycloneDX reference</a> for supported
      * values. 
      *
      * @since 2.0.0
@@ -77,7 +77,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @since 2.1.0
      */
-    @Parameter(property = "schemaVersion", defaultValue = "1.4", required = false)
+    @Parameter(property = "schemaVersion", defaultValue = "1.5", required = false)
     private String schemaVersion;
 
     /**
@@ -451,8 +451,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             return CycloneDxSchema.Version.VERSION_12;
         } else if ("1.3".equals(schemaVersion)) {
             return CycloneDxSchema.Version.VERSION_13;
-        } else {
+        } else if ("1.4".equals(schemaVersion)) {
             return CycloneDxSchema.Version.VERSION_14;
+        } else {
+            return CycloneDxSchema.Version.VERSION_15;
         }
     }
 

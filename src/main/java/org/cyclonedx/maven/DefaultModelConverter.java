@@ -153,7 +153,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Component convert(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    public Component convertMavenDependency(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
@@ -339,7 +339,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Metadata convert(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
+    public Metadata convertMavenProject(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
         final Tool tool = new Tool();
         final Properties properties = readPluginProperties();
         tool.setVendor(properties.getProperty("vendor"));

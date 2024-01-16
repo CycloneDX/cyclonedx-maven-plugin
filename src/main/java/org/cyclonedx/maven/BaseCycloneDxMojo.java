@@ -261,8 +261,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return modelConverter.generatePackageUrl(artifact);
     }
 
-    protected Component convert(Artifact artifact) {
-        return modelConverter.convert(artifact, schemaVersion(), includeLicenseText);
+    protected Component convertMavenDependency(Artifact artifact) {
+        return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText);
     }
 
     /**
@@ -306,7 +306,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         String analysis = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
         if (analysis != null) {
-            final Metadata metadata = modelConverter.convert(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
+            final Metadata metadata = modelConverter.convertMavenProject(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
 
             if (schemaVersion().getVersion() >= 1.3) {
                 metadata.addProperty(newProperty("maven.goal", analysis));
@@ -486,7 +486,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final Component.Scope artifactScope = getComponentScope(artifact, dependencyAnalysis);
             final Component component = components.get(purl);
             if (component == null) {
-                final Component newComponent = convert(artifact);
+                final Component newComponent = convertMavenDependency(artifact);
                 newComponent.setScope(artifactScope);
                 components.put(purl, newComponent);
             } else if (!topLevelComponents.contains(purl)) {

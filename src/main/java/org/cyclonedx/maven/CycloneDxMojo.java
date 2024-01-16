@@ -122,7 +122,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         final BomDependencies bomDependencies = extractBOMDependencies(getProject());
         final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
-        final Component projectBomComponent = convert(getProject().getArtifact());
+        final Component projectBomComponent = convertMavenDependency(getProject().getArtifact());
         components.put(projectBomComponent.getPurl(), projectBomComponent);
         topLevelComponents.add(projectBomComponent.getPurl());
 

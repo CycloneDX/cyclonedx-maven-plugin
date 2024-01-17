@@ -12,7 +12,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/272
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/272">issue #272</a>:
  * dependency has a bundle packaging which causes Maven's ProjectBuildingException
  */
 @RunWith(MavenJUnitTestRunner.class)

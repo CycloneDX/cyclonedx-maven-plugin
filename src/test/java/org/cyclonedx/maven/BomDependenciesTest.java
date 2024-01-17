@@ -25,7 +25,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/256
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/256">issue #256</a>.
  * 
  */
 @RunWith(MavenJUnitTestRunner.class)

@@ -21,7 +21,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/289
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/289">issue #289</a>:
  * NPE when handling relocations
  */
 @RunWith(MavenJUnitTestRunner.class)

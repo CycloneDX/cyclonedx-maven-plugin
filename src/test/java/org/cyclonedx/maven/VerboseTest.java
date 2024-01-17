@@ -10,7 +10,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/280
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/280">issue #280</a>:
  * how to switch verbosity off by default, but let the user activate with CLI parameter
  */
 @RunWith(MavenJUnitTestRunner.class)

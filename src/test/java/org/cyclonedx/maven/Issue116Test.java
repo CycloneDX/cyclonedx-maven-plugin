@@ -13,7 +13,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/116
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/116">issue #116</a>:
  * dependencies in BOM file are missing a reference
  */
 @RunWith(MavenJUnitTestRunner.class)

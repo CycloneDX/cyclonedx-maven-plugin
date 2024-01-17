@@ -28,8 +28,8 @@ import org.cyclonedx.model.Metadata;
 import java.util.Map;
 
 /**
- * Converts a Maven Project with its Maven dependencies resolution graph transformed into a SBOM dependencies list
- * with their dependsOn.
+ * Converts a Maven Project with its Maven dependencies resolution graph into a SBOM dependencies list
+ * with their {@code dependsOn}.
  */
 public interface ProjectDependenciesConverter {
 

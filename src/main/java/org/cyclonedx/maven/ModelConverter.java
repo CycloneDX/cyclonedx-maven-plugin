@@ -26,8 +26,8 @@ import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.Metadata;
 
 /**
- * Model converter from Maven concepts (Artifact + MavenProject) to CycloneDX ones
- * (resp. pURL and Component + Metadata).
+ * Model converter from Maven concepts (dependency Artifact + MavenProject) to CycloneDX ones
+ * (resp. Component with pURL + Metadata).
  */
 public interface ModelConverter {
     String generatePackageUrl(Artifact artifact);

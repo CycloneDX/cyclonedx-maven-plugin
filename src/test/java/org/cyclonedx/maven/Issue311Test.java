@@ -23,7 +23,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/311
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/311">issue #311</a>.
  */
 @RunWith(MavenJUnitTestRunner.class)
 @MavenVersions({"3.6.3"})

@@ -14,7 +14,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/64
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/64">issue #64</a>:
  * include test scoped dependencies
  */
 @RunWith(MavenJUnitTestRunner.class)

@@ -12,7 +12,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/263
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/263">issue #263</a>:
  * when makeAggregateBom using CI-friendly versions, root component does not list modules as dependencies
  */
 @RunWith(MavenJUnitTestRunner.class)

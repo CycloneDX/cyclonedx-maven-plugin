@@ -10,7 +10,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/117
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/117">issue #117</a>:
  * issue with pom.xml UTF-8 encoding with Byte Order Mark
  */
 @RunWith(MavenJUnitTestRunner.class)

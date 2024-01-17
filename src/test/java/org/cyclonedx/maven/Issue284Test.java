@@ -24,7 +24,7 @@ import io.takari.maven.testing.executor.MavenVersions;
 import io.takari.maven.testing.executor.junit.MavenJUnitTestRunner;
 
 /**
- * test for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/284
+ * test for <a href="https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/284">issue #284</a>:
  * Fix filtering of scopes
  */
 @RunWith(MavenJUnitTestRunner.class)

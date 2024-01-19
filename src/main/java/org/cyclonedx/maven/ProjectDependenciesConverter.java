@@ -38,6 +38,10 @@ public interface ProjectDependenciesConverter {
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
      * Maven dependency resolution graph but that are finally not kept in the effective dependencies list.
+     *
+     * @param metadata the SBOM metadata
+     * @param components the SBOM components
+     * @param dependencies the SBOM dependencies
      */
     void cleanupBomDependencies(Metadata metadata, Map<String, Component> components, Map<String, Dependency> dependencies);
 

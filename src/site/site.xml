@@ -41,6 +41,7 @@
           <!-- item name="Usage" href="usage.html"/>
           <item name="FAQ" href="faq.html"/ -->
           <item name="Javadoc" href="apidocs/index.html"/>
+          <item name="External References" href="external-references.html"/>
         </menu>
         <menu ref="reports"/>
     </body>

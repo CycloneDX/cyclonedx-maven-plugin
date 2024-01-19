@@ -215,7 +215,7 @@ public class BomDependenciesTest extends BaseMavenVerifier {
 
     /**
      * This test ensures that any <i>compile</i> dependencies hidden by excluded types are included in the BOM if they are visible dependencies
-     * @throws Exception
+     * @throws Exception if something unexpected happens
      */
     @Test
     public void testTypeExcludes() throws Exception {

@@ -65,6 +65,8 @@ Default Values
 
 `<projectType>` default value is `library` but there are [more choices defined in the CycloneDX specification](https://cyclonedx.org/docs/1.5/json/#metadata_component_type).
 
+See also [External References](https://cyclonedx.github.io/cyclonedx-maven-plugin/external-references.html) documentation for details on this topic.
+
 Excluding Projects
 -------------------
 With `makeAggregateBom` goal, it is possible to exclude certain Maven reactor projects (aka modules) from getting included in the aggregate BOM:

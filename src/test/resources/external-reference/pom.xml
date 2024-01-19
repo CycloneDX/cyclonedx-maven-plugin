@@ -10,12 +10,56 @@
     <packaging>pom</packaging>
     <version>${revision}</version>
 
-    <licenses>
+    <url>https://cyclonedx.org/acme</url><!-- automatically converted to "website" external reference -->
+    <description>description of the project</description><!-- automatically converted to component.description -->
+
+    <organization>
+        <name>OWASP Foundation</name><!-- automatically converted to component.publisher -->
+        <url>https://owasp.org/</url>
+    </organization>
+
+    <licenses><!-- automatically converted to component.licenses[] -->
         <license>
             <name>Apache-2.0</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
+
+    <mailingLists><!-- automatically converted to "mailing-list" external references -->
+        <mailingList>
+            <name>dev ML</name>
+            <archive>https://dev.ml.cyclonedx.org/archive</archive>
+            <subscribe>https://dev.ml.cyclonedx.org/subscribe</subscribe>
+        </mailingList>
+        <mailingList>
+            <name>user ML</name>
+            <subscribe>https://user.ml.cyclonedx.org/subscribe</subscribe>
+        </mailingList>
+    </mailingLists>
+
+    <scm>
+        <connection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</connection>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin.git</url><!-- automatically converted to "vcs" external reference -->
+        <developerConnection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement><!-- automatically converted to "issue-tracker" external reference -->
+        <system>GitHub</system>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/issues</url>
+    </issueManagement>
+
+    <ciManagement><!-- automatically converted to "build-system" external reference -->
+        <system>GitHub</system>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/actions</url>
+    </ciManagement>
+
+    <distributionManagement>
+        <repository><!-- automatically converted to "distribution" external reference -->
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <revision>1.0.0</revision>
@@ -44,10 +88,15 @@
                         <phase>verify</phase>
                         <configuration>
                             <outputFormat>json</outputFormat>
-                            <externalReferences>
+                            <externalReferences><!-- additional configured external references -->
                                 <externalReference>
-                                    <type>CHAT</type>
+                                    <type>CHAT</type><!-- Java ExternalReference.Type constant for "chat" CycloneDX external reference type -->
                                     <url>https://acme.com/parent</url>
+                                    <comment>optional comment</comment>
+                                </externalReference>
+                                <externalReference>
+                                    <type>RELEASE_NOTES</type><!-- Java ExternalReference.Type constant for "release-notes" CycloneDX external reference type -->
+                                    <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/releases</url>
                                 </externalReference>
                             </externalReferences>
                         </configuration>

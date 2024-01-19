@@ -40,6 +40,7 @@ public class Issue314OptionalTest extends BaseMavenVerifier {
     /**
      * Validate the bytecode analysis components.
      * - No component should be marked as optional
+     * @throws Exception if something unexpected happens
      */
     @Test
     public void testBytecodeDependencyTree() throws Exception {
@@ -78,6 +79,7 @@ public class Issue314OptionalTest extends BaseMavenVerifier {
      * Validate the maven optional components.
      * - com.example.issue_314:dependency_C:1.0.0 and com.example.issue_314:dependency_D:1.0.0 *should* be marked as optional
      * because dependency_A declares dependency_C as optional, which depends on dependency_D
+     * @throws Exception if something unexpected happens
      */
     @Test
     public void testMavenOptionalDependencyTree() throws Exception {

@@ -215,8 +215,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private String outputTimestamp;
 
     /**
-     * External references to be added to <code>$.metadata.component.externalReferences[]</code>.
+     * <a href="https://cyclonedx.org/docs/1.5/json/#metadata_component_externalReferences_items_type">External references</a>
+     * to be added to the component the BOM describes <code>$.metadata.component.externalReferences[]</code>:
+     * <pre>
+     * &lt;externalReferences&gt;
+     *   &lt;externalReference&gt;
+     *     &lt;type>EXTERNAL_REFERENCE_TYPE&lt;/type&gt;&lt;-- constant id corresponding to "external-reference-type" SBOM type --&gt;
+     *     &lt;url>https://...&lt;/url&gt;
+     *     &lt;comment>(optional) comment&lt;/comment&gt;
+     *   &lt;/externalReference&gt;
+     * &lt;/externalReferences&gt;
+     * </pre>
      *
+     * @see <a href="https://cyclonedx.github.io/cyclonedx-core-java/org/cyclonedx/model/ExternalReference.Type.html">ExternalReference.Type constants</a>
      * @since 2.7.11
      */
     @Parameter

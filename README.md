@@ -11,8 +11,8 @@ CycloneDX Maven Plugin
 =========
 
 The CycloneDX Maven plugin generates CycloneDX Software Bill of Materials (SBOM) containing the aggregate of all direct 
-and transitive dependencies of a project. CycloneDX is a lightweight software bill of materials 
-(SBOM) standard designed for use in application security contexts and supply chain component analysis.
+and transitive dependencies of a project. CycloneDX is a full-stack SBOM standard designed for use in application security
+contexts and supply chain component analysis.
 
 Maven Usage
 -------------------

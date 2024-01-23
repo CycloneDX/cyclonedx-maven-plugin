@@ -39,6 +39,8 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.LifecycleChoice;
+import org.cyclonedx.model.Lifecycles;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
@@ -50,6 +52,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -383,6 +386,14 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     bom.setCompositions(Collections.singletonList(composition));
                 }
             }*/
+
+            if (schemaVersion().getVersion() >= 1.5) {
+                LifecycleChoice build = new LifecycleChoice();
+                build.setPhase(LifecycleChoice.Phase.BUILD);
+                Lifecycles lifecycles = new Lifecycles();
+                lifecycles.setLifecycleChoice(Collections.singletonList(build));
+                metadata.setLifecycles(lifecycles);
+            }
 
             if ("all".equalsIgnoreCase(outputFormat)
                     || "xml".equalsIgnoreCase(outputFormat)

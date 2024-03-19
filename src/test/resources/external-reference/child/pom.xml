@@ -28,6 +28,7 @@
                 <artifactId>cyclonedx-maven-plugin</artifactId>
                 <version>${cyclonedx-maven-plugin.version}</version>
                 <configuration>
+                    <schemaVersion>1.4</schemaVersion>
                     <externalReferences combine.children="append">
                         <externalReference>
                             <type>CHAT</type>

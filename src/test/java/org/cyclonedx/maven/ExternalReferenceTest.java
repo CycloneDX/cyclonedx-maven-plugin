@@ -51,7 +51,7 @@ public class ExternalReferenceTest extends BaseMavenVerifier {
         assertExternalReferences(bomJsonFile, "chat", "url", singleton("https://acme.com/parent"));
         assertExternalReferences(bomJsonFile, "website", "url", singleton("https://cyclonedx.org/acme"));
         assertExternalReferences(bomJsonFile, "vcs", "url", singleton("https://github.com/CycloneDX/cyclonedx-maven-plugin.git"));
-        verifyCommonExternalReferences(bomJsonFile);
+        verifyCommonExternalReferences(bomJsonFile, false);
     }
 
     private static void verifyChildExternalReferences(File projDir) {
@@ -59,14 +59,15 @@ public class ExternalReferenceTest extends BaseMavenVerifier {
         assertExternalReferences(bomJsonFile, "chat", "url", asList("https://acme.com/parent", "https://acme.com/child"));
         assertExternalReferences(bomJsonFile, "website", "url", singleton("https://cyclonedx.org/acme/child"));
         assertExternalReferences(bomJsonFile, "vcs", "url", singleton("https://github.com/CycloneDX/cyclonedx-maven-plugin.git/child"));
-        verifyCommonExternalReferences(bomJsonFile);
+        verifyCommonExternalReferences(bomJsonFile, true);
     }
 
-    private static void verifyCommonExternalReferences(File bomJsonFile) {
+    private static void verifyCommonExternalReferences(File bomJsonFile, boolean child) {
         assertExternalReferences(bomJsonFile, "chat", "comment", singleton("optional comment"));
         assertExternalReferences(bomJsonFile, "release-notes", "url", singleton("https://github.com/CycloneDX/cyclonedx-maven-plugin/releases"));
         assertExternalReferences(bomJsonFile, "build-system", "url", singleton("https://github.com/CycloneDX/cyclonedx-maven-plugin/actions"));
-        assertExternalReferences(bomJsonFile, "distribution", "url", singleton("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"));
+        // CycloneDX 1.4 supports distribution only, 1.5 replaces with distribution-intake
+        assertExternalReferences(bomJsonFile, child ? "distribution" : "distribution-intake", "url", singleton("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"));
         assertExternalReferences(bomJsonFile, "issue-tracker", "url", singleton("https://github.com/CycloneDX/cyclonedx-maven-plugin/issues"));
         assertExternalReferences(bomJsonFile, "mailing-list", "url", singleton("https://dev.ml.cyclonedx.org/archive"));
     }

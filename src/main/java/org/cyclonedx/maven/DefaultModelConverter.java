@@ -232,7 +232,9 @@ public class DefaultModelConverter implements ModelConverter {
             if (project.getDistributionManagement() != null) {
                 addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getDownloadUrl(), component);
                 if (project.getDistributionManagement().getRepository() != null) {
-                    addExternalReference(ExternalReference.Type.DISTRIBUTION, project.getDistributionManagement().getRepository().getUrl(), component);
+                    ExternalReference.Type type =
+                            (schemaVersion.getVersion() < 1.5) ? ExternalReference.Type.DISTRIBUTION : ExternalReference.Type.DISTRIBUTION_INTAKE;
+                    addExternalReference(type, project.getDistributionManagement().getRepository().getUrl(), component);
                 }
             }
             if (project.getIssueManagement() != null) {

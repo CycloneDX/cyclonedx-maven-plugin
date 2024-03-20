@@ -2,6 +2,7 @@ package org.cyclonedx.maven;
 
 import java.io.File;
 
+import org.cyclonedx.CycloneDxSchema;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -46,5 +47,20 @@ public class VerboseTest extends BaseMavenVerifier {
                 .execute("verify")
                 .assertErrorFreeLog()
                 .assertLogText("[INFO] CycloneDX: Parameters"); // check goal verbose output
+    }
+
+    @Test
+    public void testUnsupportedSchemaVersionCli() throws Exception {
+        File projDir = resources.getBasedir("verbose");
+
+        verifier
+                .forProject(projDir)
+                .withCliOption("-Dcurrent.version=" + getCurrentVersion()) // inject cyclonedx-maven-plugin version
+                .withCliOption("-B")
+                .withCliOption("-DschemaVersion=1.5.1")
+                .execute("verify")
+                .assertErrorFreeLog()
+                .assertLogText("[WARNING] Invalid schemaVersion configured '1.5.1', using " + CycloneDxSchema.VERSION_LATEST.getVersionString()) // check warning on invalid schema version
+                .assertLogText("[INFO] CycloneDX: Creating BOM version " + CycloneDxSchema.VERSION_LATEST.getVersionString() + " with 0 component(s)"); // and display effective schema version
     }
 }

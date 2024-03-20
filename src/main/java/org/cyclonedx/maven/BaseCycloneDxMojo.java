@@ -82,6 +82,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     @Parameter(property = "schemaVersion", defaultValue = "1.5", required = false)
     private String schemaVersion;
+    private CycloneDxSchema.Version effectiveSchemaVersion = null;
 
     /**
      * The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).
@@ -311,6 +312,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
             return;
         }
+        if (!schemaVersion().getVersionString().equals(schemaVersion)) {
+            getLog().warn("Invalid schemaVersion configured '" + schemaVersion +"', using " + effectiveSchemaVersion.getVersionString());
+            schemaVersion = effectiveSchemaVersion.getVersionString();
+        }
         logParameters();
 
         // top level components do not currently set their scope, we track these to prevent merging of scopes
@@ -465,19 +470,22 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @return the CycloneDX schema to use
      */
     protected CycloneDxSchema.Version schemaVersion() {
-        if ("1.0".equals(schemaVersion)) {
-            return CycloneDxSchema.Version.VERSION_10;
-        } else if ("1.1".equals(schemaVersion)) {
-            return CycloneDxSchema.Version.VERSION_11;
-        } else if ("1.2".equals(schemaVersion)) {
-            return CycloneDxSchema.Version.VERSION_12;
-        } else if ("1.3".equals(schemaVersion)) {
-            return CycloneDxSchema.Version.VERSION_13;
-        } else if ("1.4".equals(schemaVersion)) {
-            return CycloneDxSchema.Version.VERSION_14;
-        } else {
-            return CycloneDxSchema.Version.VERSION_15;
+        if (effectiveSchemaVersion == null) {
+            if ("1.0".equals(schemaVersion)) {
+                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_10;
+            } else if ("1.1".equals(schemaVersion)) {
+                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_11;
+            } else if ("1.2".equals(schemaVersion)) {
+                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_12;
+            } else if ("1.3".equals(schemaVersion)) {
+                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_13;
+            } else if ("1.4".equals(schemaVersion)) {
+                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_14;
+            } else {
+                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_15;
+            }
         }
+        return effectiveSchemaVersion;
     }
 
     protected void logAdditionalParameters() {

@@ -126,7 +126,7 @@ references that are extracted from <a class="externalLink" href="https://maven.a
   &lt;configuration&gt;
     &lt;externalReferences&gt;
       &lt;externalReference&gt;
-        &lt;type&gt;EXTERNAL_REFERENCE_TYPE&lt;/type&gt;&lt;-- for &quot;external-reference-type&quot;--&gt;
+        &lt;type&gt;... external-reference-type ...&lt;/type&gt;
         &lt;url&gt;... value ...&lt;/url&gt;
         &lt;comment&gt;(optional) comment&lt;/comment&gt;
       &lt;/externalReference&gt;
@@ -134,8 +134,7 @@ references that are extracted from <a class="externalLink" href="https://maven.a
   &lt;/configuration&gt;
 &lt;/plugin&gt;
 </code></pre></div>
-<p>Notice that the type value in the plugin configuration refers to a <a class="externalLink" href="https://cyclonedx.github.io/cyclonedx-core-java/org/cyclonedx/model/ExternalReference.Type.html">CycloneDX Core (Java) library constant name</a>
-corresponding to <a class="externalLink" href="https://cyclonedx.org/docs/1.5/json/#metadata_component_externalReferences_items_type">CycloneDX type</a>.</p></section>
+<p>See valid <a class="externalLink" href="https://cyclonedx.org/docs/1.5/json/#metadata_component_externalReferences_items_type">CycloneDX external reference types</a>.</p></section>
         </main>
       </div>
     </div>

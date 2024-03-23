@@ -129,7 +129,8 @@ var activeTableTab = "activeTableTab";
 <pre>@Mojo(name="makeBom",
       defaultPhase=PACKAGE,
       threadSafe=true,
-      requiresOnline=true)
+      requiresOnline=true,
+      configurator="cyclonedx-mojo-component-configurator")
 public class <span class="typeNameLabel">CycloneDxMojo</span>
 extends <a href="../../../org/cyclonedx/maven/BaseCycloneDxMojo.html" title="class in org.cyclonedx.maven">BaseCycloneDxMojo</a></pre>
 <div class="block">Creates a CycloneDX BOM for each Maven module with its dependencies.</div>

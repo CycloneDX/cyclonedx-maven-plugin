@@ -90,12 +90,12 @@
                             <outputFormat>json</outputFormat>
                             <externalReferences><!-- additional configured external references -->
                                 <externalReference>
-                                    <type>CHAT</type><!-- Java ExternalReference.Type constant for "chat" CycloneDX external reference type -->
+                                    <type>chat</type>
                                     <url>https://acme.com/parent</url>
                                     <comment>optional comment</comment>
                                 </externalReference>
                                 <externalReference>
-                                    <type>RELEASE_NOTES</type><!-- Java ExternalReference.Type constant for "release-notes" CycloneDX external reference type -->
+                                    <type>release-notes</type>
                                     <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/releases</url>
                                 </externalReference>
                             </externalReferences>

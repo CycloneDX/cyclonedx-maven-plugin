@@ -38,7 +38,7 @@ You can add more external references the component that the BOM describes by plu
   <configuration>
     <externalReferences>
       <externalReference>
-        <type>EXTERNAL_REFERENCE_TYPE</type><-- for "external-reference-type"-->
+        <type>... external-reference-type ...</type>
         <url>... value ...</url>
         <comment>(optional) comment</comment>
       </externalReference>
@@ -47,11 +47,9 @@ You can add more external references the component that the BOM describes by plu
 </plugin>
 ```
 
-Notice that the type value in the plugin configuration refers to a [CycloneDX Core (Java) library constant name][external-reference-type-constants]
-corresponding to [CycloneDX type][external-reference-type].
+See valid [CycloneDX external reference types][external-reference-type].
 
 [maven-model]: https://maven.apache.org/ref/current/maven-model/maven.html
 [metadata-component]: https://cyclonedx.org/docs/1.5/json/#metadata_component
 [components]: https://cyclonedx.org/docs/1.5/json/#components
 [external-reference-type]: https://cyclonedx.org/docs/1.5/json/#metadata_component_externalReferences_items_type
-[external-reference-type-constants]: https://cyclonedx.github.io/cyclonedx-core-java/org/cyclonedx/model/ExternalReference.Type.html

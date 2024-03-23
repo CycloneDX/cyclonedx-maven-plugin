@@ -31,7 +31,7 @@
                     <schemaVersion>1.4</schemaVersion>
                     <externalReferences combine.children="append">
                         <externalReference>
-                            <type>CHAT</type>
+                            <type>chat</type>
                             <url>https://acme.com/child</url>
                         </externalReference>
                     </externalReferences>

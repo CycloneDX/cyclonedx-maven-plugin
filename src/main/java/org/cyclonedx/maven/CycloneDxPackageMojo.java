@@ -42,7 +42,8 @@ import java.util.Set;
         defaultPhase = LifecyclePhase.PACKAGE,
         threadSafe = true,
         aggregator = true,
-        requiresOnline = true
+        requiresOnline = true,
+        configurator = "cyclonedx-mojo-component-configurator"
 )
 public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
     @Parameter(property = "reactorProjects", readonly = true, required = true)

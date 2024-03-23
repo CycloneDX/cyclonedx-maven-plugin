@@ -43,7 +43,8 @@ import java.util.Set;
         name = "makeBom",
         defaultPhase = LifecyclePhase.PACKAGE,
         threadSafe = true,
-        requiresOnline = true
+        requiresOnline = true,
+        configurator = "cyclonedx-mojo-component-configurator"
 )
 public class CycloneDxMojo extends BaseCycloneDxMojo {
 

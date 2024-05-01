@@ -218,6 +218,7 @@ public class DefaultModelConverter implements ModelConverter {
             final String jarPath = artifact.getFile().getAbsolutePath();
             final String sha1Path = jarPath.replace(".jar", ".jar.sha1");
             if (jarPath.contains(".m2")) {
+                // This removes the home directory which might be sensitive
                 fileMethod.setValue(Paths.get(".m2", jarPath.split(".m2")[1]).toString());
             } else {
                 fileMethod.setValue(jarPath);

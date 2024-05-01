@@ -34,11 +34,15 @@ import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.Evidence;
 import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.Hash;
 import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
+import org.cyclonedx.model.component.evidence.Identity;
+import org.cyclonedx.model.component.evidence.Method;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import org.eclipse.aether.artifact.ArtifactProperties;
@@ -52,11 +56,17 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
 
 @Singleton
 @Named
@@ -122,7 +132,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private boolean isEmpty(final String value) {
-        return (value == null) || (value.length() == 0);
+        return (value == null) || (value.isEmpty());
     }
 
     private String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact, final boolean includeVersion, final boolean includeClassifier) {
@@ -184,8 +194,61 @@ public class DefaultModelConverter implements ModelConverter {
                 logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
             }
         }
+        // Set component evidence for cyclonedx 1.5
+        if (CycloneDxSchema.Version.VERSION_15 == schemaVersion) {
+            addComponentEvidence(component, artifact);
+        }
         return component;
 
+    }
+
+    /**
+     * Adds component identity evidence for the filename and manifest file
+     *
+     * @param component Component for which the evidence needs to be attached
+     * @param artifact Maven artifact
+     */
+    private static void addComponentEvidence(final Component component, final Artifact artifact) {
+        if (artifact.getFile() != null) {
+            final Optional<Hash> sha1Hash = component.getHashes().stream().filter(hash -> hash.getAlgorithm().equals("SHA-1")).findFirst();
+            final Evidence evidence = new Evidence();
+            final Identity identity = new Identity();
+            final List<Method> methods = new ArrayList<>();
+            final Method fileMethod = new Method();
+            final String jarPath = artifact.getFile().getAbsolutePath();
+            final String sha1Path = jarPath.replace(".jar", ".jar.sha1");
+            if (jarPath.contains(".m2")) {
+                fileMethod.setValue(Paths.get(".m2", jarPath.split(".m2")[1]).toString());
+            } else {
+                fileMethod.setValue(jarPath);
+            }
+            fileMethod.setConfidence(0.1);
+            fileMethod.setTechnique(Method.Technique.FILENAME);
+            final Path sha1FilePath = Paths.get(sha1Path);
+            if (sha1Hash.isPresent() && Files.exists(sha1FilePath)) {
+                try {
+                    final Optional<String> sha1Content = Files.readAllLines(sha1FilePath).stream().findFirst();
+                    if (sha1Content.isPresent()) {
+                        String sha1Value = sha1Content.get().split(" ")[0].trim();
+                        if (sha1Value.equals(sha1Hash.get().getValue())) {
+                            final Method hashMethod = new Method();
+                            hashMethod.setConfidence(0.9);
+                            hashMethod.setTechnique(Method.Technique.HASH_COMPARISON);
+                            hashMethod.setValue(sha1Value);
+                            methods.add(hashMethod);
+                        }
+                    }
+                } catch (IOException e) {
+                    // Invalid hash
+                }
+            }
+            identity.setField(Identity.Field.PURL);
+            identity.setConfidence(1.0);
+            methods.add(fileMethod);
+            identity.setMethods(methods);
+            evidence.setIdentity(identity);
+            component.setEvidence(evidence);
+        }
     }
 
     private static void setExternalReferences(Component component, ExternalReference[] externalReferences) {
@@ -240,7 +303,7 @@ public class DefaultModelConverter implements ModelConverter {
             if (project.getIssueManagement() != null) {
                 addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
             }
-            if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
+            if (project.getMailingLists() != null && !project.getMailingLists().isEmpty()) {
                 for (MailingList list : project.getMailingLists()) {
                     String url = list.getArchive();
                     if (url == null) {
@@ -401,6 +464,6 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private static boolean isURLBlank(String url) {
-        return url == null || url.isEmpty() || url.trim().length() == 0;
+        return url == null || url.isEmpty() || url.trim().isEmpty();
     }
 }

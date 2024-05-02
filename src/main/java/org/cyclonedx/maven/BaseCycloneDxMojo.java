@@ -524,11 +524,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final Component component = components.get(purl);
             final ArtifactRepository repository = artifactRemoteRepositories.get(purl);
             String repository_url = "";
-            // We are only interested in non-central repository urls
-            if (repository instanceof RemoteRepository && !repository.getId().equals("central")) {
+            if (repository instanceof RemoteRepository) {
                 try {
                     String url = ((RemoteRepository) repository).getUrl();
-                    if (url != null) {
+                    // As per purl spec, only repo.maven.apache.org/maven2 is considered the default
+                    if (url != null && !url.startsWith("https://repo.maven.apache.org/maven2")) {
                         repository_url = "&repository_url=" + URLEncoder.encode(url, "UTF-8");
                     }
                 } catch (UnsupportedEncodingException e) {
@@ -543,8 +543,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 }
                 components.put(purl, newComponent);
             } else if (!topLevelComponents.contains(purl)) {
-                if (!repository_url.isEmpty()) {
-                    component.setPurl(component.getPurl() + repository_url);
+                String currentPurl = component.getPurl();
+                if (!repository_url.isEmpty() && !currentPurl.contains("repository_url")) {
+                    component.setPurl(currentPurl + repository_url);
                 }
                 component.setScope(mergeScopes(component.getScope(), artifactScope));
             }

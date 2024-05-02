@@ -24,6 +24,7 @@ import org.apache.maven.project.MavenProject;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
+import org.eclipse.aether.repository.ArtifactRepository;
 
 import java.util.Map;
 
@@ -66,10 +67,13 @@ public interface ProjectDependenciesConverter {
         private final Map<String, Artifact> artifacts;
         private final Map<String, Artifact> dependencyArtifacts;
 
-        public BomDependencies(final Map<String, Dependency> dependencies, final Map<String, Artifact> artifacts, final Map<String, Artifact> dependencyArtifacts) {
+        private final Map<String, ArtifactRepository> artifactRemoteRepositories;
+
+        public BomDependencies(final Map<String, Dependency> dependencies, final Map<String, Artifact> artifacts, final Map<String, Artifact> dependencyArtifacts, final Map<String, ArtifactRepository> artifactRemoteRepositories) {
             this.dependencies = dependencies;
             this.artifacts = artifacts;
             this.dependencyArtifacts = dependencyArtifacts;
+            this.artifactRemoteRepositories = artifactRemoteRepositories;
         }
 
         public final Map<String, Dependency> getDependencies() {
@@ -83,5 +87,7 @@ public interface ProjectDependenciesConverter {
         public final Map<String, Artifact> getArtifacts() {
             return artifacts;
         }
+
+        public final Map<String, ArtifactRepository> getArtifactRemoteRepositories() { return artifactRemoteRepositories; }
     }
 }

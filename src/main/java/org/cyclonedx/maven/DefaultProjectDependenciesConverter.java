@@ -35,6 +35,7 @@ import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.ArtifactProperties;
 import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.repository.ArtifactRepository;
 import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,8 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private Set<String> excludeTypesSet;
     private MavenDependencyScopes include;
 
+    final Map<String, ArtifactRepository> artifactRemoteRepositories = new LinkedHashMap<>();
+
     @Override
     public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
         this.include = include;
@@ -77,9 +80,8 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         final Map<String, Artifact> mavenArtifacts = new LinkedHashMap<>();
         final Map<String, Artifact> mavenDependencyArtifacts = new LinkedHashMap<>();
         try {
-            final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
+            final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem, modelConverter, artifactRemoteRepositories);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
-
             final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
             populateArtifactMap(mavenArtifacts, mavenDependencyArtifacts, mavenRoot, 0);
 
@@ -98,7 +100,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
             logger.warn("An error occurred building dependency graph: " + e.getMessage());
         }
-        return new BomDependencies(dependencies, mavenArtifacts, mavenDependencyArtifacts);
+        return new BomDependencies(dependencies, mavenArtifacts, mavenDependencyArtifacts, artifactRemoteRepositories);
     }
 
     private void populateArtifactMap(final Map<String, Artifact> artifactMap, final Map<String, Artifact> dependencyArtifactMap, final org.apache.maven.shared.dependency.graph.DependencyNode node, final int level) {

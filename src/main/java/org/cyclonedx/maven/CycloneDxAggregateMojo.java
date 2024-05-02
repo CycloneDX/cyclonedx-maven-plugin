@@ -130,7 +130,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             components.put(projectBomComponent.getPurl(), projectBomComponent);
             topLevelComponents.add(projectBomComponent.getPurl());
 
-            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
+            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), bomDependencies.getArtifactRemoteRepositories(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

@@ -71,6 +71,11 @@ import java.util.stream.Collectors;
 @Singleton
 @Named
 public class DefaultModelConverter implements ModelConverter {
+    // Confidence value for filename based identity detection
+    public static final double FILENAME_CONFIDENCE = 0.1;
+
+    // Confidence value for hash comparison based identity detection
+    public static final double HASH_COMPARISON_CONFIDENCE = 0.8;
     private final Logger logger = LoggerFactory.getLogger(DefaultModelConverter.class);
 
     @Inject
@@ -203,49 +208,72 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     /**
-     * Adds component identity evidence for the filename and manifest file
+     * Adds component identity evidence for the component using the filename, hash and gpg key files
      *
      * @param component Component for which the evidence needs to be attached
      * @param artifact Maven artifact
      */
     private static void addComponentEvidence(final Component component, final Artifact artifact) {
         if (artifact.getFile() != null) {
-            final Optional<Hash> sha1Hash = component.getHashes().stream().filter(hash -> hash.getAlgorithm().equals("SHA-1")).findFirst();
+            final List<Hash> sha1OrMd5Hashes = component.getHashes().stream().filter(hash -> hash.getAlgorithm().equals("SHA-1") || hash.getAlgorithm().equals("MD5")).collect(Collectors.toList());
             final Evidence evidence = new Evidence();
             final Identity identity = new Identity();
             final List<Method> methods = new ArrayList<>();
-            final Method fileMethod = new Method();
+            final Method jarFileMethod = new Method();
+            final Method ascFileMethod = new Method();
+            double overallConfidence = 0.0;
             final String jarPath = artifact.getFile().getAbsolutePath();
             final String sha1Path = jarPath.replace(".jar", ".jar.sha1");
-            if (jarPath.contains(".m2")) {
-                // This removes the home directory which might be sensitive
-                fileMethod.setValue(Paths.get(".m2", jarPath.split(".m2")[1]).toString());
-            } else {
-                fileMethod.setValue(jarPath);
+            final String ascPath = jarPath.replace(".jar", ".jar.asc");
+            final String md5Path = jarPath.replace(".jar", ".jar.md5");
+            jarFileMethod.setValue(".m2/" + jarPath.replaceFirst("^(.*).m2/", ""));
+            jarFileMethod.setConfidence(FILENAME_CONFIDENCE);
+            jarFileMethod.setTechnique(Method.Technique.FILENAME);
+            methods.add(jarFileMethod);
+            overallConfidence += FILENAME_CONFIDENCE;
+            // For gpg signed artifacts, we can bump up the confidence a bit more
+            // In the future, there could be a setting to explicitly verify the gpg keys
+            if (Files.exists(Paths.get(ascPath))) {
+                ascFileMethod.setValue(".m2/" + ascPath.replaceFirst("^(.*).m2/", ""));
+                ascFileMethod.setConfidence(FILENAME_CONFIDENCE);
+                ascFileMethod.setTechnique(Method.Technique.FILENAME);
+                methods.add(ascFileMethod);
+                overallConfidence += FILENAME_CONFIDENCE;
             }
-            fileMethod.setConfidence(0.1);
-            fileMethod.setTechnique(Method.Technique.FILENAME);
             final Path sha1FilePath = Paths.get(sha1Path);
-            if (sha1Hash.isPresent() && Files.exists(sha1FilePath)) {
-                try {
-                    final Optional<String> sha1Content = Files.readAllLines(sha1FilePath).stream().findFirst();
-                    if (sha1Content.isPresent()) {
-                        String sha1Value = sha1Content.get().split(" ")[0].trim();
-                        if (sha1Value.equals(sha1Hash.get().getValue())) {
-                            final Method hashMethod = new Method();
-                            hashMethod.setConfidence(0.9);
-                            hashMethod.setTechnique(Method.Technique.HASH_COMPARISON);
-                            hashMethod.setValue(sha1Value);
-                            methods.add(hashMethod);
+            final Path md5FilePath = Paths.get(md5Path);
+            if (!sha1OrMd5Hashes.isEmpty()) {
+                Path hashFileToUse = null;
+                // Prefer the .sha1 file followed by .md5
+                if (Files.exists(sha1FilePath)) {
+                    hashFileToUse = sha1FilePath;
+                } else if (Files.exists(md5FilePath)) {
+                    hashFileToUse = md5FilePath;
+                }
+                if (hashFileToUse != null) {
+                    try {
+                        final Optional<String> hashFileContent = Files.readAllLines(hashFileToUse).stream().findFirst();
+                        if (hashFileContent.isPresent()) {
+                            String storedHashValue = hashFileContent.get().split(" ")[0].trim();
+                            for (Hash sha1OrMd5Hash : sha1OrMd5Hashes) {
+                                if (storedHashValue.equals(sha1OrMd5Hash.getValue())) {
+                                    final Method hashMethod = new Method();
+                                    hashMethod.setConfidence(HASH_COMPARISON_CONFIDENCE);
+                                    overallConfidence += HASH_COMPARISON_CONFIDENCE;
+                                    hashMethod.setTechnique(Method.Technique.HASH_COMPARISON);
+                                    hashMethod.setValue(storedHashValue);
+                                    methods.add(hashMethod);
+                                    break;
+                                }
+                            }
                         }
+                    } catch (IOException e) {
+                        // Invalid hash
                     }
-                } catch (IOException e) {
-                    // Invalid hash
                 }
             }
             identity.setField(Identity.Field.PURL);
-            identity.setConfidence(1.0);
-            methods.add(fileMethod);
+            identity.setConfidence(overallConfidence);
             identity.setMethods(methods);
             evidence.setIdentity(identity);
             component.setEvidence(evidence);

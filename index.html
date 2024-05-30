@@ -159,7 +159,7 @@ contexts and supply chain component analysis.</p><section>
 <li><code>makeAggregateBom</code>: creates an aggregate BOM at build root (with dependencies from the whole multi-modules build), and eventually a BOM for each module,</li>
 <li><code>makePackageBom</code>: creates a BOM for each Maven module with <code>war</code> or <code>ear</code> packaging.</li>
 </ul>
-<p>By default, the BOM(s) will be attached as an additional artifacts with <code>cyclonedx</code> classifier and <code>xml</code> or <code>json</code> extension during a Maven <code>install</code> or <code>deploy</code>:</p>
+<p>By default, the BOM(s) will be attached as an additional artifacts with <code>cyclonedx</code> classifier (can be customized by setting <code>cyclonedx.classifier</code>) and <code>xml</code> or <code>json</code> extension during a Maven <code>install</code> or <code>deploy</code>:</p>
 <ul>
 
 <li><code>${project.artifactId}-${project.version}-cyclonedx.xml</code></li>

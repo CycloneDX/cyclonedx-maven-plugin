@@ -35,10 +35,12 @@ import org.apache.maven.repository.RepositorySystem;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.Hash;
 import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
+import org.cyclonedx.model.metadata.ToolInformation;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import org.eclipse.aether.artifact.ArtifactProperties;
@@ -53,6 +55,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -342,22 +345,43 @@ public class DefaultModelConverter implements ModelConverter {
 
     @Override
     public Metadata convertMavenProject(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
-        final Tool tool = new Tool();
+        final Metadata metadata = new Metadata();
+
+        // prepare properties and hash values from the current mojo
         final Properties properties = readPluginProperties();
-        tool.setVendor(properties.getProperty("vendor"));
-        tool.setName(properties.getProperty("name"));
-        tool.setVersion(properties.getProperty("version"));
-        // Attempt to add hash values from the current mojo
+        List<Hash> hashes = null;
         final Artifact self = new DefaultArtifact(properties.getProperty("groupId"), properties.getProperty("artifactId"),
                 properties.getProperty("version"), Artifact.SCOPE_COMPILE, "jar", null, new DefaultArtifactHandler());
         final Artifact resolved = session.getLocalRepository().find(self);
         if (resolved != null) {
             try {
                 resolved.setFile(new File(resolved.getFile() + ".jar"));
-                tool.setHashes(BomUtils.calculateHashes(resolved.getFile(), schemaVersion));
+                hashes = BomUtils.calculateHashes(resolved.getFile(), schemaVersion);
             } catch (IOException e) {
                 logger.warn("Unable to calculate hashes of self", e);
             }
+        }
+        if (schemaVersion.compareTo(CycloneDxSchema.Version.VERSION_15) < 0) {
+            // CycloneDX up to 1.4+ use metadata.tools.tool
+            final Tool tool = new Tool();
+            tool.setVendor(properties.getProperty("vendor"));
+            tool.setName(properties.getProperty("name"));
+            tool.setVersion(properties.getProperty("version"));
+            tool.setHashes(hashes);
+            metadata.addTool(tool);
+        } else {
+            // CycloneDX 1.5+: use metadata.tools.component
+            ToolInformation toolInfo = new ToolInformation();
+            Component toolComponent = new Component();
+            toolComponent.setType(Component.Type.LIBRARY);
+            toolComponent.setGroup(properties.getProperty("groupId"));
+            toolComponent.setName(properties.getProperty("artifactId"));
+            toolComponent.setVersion(properties.getProperty("version"));
+            toolComponent.setDescription(properties.getProperty("name"));
+            toolComponent.setAuthor(properties.getProperty("vendor"));
+            toolComponent.setHashes(hashes);
+            toolInfo.setComponents(Collections.singletonList(toolComponent));
+            metadata.setToolChoice(toolInfo);
         }
 
         final Component component = new Component();
@@ -369,10 +393,8 @@ public class DefaultModelConverter implements ModelConverter {
         component.setBomRef(component.getPurl());
         setExternalReferences(component, externalReferences);
         extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
-
-        final Metadata metadata = new Metadata();
-        metadata.addTool(tool);
         metadata.setComponent(component);
+
         return metadata;
     }
 

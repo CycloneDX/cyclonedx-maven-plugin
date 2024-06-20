@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 import io.takari.maven.testing.executor.MavenRuntime.MavenRuntimeBuilder;
 import io.takari.maven.testing.executor.MavenVersions;
@@ -52,9 +51,8 @@ public class Issue314OptionalTest extends BaseMavenVerifier {
 
       final Document bom = readXML(new File(projDir, "dependency_A/target/bom.xml"));
 
-      final NodeList componentsList = bom.getElementsByTagName("components");
-      assertEquals("Expected a single components element", 1, componentsList.getLength());
-      final Element components = (Element)componentsList.item(0);
+      final Element components = getElement(getElement(bom, "bom"), "components");
+      assertNotNull("bom is missing components", components);
 
       final Element componentBNode = getComponentNode(components, ISSUE_314_DEPENDENCY_B);
       final Element componentBScope = getElement(componentBNode, "scope");
@@ -92,9 +90,8 @@ public class Issue314OptionalTest extends BaseMavenVerifier {
 
       final Document bom = readXML(new File(projDir, "dependency_A/target/bom.xml"));
 
-      final NodeList componentsList = bom.getElementsByTagName("components");
-      assertEquals("Expected a single components element", 1, componentsList.getLength());
-      final Element components = (Element)componentsList.item(0);
+      final Element components = getElement(getElement(bom, "bom"), "components");
+      assertNotNull("bom is missing components", components);
 
       final Element componentBNode = getComponentNode(components, ISSUE_314_DEPENDENCY_B);
       final Element componentBScope = getElement(componentBNode, "scope");

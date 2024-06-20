@@ -16,7 +16,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 class TestUtils {
-    static Element getElement(final Element parent, final String elementName) throws Exception {
+    static Element getElement(final Node parent, final String elementName) throws Exception {
         Element element = null;
         Node child = parent.getFirstChild();
         while (child != null) {

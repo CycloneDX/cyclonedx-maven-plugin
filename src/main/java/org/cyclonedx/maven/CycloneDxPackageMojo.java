@@ -70,7 +70,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
             components.put(projectBomComponent.getPurl(), projectBomComponent);
             topLevelComponents.add(projectBomComponent.getPurl());
 
-            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), null);
+            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), bomDependencies.getArtifactRemoteRepositories(), null);
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

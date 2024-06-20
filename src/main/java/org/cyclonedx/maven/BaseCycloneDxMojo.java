@@ -46,10 +46,15 @@ import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
+import org.eclipse.aether.repository.ArtifactRepository;
+import org.eclipse.aether.repository.RemoteRepository;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -519,17 +524,37 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected void populateComponents(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Artifact> artifacts, final ProjectDependencyAnalysis dependencyAnalysis) {
+    protected void populateComponents(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Artifact> artifacts, final Map<String, ArtifactRepository> artifactRemoteRepositories, final ProjectDependencyAnalysis dependencyAnalysis) {
         for (Map.Entry<String, Artifact> entry: artifacts.entrySet()) {
             final String purl = entry.getKey();
             final Artifact artifact = entry.getValue();
             final Component.Scope artifactScope = getComponentScope(artifact, dependencyAnalysis);
             final Component component = components.get(purl);
+            final ArtifactRepository repository = artifactRemoteRepositories.get(purl);
+            String repository_url = "";
+            if (repository instanceof RemoteRepository) {
+                try {
+                    String url = ((RemoteRepository) repository).getUrl();
+                    // As per purl spec, only repo.maven.apache.org/maven2 is considered the default
+                    if (url != null && !url.startsWith("https://repo.maven.apache.org/maven2")) {
+                        repository_url = "&repository_url=" + URLEncoder.encode(url, "UTF-8");
+                    }
+                } catch (UnsupportedEncodingException e) {
+                    // ignore
+                }
+            }
             if (component == null) {
                 final Component newComponent = convertMavenDependency(artifact);
                 newComponent.setScope(artifactScope);
+                if (!repository_url.isEmpty()) {
+                    newComponent.setPurl(newComponent.getPurl() + repository_url);
+                }
                 components.put(purl, newComponent);
             } else if (!topLevelComponents.contains(purl)) {
+                String currentPurl = component.getPurl();
+                if (!repository_url.isEmpty() && !currentPurl.contains("repository_url")) {
+                    component.setPurl(currentPurl + repository_url);
+                }
                 component.setScope(mergeScopes(component.getScope(), artifactScope));
             }
         }

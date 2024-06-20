@@ -34,11 +34,15 @@ import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.Evidence;
 import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.Hash;
 import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
+import org.cyclonedx.model.component.evidence.Identity;
+import org.cyclonedx.model.component.evidence.Method;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
 import org.eclipse.aether.artifact.ArtifactProperties;
@@ -52,15 +56,26 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+
 @Singleton
 @Named
 public class DefaultModelConverter implements ModelConverter {
+    // Confidence value for filename based identity detection
+    public static final double FILENAME_CONFIDENCE = 0.1;
+
+    // Confidence value for hash comparison based identity detection
+    public static final double HASH_COMPARISON_CONFIDENCE = 0.8;
     private final Logger logger = LoggerFactory.getLogger(DefaultModelConverter.class);
 
     @Inject
@@ -122,7 +137,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private boolean isEmpty(final String value) {
-        return (value == null) || (value.length() == 0);
+        return (value == null) || (value.isEmpty());
     }
 
     private String generatePackageUrl(final org.eclipse.aether.artifact.Artifact artifact, final boolean includeVersion, final boolean includeClassifier) {
@@ -184,8 +199,85 @@ public class DefaultModelConverter implements ModelConverter {
                 logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
             }
         }
+        // Set component evidence for cyclonedx 1.5
+        if (CycloneDxSchema.Version.VERSION_15 == schemaVersion) {
+            addComponentEvidence(component, artifact);
+        }
         return component;
 
+    }
+
+    /**
+     * Adds component identity evidence for the component using the filename, hash and gpg key files
+     *
+     * @param component Component for which the evidence needs to be attached
+     * @param artifact Maven artifact
+     */
+    private static void addComponentEvidence(final Component component, final Artifact artifact) {
+        if (artifact.getFile() != null) {
+            final List<Hash> sha1OrMd5Hashes = component.getHashes().stream().filter(hash -> hash.getAlgorithm().equals("SHA-1") || hash.getAlgorithm().equals("MD5")).collect(Collectors.toList());
+            final Evidence evidence = new Evidence();
+            final Identity identity = new Identity();
+            final List<Method> methods = new ArrayList<>();
+            final Method jarFileMethod = new Method();
+            final Method ascFileMethod = new Method();
+            double overallConfidence = 0.0;
+            final String jarPath = artifact.getFile().getAbsolutePath();
+            final String sha1Path = jarPath.replace(".jar", ".jar.sha1");
+            final String ascPath = jarPath.replace(".jar", ".jar.asc");
+            final String md5Path = jarPath.replace(".jar", ".jar.md5");
+            jarFileMethod.setValue(".m2/" + jarPath.replaceFirst("^(.*).m2/", ""));
+            jarFileMethod.setConfidence(FILENAME_CONFIDENCE);
+            jarFileMethod.setTechnique(Method.Technique.FILENAME);
+            methods.add(jarFileMethod);
+            overallConfidence += FILENAME_CONFIDENCE;
+            // For gpg signed artifacts, we can bump up the confidence a bit more
+            // In the future, there could be a setting to explicitly verify the gpg keys
+            if (Files.exists(Paths.get(ascPath))) {
+                ascFileMethod.setValue(".m2/" + ascPath.replaceFirst("^(.*).m2/", ""));
+                ascFileMethod.setConfidence(FILENAME_CONFIDENCE);
+                ascFileMethod.setTechnique(Method.Technique.FILENAME);
+                methods.add(ascFileMethod);
+                overallConfidence += FILENAME_CONFIDENCE;
+            }
+            final Path sha1FilePath = Paths.get(sha1Path);
+            final Path md5FilePath = Paths.get(md5Path);
+            if (!sha1OrMd5Hashes.isEmpty()) {
+                Path hashFileToUse = null;
+                // Prefer the .sha1 file followed by .md5
+                if (Files.exists(sha1FilePath)) {
+                    hashFileToUse = sha1FilePath;
+                } else if (Files.exists(md5FilePath)) {
+                    hashFileToUse = md5FilePath;
+                }
+                if (hashFileToUse != null) {
+                    try {
+                        final Optional<String> hashFileContent = Files.readAllLines(hashFileToUse).stream().findFirst();
+                        if (hashFileContent.isPresent()) {
+                            String storedHashValue = hashFileContent.get().split(" ")[0].trim();
+                            for (Hash sha1OrMd5Hash : sha1OrMd5Hashes) {
+                                if (storedHashValue.equals(sha1OrMd5Hash.getValue())) {
+                                    final Method hashMethod = new Method();
+                                    hashMethod.setConfidence(HASH_COMPARISON_CONFIDENCE);
+                                    overallConfidence += HASH_COMPARISON_CONFIDENCE;
+                                    hashMethod.setTechnique(Method.Technique.HASH_COMPARISON);
+                                    hashMethod.setValue(storedHashValue);
+                                    methods.add(hashMethod);
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        // Invalid hash
+                    }
+                }
+            }
+            identity.setField(Identity.Field.PURL);
+            identity.setConfidence(overallConfidence);
+            identity.setMethods(methods);
+            evidence.setIdentity(identity);
+            component.setEvidence(evidence);
+        }
     }
 
     private static void setExternalReferences(Component component, ExternalReference[] externalReferences) {
@@ -240,7 +332,7 @@ public class DefaultModelConverter implements ModelConverter {
             if (project.getIssueManagement() != null) {
                 addExternalReference(ExternalReference.Type.ISSUE_TRACKER, project.getIssueManagement().getUrl(), component);
             }
-            if (project.getMailingLists() != null && project.getMailingLists().size() > 0) {
+            if (project.getMailingLists() != null && !project.getMailingLists().isEmpty()) {
                 for (MailingList list : project.getMailingLists()) {
                     String url = list.getArchive();
                     if (url == null) {
@@ -401,6 +493,6 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private static boolean isURLBlank(String url) {
-        return url == null || url.isEmpty() || url.trim().length() == 0;
+        return url == null || url.isEmpty() || url.trim().isEmpty();
     }
 }

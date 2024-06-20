@@ -2,10 +2,12 @@ package org.cyclonedx.maven;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.SyncContext;
+import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.collection.DependencyCollectionException;
@@ -17,6 +19,7 @@ import org.eclipse.aether.graph.DependencyVisitor;
 import org.eclipse.aether.installation.InstallRequest;
 import org.eclipse.aether.installation.InstallResult;
 import org.eclipse.aether.installation.InstallationException;
+import org.eclipse.aether.repository.ArtifactRepository;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.LocalRepositoryManager;
 import org.eclipse.aether.repository.RemoteRepository;
@@ -49,8 +52,18 @@ class DelegatingRepositorySystem implements RepositorySystem {
     private final RepositorySystem delegate;
     private CollectResult collectResult;
 
-    public DelegatingRepositorySystem(final RepositorySystem repositorySystem) {
+    private final ModelConverter modelConverter;
+
+    private final Map<String, ArtifactRepository> artifactRemoteRepositories;
+
+    public Map<String, ArtifactRepository> getArtifactRemoteRepositories() {
+        return artifactRemoteRepositories;
+    }
+
+    public DelegatingRepositorySystem(final RepositorySystem repositorySystem, final ModelConverter modelConverter, final Map<String, ArtifactRepository> artifactRemoteRepositories) {
         this.delegate = repositorySystem;
+        this.modelConverter = modelConverter;
+        this.artifactRemoteRepositories = artifactRemoteRepositories;
     }
 
     public CollectResult getCollectResult() {
@@ -69,7 +82,9 @@ class DelegatingRepositorySystem implements RepositorySystem {
                 if (root != node) {
                     try {
                         final ArtifactResult resolveArtifact = resolveArtifact(session, new ArtifactRequest(node));
-                        node.setArtifact(resolveArtifact.getArtifact());
+                        final Artifact artifact = resolveArtifact.getArtifact();
+                        node.setArtifact(artifact);
+                        artifactRemoteRepositories.put(modelConverter.generatePackageUrl(artifact), resolveArtifact.getRepository());
                     } catch (ArtifactResolutionException e) {} // ignored
                 }
                 return true;

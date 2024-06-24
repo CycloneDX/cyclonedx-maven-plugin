@@ -57,11 +57,18 @@ import java.util.List;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import org.apache.maven.model.Plugin;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
+
+import java.util.Optional;
 
 @Singleton
 @Named
 public class DefaultModelConverter implements ModelConverter {
     private final Logger logger = LoggerFactory.getLogger(DefaultModelConverter.class);
+    private static final String CYCLONEDX_GROUP_ID = "org.cyclonedx";
+    private static final String CYCLONEDX_ARTIFACT_ID = "cyclonedx-maven-plugin";
+    private static final String PROJECT_TYPE_NODE = "projectType";
 
     @Inject
     private MavenSession session;
@@ -157,8 +164,9 @@ public class DefaultModelConverter implements ModelConverter {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
-        component.setVersion(artifact.getBaseVersion());
-        component.setType(Component.Type.LIBRARY);
+        component.setVersion(artifact.getBaseVersion()); 
+        component.setType(Component.Type.LIBRARY); 
+         
         try {
             logger.debug(BaseCycloneDxMojo.MESSAGE_CALCULATING_HASHES);
             component.setHashes(BomUtils.calculateHashes(artifact.getFile(), schemaVersion));
@@ -174,7 +182,12 @@ public class DefaultModelConverter implements ModelConverter {
         }
         try {
             final MavenProject project = getEffectiveMavenProject(artifact);
+            
             if (project != null) {
+                String projectType = getProjectTypeFromPluginConfiguration(project);
+                if (projectType != null) {
+                    component.setType(resolveProjectType(projectType));
+                }
                 extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
             }
         } catch (ProjectBuildingException e) {
@@ -186,6 +199,22 @@ public class DefaultModelConverter implements ModelConverter {
         }
         return component;
 
+    }
+
+    public String getProjectTypeFromPluginConfiguration(MavenProject project) {
+        return Optional.ofNullable(project.getBuild())
+                .map(build -> build.getPlugins())
+                .flatMap(plugins -> plugins.stream()
+                        .filter(plugin -> CYCLONEDX_GROUP_ID.equals(plugin.getGroupId()) &&
+                                          CYCLONEDX_ARTIFACT_ID.equals(plugin.getArtifactId()))
+                        .findFirst()
+                )
+                .map(Plugin::getConfiguration)
+                .filter(Xpp3Dom.class::isInstance)
+                .map(Xpp3Dom.class::cast)
+                .map(configuration -> configuration.getChild(PROJECT_TYPE_NODE))
+                .map(Xpp3Dom::getValue)
+                .orElse(null);
     }
 
     private static void setExternalReferences(Component component, ExternalReference[] externalReferences) {

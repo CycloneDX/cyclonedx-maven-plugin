@@ -40,10 +40,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -242,6 +244,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
 
         // Check all BOM components have an associated BOM dependency
 
+        final List<String> notDepended = new ArrayList<>();
         for (Iterator<Map.Entry<String, Component>> it = components.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<String, Component> entry = it.next();
             if (!dependencies.containsKey(entry.getKey())) {
@@ -250,9 +253,11 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
                 }
                 it.remove();
             } else if (!dependsOns.contains(entry.getKey())) {
-                logger.warn("BOM dependency listed but is not depended upon: " + entry.getKey());
+                notDepended.add(entry.getKey());
             }
         }
+
+        notDepended.stream().sorted(String.CASE_INSENSITIVE_ORDER).forEach(dependency -> logger.warn("BOM dependency listed but is not depended upon: " + dependency));
 
         // include BOM main component
         Component main = metadata.getComponent();

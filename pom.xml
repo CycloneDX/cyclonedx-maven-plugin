@@ -181,7 +181,7 @@
             <groupId>io.takari.maven.plugins</groupId>
             <artifactId>takari-plugin-testing</artifactId>
             <scope>test</scope>
-            <version>3.0.0</version>
+            <version>3.0.4</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

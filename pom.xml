@@ -71,7 +71,7 @@
         <project.build.outputTimestamp>2024-08-03T22:37:36Z</project.build.outputTimestamp>
         <junit.version>4.13.2</junit.version>
         <junit5.version>5.10.3</junit5.version>
-        <plugin-tools.version>3.13.1</plugin-tools.version>
+        <plugin-tools.version>3.15.0</plugin-tools.version>
     </properties>
 
     <scm>

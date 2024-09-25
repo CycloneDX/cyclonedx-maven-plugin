@@ -262,7 +262,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected static final String MESSAGE_CREATING_BOM = "CycloneDX: Creating BOM version %s with %d component(s)";
     static final String MESSAGE_CALCULATING_HASHES = "CycloneDX: Calculating Hashes";
     protected static final String MESSAGE_WRITING_BOM = "CycloneDX: Writing and validating BOM (%s): %s";
-    protected static final String MESSAGE_ATTACHING_BOM = "           attaching as %s-%s-cyclonedx.%s";
+    protected static final String MESSAGE_ATTACHING_BOM = "           attaching as %s-%s-%s.%s";
     protected static final String MESSAGE_VALIDATION_FAILURE = "The BOM does not conform to the CycloneDX BOM standard as defined by the XSD";
 
     /**
@@ -463,7 +463,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
 
         if (!skipAttach) {
-            getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), extension));
+            getLog().info(String.format(MESSAGE_ATTACHING_BOM, project.getArtifactId(), project.getVersion(), classifier, extension));
             mavenProjectHelper.attachArtifact(project, extension, classifier, bomFile);
         }
     }

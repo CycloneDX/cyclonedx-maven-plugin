@@ -32,7 +32,7 @@ import org.apache.maven.project.ProjectBuilder;
 import org.apache.maven.project.ProjectBuildingException;
 import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
-import org.cyclonedx.CycloneDxSchema;
+import org.cyclonedx.Version;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.Hash;
@@ -156,7 +156,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Component convertMavenDependency(Artifact artifact, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    public Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText) {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
@@ -168,11 +168,11 @@ public class DefaultModelConverter implements ModelConverter {
         } catch (IOException e) {
             logger.error("Error encountered calculating hashes", e);
         }
-        if (CycloneDxSchema.Version.VERSION_10 == schemaVersion) {
+        if (Version.VERSION_10 == schemaVersion) {
             component.setModified(isModified(artifact));
         }
         component.setPurl(generatePackageUrl(artifact));
-        if (CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
+        if (Version.VERSION_10 != schemaVersion) {
             component.setBomRef(component.getPurl());
         }
         try {
@@ -210,7 +210,7 @@ public class DefaultModelConverter implements ModelConverter {
      * @param project the project to extract data from
      * @param component the component to add data to
      */
-    private void extractComponentMetadata(MavenProject project, Component component, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    private void extractComponentMetadata(MavenProject project, Component component, Version schemaVersion, boolean includeLicenseText) {
         if (component.getPublisher() == null) {
             // If we don't already have publisher information, retrieve it.
             if (project.getOrganization() != null) {
@@ -227,7 +227,7 @@ public class DefaultModelConverter implements ModelConverter {
                 component.setLicenseChoice(resolveMavenLicenses(project.getLicenses(), schemaVersion, includeLicenseText));
             }
         }
-        if (CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
+        if (Version.VERSION_10 != schemaVersion) {
             addExternalReference(ExternalReference.Type.WEBSITE, project.getUrl(), component);
             if (project.getCiManagement() != null) {
                 addExternalReference(ExternalReference.Type.BUILD_SYSTEM, project.getCiManagement().getUrl(), component);
@@ -297,7 +297,7 @@ public class DefaultModelConverter implements ModelConverter {
         return false;
     }
 
-    private LicenseChoice resolveMavenLicenses(final List<org.apache.maven.model.License> projectLicenses, final CycloneDxSchema.Version schemaVersion, boolean includeLicenseText) {
+    private LicenseChoice resolveMavenLicenses(final List<org.apache.maven.model.License> projectLicenses, final Version schemaVersion, boolean includeLicenseText) {
         final LicenseChoice licenseChoice = new LicenseChoice();
         for (org.apache.maven.model.License artifactLicense : projectLicenses) {
             boolean resolved = false;
@@ -328,14 +328,14 @@ public class DefaultModelConverter implements ModelConverter {
         return licenseChoice;
     }
 
-    private boolean resolveLicenseInfo(final LicenseChoice licenseChoice, final LicenseChoice licenseChoiceToResolve, final CycloneDxSchema.Version schemaVersion)
+    private boolean resolveLicenseInfo(final LicenseChoice licenseChoice, final LicenseChoice licenseChoiceToResolve, final Version schemaVersion)
     {
         if (licenseChoiceToResolve != null) {
             if (licenseChoiceToResolve.getLicenses() != null && !licenseChoiceToResolve.getLicenses().isEmpty()) {
                 licenseChoice.addLicense(licenseChoiceToResolve.getLicenses().get(0));
                 return true;
             }
-            else if (licenseChoiceToResolve.getExpression() != null && CycloneDxSchema.Version.VERSION_10 != schemaVersion) {
+            else if (licenseChoiceToResolve.getExpression() != null && Version.VERSION_10 != schemaVersion) {
                 licenseChoice.setExpression(licenseChoiceToResolve.getExpression());
                 return true;
             }
@@ -344,7 +344,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Metadata convertMavenProject(final MavenProject project, String projectType, CycloneDxSchema.Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
+    public Metadata convertMavenProject(final MavenProject project, String projectType, Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
         final Metadata metadata = new Metadata();
 
         // prepare properties and hash values from the current mojo
@@ -361,7 +361,7 @@ public class DefaultModelConverter implements ModelConverter {
                 logger.warn("Unable to calculate hashes of self", e);
             }
         }
-        if (schemaVersion.compareTo(CycloneDxSchema.Version.VERSION_15) < 0) {
+        if (schemaVersion.compareTo(Version.VERSION_15) < 0) {
             // CycloneDX up to 1.4+ use metadata.tools.tool
             final Tool tool = new Tool();
             tool.setVendor(properties.getProperty("vendor"));

@@ -29,8 +29,8 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
-import org.cyclonedx.BomGeneratorFactory;
-import org.cyclonedx.CycloneDxSchema;
+import org.cyclonedx.Version;
+import org.cyclonedx.generators.BomGeneratorFactory;
 import org.cyclonedx.exception.GeneratorException;
 import org.cyclonedx.generators.json.BomJsonGenerator;
 import org.cyclonedx.generators.xml.BomXmlGenerator;
@@ -67,7 +67,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     /**
      * The component type associated to the SBOM metadata. See
-     * <a href="https://cyclonedx.org/docs/1.5/json/#metadata_component_type">CycloneDX reference</a> for supported
+     * <a href="https://cyclonedx.org/docs/1.6/json/#metadata_component_type">CycloneDX reference</a> for supported
      * values. 
      *
      * @since 2.0.0
@@ -80,9 +80,9 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @since 2.1.0
      */
-    @Parameter(property = "schemaVersion", defaultValue = "1.5", required = false)
+    @Parameter(property = "schemaVersion", defaultValue = "1.6", required = false)
     private String schemaVersion;
-    private CycloneDxSchema.Version effectiveSchemaVersion = null;
+    private Version effectiveSchemaVersion = null;
 
     /**
      * The CycloneDX output format that should be generated (<code>xml</code>, <code>json</code> or <code>all</code>).
@@ -227,7 +227,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private String outputTimestamp;
 
     /**
-     * <a href="https://cyclonedx.org/docs/1.5/json/#metadata_component_externalReferences_items_type">External references</a>
+     * <a href="https://cyclonedx.org/docs/1.6/json/#metadata_component_externalReferences_items_type">External references</a>
      * to be added to the component the BOM describes <code>$.metadata.component.externalReferences[]</code>:
      * <pre>
      * &lt;externalReferences&gt;
@@ -477,20 +477,22 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * Resolves the CycloneDX schema the mojo has been requested to use.
      * @return the CycloneDX schema to use
      */
-    protected CycloneDxSchema.Version schemaVersion() {
+    protected Version schemaVersion() {
         if (effectiveSchemaVersion == null) {
             if ("1.0".equals(schemaVersion)) {
-                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_10;
+                effectiveSchemaVersion = Version.VERSION_10;
             } else if ("1.1".equals(schemaVersion)) {
-                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_11;
+                effectiveSchemaVersion = Version.VERSION_11;
             } else if ("1.2".equals(schemaVersion)) {
-                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_12;
+                effectiveSchemaVersion = Version.VERSION_12;
             } else if ("1.3".equals(schemaVersion)) {
-                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_13;
+                effectiveSchemaVersion = Version.VERSION_13;
             } else if ("1.4".equals(schemaVersion)) {
-                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_14;
+                effectiveSchemaVersion = Version.VERSION_14;
+            } else if ("1.5".equals(schemaVersion)) {
+                effectiveSchemaVersion = Version.VERSION_15;
             } else {
-                effectiveSchemaVersion = CycloneDxSchema.Version.VERSION_15;
+                effectiveSchemaVersion = Version.VERSION_16;
             }
         }
         return effectiveSchemaVersion;

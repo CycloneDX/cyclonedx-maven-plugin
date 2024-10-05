@@ -45,7 +45,7 @@ Default Values
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <configuration>
             <projectType>library</projectType>
-            <schemaVersion>1.5</schemaVersion>
+            <schemaVersion>1.6</schemaVersion>
             <includeBomSerialNumber>true</includeBomSerialNumber>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>
@@ -63,7 +63,7 @@ Default Values
 </plugins>
 ```
 
-`<projectType>` default value is `library` but there are [more choices defined in the CycloneDX specification](https://cyclonedx.org/docs/1.5/json/#metadata_component_type).
+`<projectType>` default value is `library` but there are [more choices defined in the CycloneDX specification](https://cyclonedx.org/docs/1.6/json/#metadata_component_type).
 
 See also [External References](https://cyclonedx.github.io/cyclonedx-maven-plugin/external-references.html) documentation for details on this topic.
 
@@ -99,6 +99,7 @@ the CycloneDX version supported by the target system.
 
 | Version | Schema Version | Format(s) |
 |---------|----------------| --------- |
+| 2.9.x   | CycloneDX v1.6 | XML/JSON |
 | 2.8.x   | CycloneDX v1.5 | XML/JSON |
 | 2.6.x   | CycloneDX v1.4 | XML/JSON |
 | 2.5.x   | CycloneDX v1.3 | XML/JSON |

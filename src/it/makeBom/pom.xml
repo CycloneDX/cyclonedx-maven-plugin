@@ -72,7 +72,7 @@
         <dependency>
             <groupId>org.cyclonedx</groupId>
             <artifactId>cyclonedx-core-java</artifactId>
-            <version>7.2.1</version>
+            <version>9.0.5</version>
         </dependency>
         <dependency>
             <groupId>com.ibm.websphere.appserver.features</groupId>

@@ -50,6 +50,6 @@ You can add more external references the component that the BOM describes by plu
 See valid [CycloneDX external reference types][external-reference-type].
 
 [maven-model]: https://maven.apache.org/ref/current/maven-model/maven.html
-[metadata-component]: https://cyclonedx.org/docs/1.5/json/#metadata_component
-[components]: https://cyclonedx.org/docs/1.5/json/#components
-[external-reference-type]: https://cyclonedx.org/docs/1.5/json/#metadata_component_externalReferences_items_type
+[metadata-component]: https://cyclonedx.org/docs/1.6/json/#metadata_component
+[components]: https://cyclonedx.org/docs/1.6/json/#components
+[external-reference-type]: https://cyclonedx.org/docs/1.6/json/#metadata_component_externalReferences_items_type

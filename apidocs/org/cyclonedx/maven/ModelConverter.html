@@ -127,8 +127,8 @@ var activeTableTab = "activeTableTab";
 </tr>
 <tr id="i0" class="altColor">
 <td class="colFirst"><code>org.cyclonedx.model.Component</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/cyclonedx/maven/ModelConverter.html#convertMavenDependency-org.apache.maven.artifact.Artifact-org.cyclonedx.CycloneDxSchema.Version-boolean-">convertMavenDependency</a></span>(org.apache.maven.artifact.Artifact&nbsp;artifact,
-                      org.cyclonedx.CycloneDxSchema.Version&nbsp;schemaVersion,
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/cyclonedx/maven/ModelConverter.html#convertMavenDependency-org.apache.maven.artifact.Artifact-org.cyclonedx.Version-boolean-">convertMavenDependency</a></span>(org.apache.maven.artifact.Artifact&nbsp;artifact,
+                      org.cyclonedx.Version&nbsp;schemaVersion,
                       boolean&nbsp;includeLicenseText)</code>
 <div class="block">Converts a Maven artifact (dependency or transitive dependency) into a
  CycloneDX component.</div>
@@ -136,9 +136,9 @@ var activeTableTab = "activeTableTab";
 </tr>
 <tr id="i1" class="rowColor">
 <td class="colFirst"><code>org.cyclonedx.model.Metadata</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/cyclonedx/maven/ModelConverter.html#convertMavenProject-org.apache.maven.project.MavenProject-java.lang.String-org.cyclonedx.CycloneDxSchema.Version-boolean-org.cyclonedx.model.ExternalReference:A-">convertMavenProject</a></span>(org.apache.maven.project.MavenProject&nbsp;project,
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/cyclonedx/maven/ModelConverter.html#convertMavenProject-org.apache.maven.project.MavenProject-java.lang.String-org.cyclonedx.Version-boolean-org.cyclonedx.model.ExternalReference:A-">convertMavenProject</a></span>(org.apache.maven.project.MavenProject&nbsp;project,
                    <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;projectType,
-                   org.cyclonedx.CycloneDxSchema.Version&nbsp;schemaVersion,
+                   org.cyclonedx.Version&nbsp;schemaVersion,
                    boolean&nbsp;includeLicenseText,
                    org.cyclonedx.model.ExternalReference[]&nbsp;externalReferences)</code>
 <div class="block">Converts a MavenProject into a CycloneDX Metadata object.</div>
@@ -224,14 +224,14 @@ var activeTableTab = "activeTableTab";
 <pre><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;generateClassifierlessPackageUrl(org.eclipse.aether.artifact.Artifact&nbsp;artifact)</pre>
 </li>
 </ul>
-<a name="convertMavenDependency-org.apache.maven.artifact.Artifact-org.cyclonedx.CycloneDxSchema.Version-boolean-">
+<a name="convertMavenDependency-org.apache.maven.artifact.Artifact-org.cyclonedx.Version-boolean-">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>convertMavenDependency</h4>
 <pre>org.cyclonedx.model.Component&nbsp;convertMavenDependency(org.apache.maven.artifact.Artifact&nbsp;artifact,
-                                                     org.cyclonedx.CycloneDxSchema.Version&nbsp;schemaVersion,
+                                                     org.cyclonedx.Version&nbsp;schemaVersion,
                                                      boolean&nbsp;includeLicenseText)</pre>
 <div class="block">Converts a Maven artifact (dependency or transitive dependency) into a
  CycloneDX component.</div>
@@ -245,7 +245,7 @@ var activeTableTab = "activeTableTab";
 </dl>
 </li>
 </ul>
-<a name="convertMavenProject-org.apache.maven.project.MavenProject-java.lang.String-org.cyclonedx.CycloneDxSchema.Version-boolean-org.cyclonedx.model.ExternalReference:A-">
+<a name="convertMavenProject-org.apache.maven.project.MavenProject-java.lang.String-org.cyclonedx.Version-boolean-org.cyclonedx.model.ExternalReference:A-">
 <!--   -->
 </a>
 <ul class="blockListLast">
@@ -253,7 +253,7 @@ var activeTableTab = "activeTableTab";
 <h4>convertMavenProject</h4>
 <pre>org.cyclonedx.model.Metadata&nbsp;convertMavenProject(org.apache.maven.project.MavenProject&nbsp;project,
                                                  <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;projectType,
-                                                 org.cyclonedx.CycloneDxSchema.Version&nbsp;schemaVersion,
+                                                 org.cyclonedx.Version&nbsp;schemaVersion,
                                                  boolean&nbsp;includeLicenseText,
                                                  org.cyclonedx.model.ExternalReference[]&nbsp;externalReferences)</pre>
 <div class="block">Converts a MavenProject into a CycloneDX Metadata object.</div>

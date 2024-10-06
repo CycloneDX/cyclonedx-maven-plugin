@@ -15,7 +15,7 @@ jobs:
         distribution: 'adopt'
         java-version: '8'
     - name: Build with Maven
-      run: mvn --no-transfer-progress package site
+      run: mvn --no-transfer-progress verify site
     - name: Deploy documentation
       if: ${{ github.ref == 'refs/heads/master' }}
       uses: JamesIves/github-pages-deploy-action@releases/v3

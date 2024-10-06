@@ -10,7 +10,7 @@ assert bomFileXml.text.contains('<reference type="website">\n' +
 
 assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
 
-assert bomFileJson.text.contains('"specVersion" : "1.5"')
+assert bomFileJson.text.contains('"specVersion" : "1.6"')
 
 // Reproducible Builds
 assert !bomFileJson.text.contains('"timestamp"')

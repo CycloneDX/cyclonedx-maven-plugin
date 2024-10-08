@@ -27,6 +27,7 @@ import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -117,9 +118,10 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
         // root project: analyze and aggregate all the modules
         getLog().info((reactorProjects.size() <= 1) ? MESSAGE_RESOLVING_DEPS : MESSAGE_RESOLVING_AGGREGATED_DEPS);
 
+        final List<String> excludedProjects = new ArrayList<>();
         for (final MavenProject mavenProject : reactorProjects) {
             if (shouldExclude(mavenProject)) {
-                getLog().info("Excluding " + mavenProject.getArtifactId());
+            	excludedProjects.add(mavenProject.getArtifactId());
                 continue;
             }
 
@@ -134,6 +136,8 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }
+
+        excludedProjects.stream().sorted(String.CASE_INSENSITIVE_ORDER).forEach(excluded -> getLog().info("Excluding " + excluded));
 
         addMavenProjectsAsParentDependencies(reactorProjects, dependencies);
 

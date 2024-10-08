@@ -24,7 +24,7 @@
     <groupId>org.cyclonedx</groupId>
     <artifactId>cyclonedx-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
-    <version>2.9.0-SNAPSHOT</version>
+    <version>2.9.0</version>
 
     <name>CycloneDX Maven plugin</name>
     <description>The CycloneDX Maven plugin generates CycloneDX Software Bill of Materials (SBOM) containing the aggregate of all direct and transitive dependencies of a project.</description>
@@ -68,7 +68,7 @@
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <project.build.outputTimestamp>2024-09-25T20:08:37Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2024-10-08T04:30:48Z</project.build.outputTimestamp>
         <junit.version>4.13.2</junit.version>
         <junit5.version>5.10.3</junit5.version>
         <plugin-tools.version>3.15.0</plugin-tools.version>
@@ -78,7 +78,7 @@
         <connection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</connection>
         <url>https://github.com/CycloneDX/cyclonedx-maven-plugin.git</url>
         <developerConnection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</developerConnection>
-        <tag>master</tag>
+        <tag>cyclonedx-maven-plugin-2.9.0</tag>
     </scm>
 
     <issueManagement>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>issue-382</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0.0</version>
+
+    <name>Issue-64</name>
+
+    <licenses>
+        <license>
+            <name/>
+            <url/>
+            <distribution/>
+        </license>
+    </licenses>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency> <!-- has empty license information -->
+            <groupId>com.aliyun</groupId>
+            <artifactId>aliyun-java-sdk-ram</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>${current.version}</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <projectType>library</projectType>
+                    <schemaVersion>1.6</schemaVersion>
+                    <includeLicenseText>true</includeLicenseText>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

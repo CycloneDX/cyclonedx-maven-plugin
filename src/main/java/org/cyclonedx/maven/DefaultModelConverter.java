@@ -222,8 +222,8 @@ public class DefaultModelConverter implements ModelConverter {
             component.setDescription(project.getDescription());
         }
         if (component.getLicenseChoice() == null || component.getLicenseChoice().getLicenses() == null || component.getLicenseChoice().getLicenses().isEmpty()) {
-            // If we don't already have license information, retrieve it.
-            if (project.getLicenses() != null) {
+            // If we don't already have license information, retrieve it, as long as it is not empty.
+            if (project.getLicenses() != null && project.getLicenses().stream().anyMatch(l -> !isLicenseBlank(l))) {
                 component.setLicenseChoice(resolveMavenLicenses(project.getLicenses(), schemaVersion, includeLicenseText));
             }
         }
@@ -424,5 +424,10 @@ public class DefaultModelConverter implements ModelConverter {
 
     private static boolean isURLBlank(String url) {
         return url == null || url.isEmpty() || url.trim().length() == 0;
+    }
+
+    private static boolean isLicenseBlank(org.apache.maven.model.License license) {
+        return (license.getName() == null || license.getName().isEmpty() || license.getName().trim().length() == 0)
+                && (license.getUrl() == null || license.getUrl().isEmpty() || license.getUrl().trim().length() == 0);
     }
 }

@@ -272,7 +272,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     private void addExternalReference(final ExternalReference.Type referenceType, final String url, final Component component) {
-        if (isURLBlank(url) || doesComponentHaveExternalReference(component, referenceType)) {
+        if (isBlank(url) || doesComponentHaveExternalReference(component, referenceType)) {
             return;
         }
         try {
@@ -422,12 +422,11 @@ public class DefaultModelConverter implements ModelConverter {
         return Component.Type.LIBRARY;
     }
 
-    private static boolean isURLBlank(String url) {
-        return url == null || url.isEmpty() || url.trim().length() == 0;
+    private static boolean isBlank(String s) {
+        return s == null || s.isEmpty() || s.trim().isEmpty();
     }
 
     private static boolean isLicenseBlank(org.apache.maven.model.License license) {
-        return (license.getName() == null || license.getName().isEmpty() || license.getName().trim().length() == 0)
-                && (license.getUrl() == null || license.getUrl().isEmpty() || license.getUrl().trim().length() == 0);
+        return isBlank(license.getName()) && isBlank(license.getUrl());
     }
 }

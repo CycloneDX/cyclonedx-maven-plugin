@@ -61,6 +61,8 @@ import java.util.Set;
 import java.util.UUID;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
+    static final String CYCLONEDX_PLUGIN_KEY = "org.cyclonedx:cyclonedx-maven-plugin";
+    static final String PROJECT_TYPE = "projectType";
 
     @Parameter(property = "project", readonly = true, required = true)
     private MavenProject project;
@@ -72,7 +74,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @since 2.0.0
      */
-    @Parameter(property = "projectType", defaultValue = "library", required = false)
+    @Parameter(property = PROJECT_TYPE, defaultValue = "library", required = false)
     private String projectType;
 
     /**
@@ -622,13 +624,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             for (final PluginExecution execution : plugin.getExecutions()) {
                 if (execution.getGoals().contains("deploy")) {
                     final Xpp3Dom executionConf = (Xpp3Dom) execution.getConfiguration();
-                    boolean skipValue = defaultSkipValue;
-                    if (executionConf != null) {
-                        Xpp3Dom target = executionConf.getChild(parameter);
-                        if (target != null) {
-                            skipValue = Boolean.parseBoolean(target.getValue());
-                        }
-                    }
+                    final Xpp3Dom target = (executionConf == null) ? null : executionConf.getChild(parameter);
+                    final boolean skipValue = (target == null) ? defaultSkipValue : Boolean.parseBoolean(target.getValue());
                     if (!skipValue) {
                         return true;
                     }

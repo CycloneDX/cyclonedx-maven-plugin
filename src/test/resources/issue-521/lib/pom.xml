@@ -11,14 +11,5 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>issue-521-module2</artifactId>
-
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.1</version>
-        </dependency>
-    </dependencies>
-
+    <artifactId>issue-521-lib</artifactId>
 </project>

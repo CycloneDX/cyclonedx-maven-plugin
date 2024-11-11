@@ -18,8 +18,8 @@
     </licenses>
 
     <modules>
-        <module>module1</module>
-        <module>module2</module>
+        <module>app</module>
+        <module>lib</module>
     </modules>
 
     <properties>
@@ -44,19 +44,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    
-                    <schemaVersion>1.4</schemaVersion>
-                    <includeBomSerialNumber>true</includeBomSerialNumber>
-                    <includeCompileScope>true</includeCompileScope>
-                    <includeProvidedScope>false</includeProvidedScope>
-                    <includeRuntimeScope>false</includeRuntimeScope>
-                    <includeSystemScope>false</includeSystemScope>
-                    <includeTestScope>false</includeTestScope>
-                    <includeLicenseText>false</includeLicenseText>
-                    <outputFormat>all</outputFormat>
-                </configuration>
-                
             </plugin>
         </plugins>
     </build>

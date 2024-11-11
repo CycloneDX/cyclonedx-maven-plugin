@@ -11,15 +11,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>issue-521-module1</artifactId>
-
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.1</version>
-        </dependency>
-    </dependencies>
+    <artifactId>issue-521-app</artifactId>
 
     <build>
         <plugins>
@@ -30,7 +22,6 @@
                 <configuration>
                     <projectType>application</projectType>
                 </configuration>
-                
             </plugin>
         </plugins>
     </build>

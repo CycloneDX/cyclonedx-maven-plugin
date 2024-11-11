@@ -63,15 +63,10 @@ import java.util.stream.Collectors;
 import org.apache.maven.model.Plugin;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 
-import java.util.Optional;
-
 @Singleton
 @Named
 public class DefaultModelConverter implements ModelConverter {
     private final Logger logger = LoggerFactory.getLogger(DefaultModelConverter.class);
-    private static final String CYCLONEDX_GROUP_ID = "org.cyclonedx";
-    private static final String CYCLONEDX_ARTIFACT_ID = "cyclonedx-maven-plugin";
-    private static final String PROJECT_TYPE_NODE = "projectType";
 
     @Inject
     private MavenSession session;
@@ -167,8 +162,8 @@ public class DefaultModelConverter implements ModelConverter {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
-        component.setVersion(artifact.getBaseVersion()); 
-        component.setType(Component.Type.LIBRARY); 
+        component.setVersion(artifact.getBaseVersion());
+        component.setType(Component.Type.LIBRARY);
          
         try {
             logger.debug(BaseCycloneDxMojo.MESSAGE_CALCULATING_HASHES);
@@ -187,7 +182,7 @@ public class DefaultModelConverter implements ModelConverter {
             final MavenProject project = getEffectiveMavenProject(artifact);
             
             if (project != null) {
-                String projectType = getProjectTypeFromPluginConfiguration(project);
+                String projectType = getPluginConfiguration(project, BaseCycloneDxMojo.PROJECT_TYPE);
                 if (projectType != null) {
                     component.setType(resolveProjectType(projectType));
                 }
@@ -204,20 +199,11 @@ public class DefaultModelConverter implements ModelConverter {
 
     }
 
-    public String getProjectTypeFromPluginConfiguration(MavenProject project) {
-        return Optional.ofNullable(project.getBuild())
-                .map(build -> build.getPlugins())
-                .flatMap(plugins -> plugins.stream()
-                        .filter(plugin -> CYCLONEDX_GROUP_ID.equals(plugin.getGroupId()) &&
-                                          CYCLONEDX_ARTIFACT_ID.equals(plugin.getArtifactId()))
-                        .findFirst()
-                )
-                .map(Plugin::getConfiguration)
-                .filter(Xpp3Dom.class::isInstance)
-                .map(Xpp3Dom.class::cast)
-                .map(configuration -> configuration.getChild(PROJECT_TYPE_NODE))
-                .map(Xpp3Dom::getValue)
-                .orElse(null);
+    public String getPluginConfiguration(MavenProject project, String property) {
+        Plugin plugin = project.getPlugin(BaseCycloneDxMojo.CYCLONEDX_PLUGIN_KEY);
+        Xpp3Dom configuration = (plugin == null) ? null : (Xpp3Dom) plugin.getConfiguration();
+        Xpp3Dom value = (configuration == null) ? null : configuration.getChild(property);
+        return (value == null) ? null : value.getValue();
     }
 
     private static void setExternalReferences(Component component, ExternalReference[] externalReferences) {
@@ -357,8 +343,7 @@ public class DefaultModelConverter implements ModelConverter {
         return licenseChoice;
     }
 
-    private boolean resolveLicenseInfo(final LicenseChoice licenseChoice, final LicenseChoice licenseChoiceToResolve, final Version schemaVersion)
-    {
+    private boolean resolveLicenseInfo(final LicenseChoice licenseChoice, final LicenseChoice licenseChoiceToResolve, final Version schemaVersion) {
         if (licenseChoiceToResolve != null) {
             if (licenseChoiceToResolve.getLicenses() != null && !licenseChoiceToResolve.getLicenses().isEmpty()) {
                 licenseChoice.addLicense(licenseChoiceToResolve.getLicenses().get(0));

@@ -18,7 +18,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10};
+var methods = {"i0":10,"i1":10,"i2":10,"i3":10,"i4":10,"i5":10,"i6":10,"i7":10};
 var tabs = {65535:["t0","All Methods"],2:["t2","Instance Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -191,6 +191,10 @@ implements <a href="../../../org/cyclonedx/maven/ModelConverter.html" title="int
 <td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../org/cyclonedx/maven/DefaultModelConverter.html#generateVersionlessPackageUrl-org.eclipse.aether.artifact.Artifact-">generateVersionlessPackageUrl</a></span>(org.eclipse.aether.artifact.Artifact&nbsp;artifact)</code>&nbsp;</td>
 </tr>
+<tr id="i7" class="rowColor">
+<td class="colFirst"><code><a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a></code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../org/cyclonedx/maven/DefaultModelConverter.html#getProjectTypeFromPluginConfiguration-org.apache.maven.project.MavenProject-">getProjectTypeFromPluginConfiguration</a></span>(org.apache.maven.project.MavenProject&nbsp;project)</code>&nbsp;</td>
+</tr>
 </table>
 <ul class="blockList">
 <li class="blockList"><a name="methods.inherited.from.class.java.lang.Object">
@@ -317,6 +321,15 @@ implements <a href="../../../org/cyclonedx/maven/ModelConverter.html" title="int
 <dt><span class="returnLabel">Returns:</span></dt>
 <dd>a CycloneDX component</dd>
 </dl>
+</li>
+</ul>
+<a name="getProjectTypeFromPluginConfiguration-org.apache.maven.project.MavenProject-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>getProjectTypeFromPluginConfiguration</h4>
+<pre>public&nbsp;<a href="https://docs.oracle.com/javase/8/docs/api/java/lang/String.html?is-external=true" title="class or interface in java.lang">String</a>&nbsp;getProjectTypeFromPluginConfiguration(org.apache.maven.project.MavenProject&nbsp;project)</pre>
 </li>
 </ul>
 <a name="convertMavenProject-org.apache.maven.project.MavenProject-java.lang.String-org.cyclonedx.Version-boolean-org.cyclonedx.model.ExternalReference:A-">

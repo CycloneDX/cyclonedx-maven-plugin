@@ -30,19 +30,6 @@ class BaseCycloneDxMojoTest {
     }
 
     @Test
-    @DisplayName("Verify that the default configuration does not have manufacturer information ")
-    void createManufacturer() {
-        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        OrganizationalEntity manufacturer = mojo.createManufacturer(null, null);
-        assertNotNull(manufacturer);
-        assertNull(manufacturer.getAddress());
-        assertNull(manufacturer.getContacts());
-        assertNull(manufacturer.getName());
-        assertNull(manufacturer.getUrls());
-        assertNull(manufacturer.getBomRef());
-    }
-
-    @Test
     @DisplayName("")
     void createListOfAuthors() {
         BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();

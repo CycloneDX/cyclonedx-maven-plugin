@@ -42,7 +42,10 @@ import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.LifecycleChoice;
 import org.cyclonedx.model.Lifecycles;
 import org.cyclonedx.model.Metadata;
+import org.cyclonedx.model.OrganizationalContact;
+import org.cyclonedx.model.OrganizationalEntity;
 import org.cyclonedx.model.Property;
+import org.cyclonedx.model.organization.PostalAddress;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
@@ -57,6 +60,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -247,6 +251,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter
     private ExternalReference[] externalReferences;
 
+    /**
+     * Manufacturer information for automatic creator information
+     * @since 2.9.1
+     */
+    @Parameter(property = "cyclonedx.manufacturer", required = false)
+    private OrganizationalEntity manufacturer = null;
+
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
 
@@ -351,6 +362,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 if (detectUnusedForOptionalScope) {
                     metadata.addProperty(newProperty("maven.optional.unused", Boolean.toString(detectUnusedForOptionalScope)));
                 }
+
+                if (hasManufacturerInformation()) {
+                    metadata.setManufacturer(manufacturer);
+                }
             }
 
             final Component rootComponent = metadata.getComponent();
@@ -360,6 +375,82 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
         }
+    }
+
+    /**
+     * Check the mojo configuration for the optional manufacturer contents.
+     *
+     * @return {@code true} if there is any manufacturer information configured.
+     */
+    boolean hasManufacturerInformation() {
+        if (manufacturer == null) {
+            return false;
+        }
+
+        return isNotNullOrEmpty(manufacturer.getAddress()) ||
+            isNotNullOrEmpty(manufacturer.getName()) ||
+            isNotNullOrEmptyContacts(manufacturer.getContacts()) ||
+            isNotNullOrEmptyString(manufacturer.getUrls());
+    }
+
+    /**
+     * @param text Some text
+     * @return {@code true} if there is any text
+     */
+    boolean isNotNullOrEmpty(String text) {
+        return text != null && !text.trim().isEmpty();
+    }
+
+    /**
+     * @param list A list of text
+     * @return {@code true} if there is any element has a text value
+     */
+    boolean isNotNullOrEmptyString(List<String> list) {
+        if (list != null && !list.isEmpty()) {
+            return list.stream().filter(Objects::nonNull).anyMatch(this::isNotNullOrEmpty);
+        }
+        return false;
+    }
+
+    /**
+     * @param list A list of contacts
+     * @return {@code true} if there is any contact has something configured
+     */
+    boolean isNotNullOrEmptyContacts(List<OrganizationalContact> list) {
+        if (list != null && !list.isEmpty()) {
+            return list.stream().filter(Objects::nonNull).anyMatch(this::isNotNullOrEmpty);
+
+        }
+        return false;
+    }
+
+    /**
+     * @param address A postal address entry
+     * @return {@code true} if there is any postal address information exists
+     */
+    boolean isNotNullOrEmpty(PostalAddress address) {
+        if (address == null) {
+            return false;
+        }
+        return  isNotNullOrEmpty(address.getStreetAddress()) ||
+            isNotNullOrEmpty(address.getCountry()) ||
+            isNotNullOrEmpty(address.getPostalCode()) ||
+            isNotNullOrEmpty(address.getLocality()) ||
+            isNotNullOrEmpty(address.getPostOfficeBoxNumber()) ||
+            isNotNullOrEmpty(address.getRegion());
+    }
+
+    /**
+     * @param contact A contact entry
+     * @return {@code true} if there is any contact information exists
+     */
+    boolean isNotNullOrEmpty(OrganizationalContact contact) {
+        if (null == contact) {
+            return false;
+        }
+        return isNotNullOrEmpty(contact.getName()) ||
+            isNotNullOrEmpty(contact.getEmail()) ||
+            isNotNullOrEmpty(contact.getPhone());
     }
 
     private Property newProperty(String name, String value) {

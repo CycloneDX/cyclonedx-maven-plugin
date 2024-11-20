@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.maven.model.Developer;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
@@ -33,45 +34,64 @@ class BaseCycloneDxMojoTest {
 
     @Test
     @DisplayName("Verify that the default configuration does not have manufacturer information ")
-    void hasNoManufacturerInformation() {
+    void createManufacturer() {
         BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        assertFalse(mojo.hasManufacturerInformation());
+        OrganizationalEntity manufacturer = mojo.createManufacturer(null, null);
+        assertNotNull(manufacturer);
+        assertNull(manufacturer.getAddress());
+        assertNull(manufacturer.getContacts());
+        assertNull(manufacturer.getName());
+        assertNull(manufacturer.getUrls());
+        assertNull(manufacturer.getBomRef());
     }
 
     @Test
-    @DisplayName("Verify that the function hasManufacturerInformation works as expected")
-    void hasManufacturerInformation() throws NoSuchFieldException, IllegalAccessException {
+    @DisplayName("")
+    void createListOfAuthors() {
         BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
         OrganizationalEntity manufacturer = new OrganizationalEntity();
-        manufacturer.setName("Manufacturer");
-        setParentParameter(mojo, "manufacturer", manufacturer);
-        assertTrue(mojo.hasManufacturerInformation());
-
-        manufacturer = new OrganizationalEntity();
-        setParentParameter(mojo, "manufacturer", manufacturer);
-        PostalAddress address = new PostalAddress();
-        address.setCountry("UK");
-        manufacturer.setAddress(address);
-        assertTrue(mojo.hasManufacturerInformation());
-
-        manufacturer = new OrganizationalEntity();
-        setParentParameter(mojo, "manufacturer", manufacturer);
-        OrganizationalContact contact = new OrganizationalContact();
-        contact.setName("Contact");
-        List<OrganizationalContact> contacts = new ArrayList<>();
-        contacts.add(contact);
-        manufacturer.setContacts(contacts);
-        assertTrue(mojo.hasManufacturerInformation());
-
-        manufacturer = new OrganizationalEntity();
-        setParentParameter(mojo, "manufacturer", manufacturer);
-        List<String> urls = new ArrayList<>();
-        urls.add("https://www.owasp.org");
-        manufacturer.setUrls(urls);
-        assertTrue(mojo.hasManufacturerInformation());
-
+        List<Developer> developers = new ArrayList<>();
+        Developer developer = new Developer();
+        developer.setName("Developer");
+        developers.add(developer);
+        developer = new Developer();
+        developer.setEmail("Developer@foo.com");
+        developers.add(developer);
+        developer = new Developer();
+        developer.setOrganization("My Organization");
+        developers.add(developer);
+        developer = new Developer();
+        developer.setOrganizationUrl("http://foo.com");
+        developers.add(developer);
+        List<OrganizationalContact> listOfAuthors = mojo.createListOfAuthors(manufacturer, developers);
+        assertNotNull(listOfAuthors);
+        assertEquals(4, listOfAuthors.size());
+        assertEquals("Developer", listOfAuthors.get(0).getName());
     }
 
+    @Test
+    @DisplayName("Verify addContacts")
+    void addContacts() {
+        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
+        OrganizationalEntity manufacturer = new OrganizationalEntity();
+        List<Developer > developers = new ArrayList<>();
+        mojo.addContacts(manufacturer, developers);
+        assertNotNull(manufacturer.getContacts());
+        assertTrue(manufacturer.getContacts().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Verify addUrl")
+    void addUrl() {
+        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
+        OrganizationalEntity manufacturer = new OrganizationalEntity();
+        assertNull(manufacturer.getUrls());
+        mojo.addUrl(manufacturer, "http://foo.com");
+        assertNotNull(manufacturer.getUrls());
+        assertEquals(1, manufacturer.getUrls().size());
+        mojo.addUrl(manufacturer, "http://example.com");
+        assertEquals(2, manufacturer.getUrls().size());
+    }
 
 
     @Test
@@ -86,86 +106,7 @@ class BaseCycloneDxMojoTest {
         assertTrue(mojo.isNotNullOrEmpty(value));
     }
 
-    @Test
-    @DisplayName("Verify that a list of strings works as expected")
-    void isNotNullOrEmptyString() {
-        List<String> list = null;
-        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        assertFalse(mojo.isNotNullOrEmptyString(list));
-        list = new ArrayList<>();
-        assertFalse(mojo.isNotNullOrEmptyString(list));
-        String value = null;
-        list.add(value);
-        assertFalse(mojo.isNotNullOrEmptyString(list));
-        list.add("");
-        assertFalse(mojo.isNotNullOrEmptyString(list));
-        list.add("null");
-        assertTrue(mojo.isNotNullOrEmptyString(list));
-    }
 
-    @Test
-    @DisplayName("Verify that a list of contacts works as expected")
-    void isNotNullOrEmptyContacts() {
-        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        List<OrganizationalContact> list = null;
-        assertFalse(mojo.isNotNullOrEmptyContacts(list));
-        list = new ArrayList<>();
-        assertFalse(mojo.isNotNullOrEmptyContacts(list));
-        OrganizationalContact contact = new OrganizationalContact();
-        contact.setName("Contact");
-        list.add(contact);
-        assertTrue(mojo.isNotNullOrEmptyContacts(list));
-    }
-
-    @Test
-    @DisplayName("Verify that check of address works as expected")
-    void testIsNotNullOrEmpty() {
-        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        PostalAddress address = new PostalAddress();
-        assertFalse(mojo.isNotNullOrEmpty(address));
-        address.setRegion("AL");
-        assertTrue(mojo.isNotNullOrEmpty(address));
-
-        address = new PostalAddress();
-        address.setPostOfficeBoxNumber("12345");
-        assertTrue(mojo.isNotNullOrEmpty(address));
-
-        address = new PostalAddress();
-        address.setLocality("my locality");
-        assertTrue(mojo.isNotNullOrEmpty(address));
-
-        address = new PostalAddress();
-        address.setPostalCode("12345");
-        assertTrue(mojo.isNotNullOrEmpty(address));
-
-        address = new PostalAddress();
-        address.setCountry("US");
-        assertTrue(mojo.isNotNullOrEmpty(address));
-
-        address = new PostalAddress();
-        address.setStreetAddress("Main street");
-        assertTrue(mojo.isNotNullOrEmpty(address));
-    }
-
-    @Test
-    @DisplayName("Verify that test of contact works as expected")
-    void testIsNotNullOrEmpty1() {
-        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        OrganizationalContact contact = null;
-        assertFalse(mojo.isNotNullOrEmpty(contact));
-        contact = new OrganizationalContact();
-        assertFalse(mojo.isNotNullOrEmpty(contact));
-        contact.setPhone("1-555-888-1234");
-        assertTrue(mojo.isNotNullOrEmpty(contact));
-
-        contact = new OrganizationalContact();
-        contact.setEmail("info@example.com");
-        assertTrue(mojo.isNotNullOrEmpty(contact));
-
-        contact = new OrganizationalContact();
-        contact.setName("Contact");
-        assertTrue(mojo.isNotNullOrEmpty(contact));
-    }
 
     /**
      * Inject a parameter value to a superclass (even private parameters).

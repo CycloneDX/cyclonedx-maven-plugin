@@ -18,8 +18,11 @@
  */
 package org.cyclonedx.maven;
 
+import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Developer;
+import org.apache.maven.model.Organization;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
@@ -251,13 +254,6 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter
     private ExternalReference[] externalReferences;
 
-    /**
-     * Manufacturer information for automatic creator information
-     * @since 2.9.1
-     */
-    @Parameter(property = "cyclonedx.manufacturer", required = false)
-    private OrganizationalEntity manufacturer = null;
-
     @org.apache.maven.plugins.annotations.Component
     private MavenProjectHelper mavenProjectHelper;
 
@@ -363,8 +359,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     metadata.addProperty(newProperty("maven.optional.unused", Boolean.toString(detectUnusedForOptionalScope)));
                 }
 
-                if (hasManufacturerInformation()) {
-                    metadata.setManufacturer(manufacturer);
+                List<Developer> developers = project.getDevelopers();
+                Organization organization = project.getOrganization();
+                if (organization != null || (developers != null && !developers.isEmpty())) {
+                    metadata.setManufacturer(createManufacturer(organization, developers));
+                }
+                if ((developers != null && !developers.isEmpty())) {
+                    metadata.setAuthors(createListOfAuthors(null, developers));
                 }
             }
 
@@ -377,20 +378,60 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    /**
-     * Check the mojo configuration for the optional manufacturer contents.
-     *
-     * @return {@code true} if there is any manufacturer information configured.
-     */
-    boolean hasManufacturerInformation() {
-        if (manufacturer == null) {
-            return false;
+    OrganizationalEntity createManufacturer(Organization organization, List<Developer> developers) {
+        OrganizationalEntity manufacturer = new OrganizationalEntity();
+        if (organization != null) {
+            if (isNotNullOrEmpty(organization.getName())) {
+                manufacturer.setName(organization.getName());
+            }
+            if (isNotNullOrEmpty(organization.getUrl())) {
+                addUrl(manufacturer, organization.getUrl());
+            }
         }
+        if (developers != null) {
+            addContacts(manufacturer, developers);
+        }
+        return manufacturer;
+    }
 
-        return isNotNullOrEmpty(manufacturer.getAddress()) ||
-            isNotNullOrEmpty(manufacturer.getName()) ||
-            isNotNullOrEmptyContacts(manufacturer.getContacts()) ||
-            isNotNullOrEmptyString(manufacturer.getUrls());
+    List<OrganizationalContact> createListOfAuthors(OrganizationalEntity manufacturer, List<Developer> developers) {
+        List<OrganizationalContact> list = new ArrayList<>();
+        for (Developer developer : developers) {
+            OrganizationalContact contact = new OrganizationalContact();
+            if (isNotNullOrEmpty(developer.getName())) {
+                contact.setName(developer.getName());
+            }
+            if (isNotNullOrEmpty(developer.getEmail())) {
+                contact.setEmail(developer.getEmail());
+            }
+            if (manufacturer != null) {
+                if (isNullOrEmpty(manufacturer.getName()) && isNotNullOrEmpty(developer.getOrganization())) {
+                    manufacturer.setName(developer.getOrganization());
+                }
+                if (isNotNullOrEmpty(developer.getOrganizationUrl())) {
+                    addUrl(manufacturer, developer.getOrganizationUrl());
+                }
+                if (isNotNullOrEmpty(developer.getUrl())) {
+                    addUrl(manufacturer, developer.getUrl());
+                }
+            }
+            list.add(contact);
+        }
+        return list;
+    }
+
+
+    void addContacts(OrganizationalEntity manufacturer, List<Developer> developers) {
+        manufacturer.setContacts(createListOfAuthors(manufacturer, developers));
+    }
+
+    void addUrl(OrganizationalEntity manufacturer, String url) {
+        List<String> urls = manufacturer.getUrls();
+        if (urls == null) {
+            urls = new ArrayList<>();
+        }
+        urls.add(url);
+        manufacturer.setUrls(urls);
     }
 
     /**
@@ -402,55 +443,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
-     * @param list A list of text
-     * @return {@code true} if there is any element has a text value
+     * @param text Some text
+     * @return {@code true} if there is any text
      */
-    boolean isNotNullOrEmptyString(List<String> list) {
-        if (list != null && !list.isEmpty()) {
-            return list.stream().filter(Objects::nonNull).anyMatch(this::isNotNullOrEmpty);
-        }
-        return false;
-    }
-
-    /**
-     * @param list A list of contacts
-     * @return {@code true} if there is any contact has something configured
-     */
-    boolean isNotNullOrEmptyContacts(List<OrganizationalContact> list) {
-        if (list != null && !list.isEmpty()) {
-            return list.stream().filter(Objects::nonNull).anyMatch(this::isNotNullOrEmpty);
-
-        }
-        return false;
-    }
-
-    /**
-     * @param address A postal address entry
-     * @return {@code true} if there is any postal address information exists
-     */
-    boolean isNotNullOrEmpty(PostalAddress address) {
-        if (address == null) {
-            return false;
-        }
-        return  isNotNullOrEmpty(address.getStreetAddress()) ||
-            isNotNullOrEmpty(address.getCountry()) ||
-            isNotNullOrEmpty(address.getPostalCode()) ||
-            isNotNullOrEmpty(address.getLocality()) ||
-            isNotNullOrEmpty(address.getPostOfficeBoxNumber()) ||
-            isNotNullOrEmpty(address.getRegion());
-    }
-
-    /**
-     * @param contact A contact entry
-     * @return {@code true} if there is any contact information exists
-     */
-    boolean isNotNullOrEmpty(OrganizationalContact contact) {
-        if (null == contact) {
-            return false;
-        }
-        return isNotNullOrEmpty(contact.getName()) ||
-            isNotNullOrEmpty(contact.getEmail()) ||
-            isNotNullOrEmpty(contact.getPhone());
+    boolean isNullOrEmpty(String text) {
+        return !isNotNullOrEmpty(text);
     }
 
     private Property newProperty(String name, String value) {

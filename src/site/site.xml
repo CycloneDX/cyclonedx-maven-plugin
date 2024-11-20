@@ -26,7 +26,6 @@
             <item name="CycloneDX"  href="https://www.cyclonedx.org/" />
             <item name="Tool Center" href="https://cyclonedx.org/tool-center/" />
             <item name="CycloneDX Maven Plugin"  href="index.html" />
-            <item name="Manufacture References" href="manufacturer.html"/>
         </breadcrumbs>
         <links>
             <item name="Sources" href="https://www.github.com/CycloneDX/cyclonedx-maven-plugin"/>

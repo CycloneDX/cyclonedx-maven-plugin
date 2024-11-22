@@ -68,6 +68,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
 
             final Component projectBomComponent = convertMavenDependency(mavenProject.getArtifact());
             components.put(projectBomComponent.getPurl(), projectBomComponent);
+            setManufacturer(mavenProject, projectBomComponent);
             topLevelComponents.add(projectBomComponent.getPurl());
 
             populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), null);

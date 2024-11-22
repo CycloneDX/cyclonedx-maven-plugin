@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.maven.model.Developer;
+import org.apache.maven.model.Organization;
+import org.apache.maven.project.MavenProject;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.OrganizationalContact;
@@ -30,10 +32,9 @@ class BaseCycloneDxMojoTest {
     }
 
     @Test
-    @DisplayName("")
-    void createListOfAuthors() {
+    @DisplayName("Using developers information only")
+    void setManufacturer1() {
         BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        OrganizationalEntity manufacturer = new OrganizationalEntity();
         List<Developer> developers = new ArrayList<>();
         Developer developer = new Developer();
         developer.setName("Developer");
@@ -47,21 +48,96 @@ class BaseCycloneDxMojoTest {
         developer = new Developer();
         developer.setOrganizationUrl("http://foo.com");
         developers.add(developer);
-        List<OrganizationalContact> listOfAuthors = mojo.createListOfAuthors(manufacturer, developers);
-        assertNotNull(listOfAuthors);
-        assertEquals(4, listOfAuthors.size());
-        assertEquals("Developer", listOfAuthors.get(0).getName());
+        Component projectBomComponent = new Component();
+        MavenProject mavenProject = new MavenProject();
+        mavenProject.setDevelopers(developers);
+        mojo.setManufacturer(mavenProject, projectBomComponent);
+        OrganizationalEntity manufacturer = projectBomComponent.getManufacturer();
+        assertNotNull(manufacturer);
+        assertEquals(4, manufacturer.getContacts().size());
+        assertEquals("Developer", manufacturer.getContacts().get(0).getName());
+        assertEquals("My Organization", manufacturer.getName());
     }
 
     @Test
-    @DisplayName("Verify addContacts")
-    void addContacts() {
+    @DisplayName("Using developers information  with empty organization")
+    void setManufacturer2() {
         BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
-        OrganizationalEntity manufacturer = new OrganizationalEntity();
-        List<Developer > developers = new ArrayList<>();
-        mojo.addContacts(manufacturer, developers);
-        assertNotNull(manufacturer.getContacts());
-        assertTrue(manufacturer.getContacts().isEmpty());
+        List<Developer> developers = new ArrayList<>();
+        Developer developer = new Developer();
+        developer.setName("Developer");
+        developers.add(developer);
+        developer = new Developer();
+        developer.setEmail("Developer@foo.com");
+        developers.add(developer);
+        developer = new Developer();
+        developer.setOrganization("My Organization");
+        developers.add(developer);
+        developer = new Developer();
+        developer.setOrganizationUrl("http://foo.com");
+        developers.add(developer);
+        Component projectBomComponent = new Component();
+        MavenProject mavenProject = new MavenProject();
+        mavenProject.setDevelopers(developers);
+        mavenProject.setOrganization(new Organization());
+        mojo.setManufacturer(mavenProject, projectBomComponent);
+        OrganizationalEntity manufacturer = projectBomComponent.getManufacturer();
+        assertNotNull(manufacturer);
+        assertEquals(4, manufacturer.getContacts().size());
+        assertEquals("Developer", manufacturer.getContacts().get(0).getName());
+        assertEquals("My Organization", manufacturer.getName());
+    }
+
+    @Test
+    @DisplayName("Using developers and organization information")
+    void setManufacturer3() {
+        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
+
+        MavenProject mavenProject = new MavenProject();
+        List<Developer> developers = new ArrayList<>();
+        Developer developer = new Developer();
+        developer.setName("Developer 2");
+        developer.setEmail("Developer@foo.com");
+        developer.setOrganization("My Organization");
+        developer.setOrganizationUrl("http://foo.com");
+        developers.add(developer);
+        mavenProject.setDevelopers(developers);
+
+        Organization organization = new Organization();
+        organization.setName("My Company");
+        organization.setUrl("http://example.com");
+        mavenProject.setOrganization(organization);
+
+        Component projectBomComponent = new Component();
+        mojo.setManufacturer(mavenProject, projectBomComponent);
+        OrganizationalEntity manufacturer = projectBomComponent.getManufacturer();
+        assertNotNull(manufacturer);
+        assertEquals(1, manufacturer.getContacts().size());
+        assertEquals("Developer 2", manufacturer.getContacts().get(0).getName());
+        assertEquals("My Company", manufacturer.getName());
+    }
+
+    @Test
+    @DisplayName("Using organization information only")
+    void setManufacturer4() {
+        BaseCycloneDxMojoImpl mojo = new BaseCycloneDxMojoImpl();
+
+        MavenProject mavenProject = new MavenProject();
+        List<Developer> developers = new ArrayList<>();
+        Organization organization = new Organization();
+        organization.setName("My Organization");
+        organization.setUrl("http://example.org");
+        mavenProject.setOrganization(organization);
+
+        mavenProject.setDevelopers(developers);
+        mavenProject.setOrganization(organization);
+
+        Component projectBomComponent = new Component();
+        mojo.setManufacturer(mavenProject, projectBomComponent);
+        OrganizationalEntity manufacturer = projectBomComponent.getManufacturer();
+        assertNotNull(manufacturer);
+        assertNull(manufacturer.getContacts());
+        assertEquals("My Organization", manufacturer.getName());
     }
 
     @Test

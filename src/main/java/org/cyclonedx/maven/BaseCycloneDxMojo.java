@@ -18,6 +18,7 @@
  */
 package org.cyclonedx.maven;
 
+import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.model.Developer;
@@ -355,23 +356,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 if (detectUnusedForOptionalScope) {
                     metadata.addProperty(newProperty("maven.optional.unused", Boolean.toString(detectUnusedForOptionalScope)));
                 }
-
-                List<Developer> developers = project.getDevelopers();
-                Organization organization = project.getOrganization();
-                if (organization != null || (developers != null && !developers.isEmpty())) {
-                    metadata.setManufacturer(createManufacturer(organization, developers));
-                }
-                if ((developers != null && !developers.isEmpty())) {
-                    metadata.setAuthors(createListOfAuthors(null, developers));
-                }
             }
 
             final Component rootComponent = metadata.getComponent();
             componentMap.remove(rootComponent.getPurl());
+            setManufacturer(project, rootComponent);
 
             projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
 
             generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
+        }
+    }
+
+    protected void setManufacturer(MavenProject mavenProject, Component projectBomComponent) {
+        getLog().debug("setManufacturer for " + mavenProject.getGroupId() + ":" +
+            mavenProject.getArtifactId() + ":" + mavenProject.getVersion());
+        List<Developer> developers = mavenProject.getDevelopers();
+        Organization organization = mavenProject.getOrganization();
+        if (organization != null || (developers != null && !developers.isEmpty())) {
+            projectBomComponent.setManufacturer(createManufacturer(organization, developers));
         }
     }
 
@@ -386,13 +389,23 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
         }
         if (developers != null) {
-            addContacts(manufacturer, developers);
+            DeveloperInformation information = createListOfContacts(developers);
+            if (!information.getContacts().isEmpty()) {
+                manufacturer.setContacts(information.getContacts());
+            }
+            if (manufacturer.getName() == null) {
+                manufacturer.setName(information.getOrganization());
+            }
+            for (String url : information.getUrls()) {
+                addUrl(manufacturer, url);
+            }
         }
+        getLog().debug("Set manufacturer information name=" + manufacturer.getName());
         return manufacturer;
     }
 
-    List<OrganizationalContact> createListOfAuthors(OrganizationalEntity manufacturer, List<Developer> developers) {
-        List<OrganizationalContact> list = new ArrayList<>();
+    DeveloperInformation createListOfContacts(List<Developer> developers) {
+        DeveloperInformation developerInformation = new DeveloperInformation();
         for (Developer developer : developers) {
             OrganizationalContact contact = new OrganizationalContact();
             if (isNotNullOrEmpty(developer.getName())) {
@@ -401,25 +414,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             if (isNotNullOrEmpty(developer.getEmail())) {
                 contact.setEmail(developer.getEmail());
             }
-            if (manufacturer != null) {
-                if (isNullOrEmpty(manufacturer.getName()) && isNotNullOrEmpty(developer.getOrganization())) {
-                    manufacturer.setName(developer.getOrganization());
-                }
-                if (isNotNullOrEmpty(developer.getOrganizationUrl())) {
-                    addUrl(manufacturer, developer.getOrganizationUrl());
-                }
-                if (isNotNullOrEmpty(developer.getUrl())) {
-                    addUrl(manufacturer, developer.getUrl());
-                }
-            }
-            list.add(contact);
+            developerInformation.addOrganizationalContact(contact);
+            developerInformation.setOrganization(developer.getOrganization());
+            developerInformation.addUrl(developer.getOrganizationUrl());
+            developerInformation.addUrl(developer.getUrl());
         }
-        return list;
-    }
-
-
-    void addContacts(OrganizationalEntity manufacturer, List<Developer> developers) {
-        manufacturer.setContacts(createListOfAuthors(manufacturer, developers));
+        return developerInformation;
     }
 
     void addUrl(OrganizationalEntity manufacturer, String url) {

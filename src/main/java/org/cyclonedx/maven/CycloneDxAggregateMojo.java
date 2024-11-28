@@ -129,6 +129,7 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
             final Component projectBomComponent = convertMavenDependency(mavenProject.getArtifact());
+            setManufacturer(mavenProject, projectBomComponent);
             components.put(projectBomComponent.getPurl(), projectBomComponent);
             topLevelComponents.add(projectBomComponent.getPurl());
 

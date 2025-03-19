@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  This file is part of CycloneDX Maven Plugin.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  SPDX-License-Identifier: Apache-2.0
+  Copyright (c) OWASP Foundation. All Rights Reserved.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.cyclonedx.its</groupId>
+        <artifactId>shipped</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>war</artifactId>
+    <packaging>war</packaging><!-- https://maven.apache.org/ref/3.9.9/maven-core/default-bindings.html#Plugin_bindings_for_war_packaging invokes maven-war-plugin -->
+
+    <name>shipped dependencies: war</name>
+    <description>Maven War Plugin copies shipped dependencies to WEB-INF/lib/ as per war spec.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.cyclonedx.its</groupId>
+            <artifactId>lib</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.18.0</version><!-- force a version for transitive of lib because Maven conflict resolution = nearest wins -->
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement><!-- force a version for transitives -->
+        <dependencies>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.18.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

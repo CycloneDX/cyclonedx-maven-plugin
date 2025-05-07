@@ -23,20 +23,35 @@
 
     <parent>
         <groupId>org.cyclonedx.its</groupId>
-        <artifactId>makeAggregateBom</artifactId>
+        <artifactId>skipped</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>skipped</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>central-publishing-maven-plugin-property</artifactId>
 
-    <modules>
-      <module>central-publishing-maven-plugin-config</module>
-      <module>central-publishing-maven-plugin-property</module>
-      <module>deploy-property</module>
-      <module>deploy-property-force</module>
-      <module>deploy-config</module>
-      <module>deploy-config-force</module>
-      <module>nexus-property</module>
-      <module>nexus-config</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.cyclonedx</groupId>
+            <artifactId>cyclonedx-core-java</artifactId>
+            <version>9.0.5</version>
+        </dependency>
+    </dependencies>
+    
+    <properties>
+       <skipPublishing>true</skipPublishing>
+    </properties>
+
+    <build>
+    <plugins>
+        <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.7.0</version>
+            <extensions>true</extensions>
+            <configuration>
+                <publishingServerId>central</publishingServerId>
+                <autoPublish>true</autoPublish>
+            </configuration>
+        </plugin>
+</plugins>
+    </build>
 </project>

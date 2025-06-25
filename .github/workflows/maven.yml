@@ -2,6 +2,8 @@ name: Maven CI
 
 on: [push, pull_request]
 
+permissions: {}
+
 jobs:
   build:
 

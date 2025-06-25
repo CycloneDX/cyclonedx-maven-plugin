@@ -4,8 +4,7 @@ on:
     branches:
       - master
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   update_release_draft:

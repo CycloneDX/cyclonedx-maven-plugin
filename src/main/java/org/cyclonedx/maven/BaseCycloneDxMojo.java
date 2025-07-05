@@ -272,6 +272,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     private static final String MAVEN_DEPLOY_PLUGIN = "org.apache.maven.plugins:maven-deploy-plugin";
     private static final String NEXUS_STAGING_PLUGIN = "org.sonatype.plugins:nexus-staging-maven-plugin";
+    private static final String CENTRAL_PUBLISHING_PLUGIN = "org.sonatype.central:central-publishing-maven-plugin";
 
     /**
      * Returns a reference to the current project.
@@ -604,17 +605,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return isDeployable(project,
                         MAVEN_DEPLOY_PLUGIN,
                         "skip",
-                        "maven.deploy.skip")
+                        "maven.deploy.skip",
+                        "deploy")
                 || isDeployable(project,
                         NEXUS_STAGING_PLUGIN,
                         "skipNexusStagingDeployMojo",
-                        "skipNexusStagingDeployMojo");
+                        "skipNexusStagingDeployMojo",
+                        "deploy")
+                || isDeployable(project,
+                        CENTRAL_PUBLISHING_PLUGIN,
+                        "skipPublishing",
+                        "skipPublishing",
+                        "publish");
     }
 
     private static boolean isDeployable(final MavenProject project,
                                         final String pluginKey,
                                         final String parameter,
-                                        final String propertyName) {
+                                        final String propertyName, 
+                                        final String goal) {
         final Plugin plugin = project.getPlugin(pluginKey);
         if (plugin != null) {
             // Default skip value
@@ -622,7 +631,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             final boolean defaultSkipValue = property != null ? Boolean.parseBoolean(property) : false;
             // Find an execution that is not skipped
             for (final PluginExecution execution : plugin.getExecutions()) {
-                if (execution.getGoals().contains("deploy")) {
+                if (execution.getGoals().contains(goal)) {
                     final Xpp3Dom executionConf = (Xpp3Dom) execution.getConfiguration();
                     final Xpp3Dom target = (executionConf == null) ? null : executionConf.getChild(parameter);
                     final boolean skipValue = (target == null) ? defaultSkipValue : Boolean.parseBoolean(target.getValue());

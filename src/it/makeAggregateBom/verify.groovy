@@ -25,6 +25,7 @@ void assertNoBomFiles(String path) {
 
 assertBomFiles("target/bom", true) // aggregate
 assertBomFiles("api/target/bom", false)
+assertBomFiles("central-publishing-maven-plugin/target/bom", false)
 assertBomFiles("util/target/bom", false)
 assertBomFiles("impls/target/bom", false)
 assertBomFiles("impls/impl-A/target/bom", false)
@@ -33,6 +34,8 @@ assertBomFiles("skipped/target/bom", false)
 assertBomFiles("skipped/deploy-config-force/target/bom", false)
 assertBomFiles("skipped/deploy-property-force/target/bom", false)
 
+assertNoBomFiles("skipped/central-publishing-maven-plugin-config/target/bom")
+assertNoBomFiles("skipped/central-publishing-maven-plugin-property/target/bom")
 assertNoBomFiles("skipped/deploy-config/target/bom")
 assertNoBomFiles("skipped/deploy-property/target/bom")
 assertNoBomFiles("skipped/nexus-config/target/bom")
@@ -40,16 +43,16 @@ assertNoBomFiles("skipped/nexus-property/target/bom")
 
 var buildLog = new File(basedir, "build.log").text
 
-assert 17 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Dependencies/).size()
+assert 19 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Dependencies/).size()
 assert 2 == (buildLog =~ /\[INFO\] CycloneDX: Resolving Aggregated Dependencies/).size()
 
-// 19 = 9 modules for main cyclonedx-makeAggregateBom execution
+// 21 = 10 modules for main cyclonedx-makeAggregateBom execution
 //    + 1 for root module cyclonedx-makeAggregateBom-root-only execution
-//    + 9 modules for additional cyclonedx-makeBom execution
-assert 19 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(XML\)/).size()
-assert 19 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(JSON\)/).size()
-// cyclonedx-makeAggregateBom-root-only execution skips 7 non-root modules
-assert 8 == (buildLog =~ /\[INFO\] Skipping CycloneDX on non-execution root/).size()
+//    + 10 modules for additional cyclonedx-makeBom execution
+assert 21 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(XML\)/).size()
+assert 21 == (buildLog =~ /\[INFO\] CycloneDX: Writing and validating BOM \(JSON\)/).size()
+// cyclonedx-makeAggregateBom-root-only execution skips 9 non-root modules
+assert 9 == (buildLog =~ /\[INFO\] Skipping CycloneDX on non-execution root/).size()
 
 // [WARNING] artifact org.cyclonedx.its:api:xml:cyclonedx:1.0-SNAPSHOT already attached, replace previous instance
 assert 0 == (buildLog =~ /-SNAPSHOT already attached, replace previous instance/).size()
@@ -84,4 +87,4 @@ assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/a
 assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/impls@1.0-SNAPSHOT?type=pom"/>')
 assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/util@1.0-SNAPSHOT?type=jar"/>')
 assert rootDependencies.contains('<dependency ref="pkg:maven/org.cyclonedx.its/skipped@1.0-SNAPSHOT?type=pom"/>')
-assert 5 == (rootDependencies =~ /<dependency ref="pkg:maven/).size()
+assert 6 == (rootDependencies =~ /<dependency ref="pkg:maven/).size()

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>parent-preservation-parent</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0.0</version>
+
+    <name>Parent Preservation Tests Parent</name>
+
+    <modules>
+        <module>grandparent</module>
+        <module>parent</module>
+        <module>child</module>
+        <module>standalone</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>${current.version}</version>
+                <executions>
+                    <execution>
+                        <id>default-makeAggregateBom</id>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <schemaVersion>1.6</schemaVersion>
+                    <preserveParentReferences>true</preserveParentReferences>
+                    <includeParentsAsComponents>true</includeParentsAsComponents>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

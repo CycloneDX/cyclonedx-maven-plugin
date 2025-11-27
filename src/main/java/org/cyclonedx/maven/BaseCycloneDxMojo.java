@@ -184,6 +184,25 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     protected boolean detectUnusedForOptionalScope;
 
     /**
+     * Should parent POM references be preserved as dependencies instead of being flattened in the effective POM?
+     * When enabled, if a project has a parent POM, the parent will be added as a direct dependency.
+     *
+     * @since 3.0.0
+     */
+    @Parameter(property = "preserveParentReferences", defaultValue = "false", required = false)
+    protected boolean preserveParentReferences;
+
+    /**
+     * When preserveParentReferences is enabled, this controls whether parent POMs should be included
+     * as components in the BOM or only as dependency relationships.
+     * Only takes effect when preserveParentReferences is true.
+     *
+     * @since 3.0.0
+     */
+    @Parameter(property = "includeParentsAsComponents", defaultValue = "true", required = false)
+    protected boolean includeParentsAsComponents;
+
+    /**
      * Skip CycloneDX execution.
      *
      * @since 1.1.3
@@ -472,7 +491,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     protected BomDependencies extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
-        return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
+        return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes, preserveParentReferences);
     }
 
     /**
@@ -527,6 +546,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         for (Map.Entry<String, Artifact> entry: artifacts.entrySet()) {
             final String purl = entry.getKey();
             final Artifact artifact = entry.getValue();
+            
+            // Skip parent POMs if includeParentsAsComponents is false
+            if (preserveParentReferences && !includeParentsAsComponents && "pom".equals(artifact.getType())) {
+                // Check if this artifact is a parent POM by seeing if it's referenced as a parent
+                if (isParentArtifact(artifact, artifacts)) {
+                    getLog().debug("Skipping parent POM component (includeParentsAsComponents=false): " + purl);
+                    continue;
+                }
+            }
+            
             final Component.Scope artifactScope = getComponentScope(artifact, dependencyAnalysis);
             final Component component = components.get(purl);
             if (component == null) {
@@ -629,6 +658,50 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                     if (!skipValue) {
                         return true;
                     }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Checks if an artifact is a parent POM by determining if any other artifact references it as a parent.
+     *
+     * @param candidate the artifact to check
+     * @param artifacts all artifacts in the project
+     * @return true if the candidate is a parent of any artifact
+     */
+    private boolean isParentArtifact(Artifact candidate, Map<String, Artifact> artifacts) {
+        if (!"pom".equals(candidate.getType())) {
+            return false;
+        }
+        
+        // First check if the main project has this as a parent
+        if (getProject().hasParent() && getProject().getParent() != null) {
+            MavenProject parent = getProject().getParent();
+            if (parent.getGroupId().equals(candidate.getGroupId()) &&
+                parent.getArtifactId().equals(candidate.getArtifactId()) &&
+                parent.getVersion().equals(candidate.getVersion())) {
+                return true;
+            }
+        }
+        
+        // Check each artifact to see if this candidate is its parent
+        for (Artifact artifact : artifacts.values()) {
+            // Skip comparing the artifact with itself (by coordinates, not object identity)
+            if (artifact.getGroupId().equals(candidate.getGroupId()) &&
+                artifact.getArtifactId().equals(candidate.getArtifactId()) &&
+                artifact.getVersion().equals(candidate.getVersion())) {
+                continue;
+            }
+            
+            if (modelConverter.hasParentPom(artifact)) {
+                Artifact parent = modelConverter.getParentArtifact(artifact);
+                if (parent != null && 
+                    parent.getGroupId().equals(candidate.getGroupId()) &&
+                    parent.getArtifactId().equals(candidate.getArtifactId()) &&
+                    parent.getVersion().equals(candidate.getVersion())) {
+                    return true;
                 }
             }
         }

@@ -25,6 +25,8 @@ import org.cyclonedx.model.Component;
 import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.Metadata;
 
+import java.util.Set;
+
 /**
  * Model converter from Maven concepts (dependency Artifact + MavenProject) to CycloneDX ones
  * (resp. Component with pURL + Metadata).
@@ -62,5 +64,29 @@ public interface ModelConverter {
      * @return a CycloneDX Metadata object
      */
     Metadata convertMavenProject(MavenProject project, String projectType, Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences);
+
+    /**
+     * Checks if an artifact has a parent POM reference in its original (non-effective) POM.
+     *
+     * @param artifact the artifact to check
+     * @return true if the artifact has a parent POM, false otherwise
+     */
+    boolean hasParentPom(Artifact artifact);
+
+    /**
+     * Gets the parent artifact reference from the original (non-effective) POM.
+     *
+     * @param artifact the artifact whose parent to retrieve
+     * @return the parent artifact, or null if no parent exists
+     */
+    Artifact getParentArtifact(Artifact artifact);
+
+    /**
+     * Gets the set of direct dependency package URLs declared in an artifact's POM.
+     *
+     * @param artifact the artifact whose dependencies to extract
+     * @return set of package URLs for direct dependencies
+     */
+    Set<String> getDirectDependencyPurls(Artifact artifact);
 
 }

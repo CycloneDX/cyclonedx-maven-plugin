@@ -36,6 +36,18 @@ public interface ProjectDependenciesConverter {
     BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
 
     /**
+     * Extracts BOM dependencies with optional parent POM preservation.
+     *
+     * @param mavenProject the Maven project to analyze
+     * @param include scope configuration for included dependencies
+     * @param excludes types to exclude
+     * @param preserveParentReferences whether to preserve parent POM references as dependencies
+     * @return BOM dependencies structure
+     * @throws MojoExecutionException if dependency extraction fails
+     */
+    BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes, boolean preserveParentReferences) throws MojoExecutionException;
+
+    /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the
      * Maven dependency resolution graph but that are finally not kept in the effective dependencies list.
      *

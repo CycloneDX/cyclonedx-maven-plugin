@@ -202,7 +202,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * reads compiled classes from dependency jars. When both are set, the analyzer
      * is force-disabled with a warning.
      *
-     * @since 2.10.0
+     * @since 2.9.2
      */
     @Parameter(property = "cyclonedx.skipArtifactDownload", defaultValue = "false", required = false)
     private boolean skipArtifactDownload = false;

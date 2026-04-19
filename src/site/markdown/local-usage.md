@@ -132,7 +132,7 @@ effect — the flag only changes what *this plugin* reads from disk.
 
 Incompatible with `-DdetectUnusedForOptionalScope=true` (analyzer requires compiled
 classes); when both are set, `detectUnusedForOptionalScope` is force-disabled with a
-warning. Available since plugin version `2.10.0`.
+warning. Available since plugin version `2.9.2`.
 
 ## Skipping the SBOM generation for individual modules
 

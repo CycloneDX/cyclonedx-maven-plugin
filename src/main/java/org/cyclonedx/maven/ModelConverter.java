@@ -65,7 +65,7 @@ public interface ModelConverter {
      * @param includeLicenseText should license text be included in bom?
      * @param skipArtifactDownload when {@code true}, do not read {@code artifact.getFile()} to compute hashes
      * @return a CycloneDX component
-     * @since 2.10.0
+     * @since 2.9.2
      */
     Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText, boolean skipArtifactDownload);
 

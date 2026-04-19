@@ -92,7 +92,7 @@ Invoke the goal directly as above — or bind the plugin to a lifecycle phase be
 want Maven's own lifecycle not to pull jars either. Incompatible with `detectUnusedForOptionalScope=true`,
 which is force-disabled with a warning when the flag is set.
 
-Available since 2.10.0.
+Available since 2.9.2.
 
 Goals
 -------------------

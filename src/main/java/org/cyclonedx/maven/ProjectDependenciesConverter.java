@@ -42,7 +42,7 @@ public interface ProjectDependenciesConverter {
      * When {@code skipArtifactDownload} is {@code true}, the graph is built from POM resolution
      * only; dependency jar files are not fetched.
      *
-     * @since 2.10.0
+     * @since 2.9.2
      */
     BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes, boolean skipArtifactDownload) throws MojoExecutionException;
 

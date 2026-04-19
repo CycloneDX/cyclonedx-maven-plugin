@@ -175,7 +175,7 @@ Follow the existing Takari-based JUnit pattern under `src/test/java/org/cycloned
 
 ## Release notes / compatibility
 
-- **Target version:** `2.10.0` (new feature → minor bump). Update `pom.xml` `<version>` from `2.9.2-SNAPSHOT` to `2.10.0-SNAPSHOT` as part of implementation.
+- **Target version:** `2.10.0` (new feature → minor bump). The `@since` tag in the Javadoc should be `2.10.0`. Whether the implementation branch flips `pom.xml` from `2.9.2-SNAPSHOT` to `2.10.0-SNAPSHOT` immediately or as part of the release cut is left to the maintainers' normal release process.
 - **Java / Maven compatibility:** unchanged. Still JDK 8, Maven 3.1+.
 - **`ModelConverter` SPI:** the new 4-arg method is additive. The old 3-arg method stays functional for any third-party consumer that extends the interface (none known in-tree).
 - **Default behavior with flag unset:** bit-for-bit identical to 2.9.x output.

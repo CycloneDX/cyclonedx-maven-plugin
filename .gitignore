@@ -206,3 +206,6 @@ buildNumber.properties
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/maven,intellij,eclipse,visualstudiocode
+
+# Local testing scratch (cloned repos, isolated Maven repositories, etc.)
+.data/

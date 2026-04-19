@@ -47,10 +47,16 @@ import org.eclipse.aether.util.graph.visitor.TreeDependencyVisitor;
  */
 class DelegatingRepositorySystem implements RepositorySystem {
     private final RepositorySystem delegate;
+    private final boolean skipArtifactDownload;
     private CollectResult collectResult;
 
     public DelegatingRepositorySystem(final RepositorySystem repositorySystem) {
+        this(repositorySystem, false);
+    }
+
+    public DelegatingRepositorySystem(final RepositorySystem repositorySystem, final boolean skipArtifactDownload) {
         this.delegate = repositorySystem;
+        this.skipArtifactDownload = skipArtifactDownload;
     }
 
     public CollectResult getCollectResult() {
@@ -61,6 +67,10 @@ class DelegatingRepositorySystem implements RepositorySystem {
     public CollectResult collectDependencies(final RepositorySystemSession session, final CollectRequest request)
             throws DependencyCollectionException {
         collectResult = delegate.collectDependencies(session, request);
+        if (skipArtifactDownload) {
+            // Graph is built from POMs only; do not trigger jar downloads via per-node resolveArtifact.
+            return collectResult;
+        }
         final DependencyNode root = collectResult.getRoot();
         root.accept(new TreeDependencyVisitor(new DependencyVisitor() {
             @Override

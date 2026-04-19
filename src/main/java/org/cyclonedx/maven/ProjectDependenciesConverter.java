@@ -33,7 +33,18 @@ import java.util.Map;
  */
 public interface ProjectDependenciesConverter {
 
-    BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
+    default BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException {
+        return extractBOMDependencies(mavenProject, include, excludes, false);
+    }
+
+    /**
+     * Walk the Maven dependency graph of {@code mavenProject} and return the BOM dependency data.
+     * When {@code skipArtifactDownload} is {@code true}, the graph is built from POM resolution
+     * only; dependency jar files are not fetched.
+     *
+     * @since 2.10.0
+     */
+    BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes, boolean skipArtifactDownload) throws MojoExecutionException;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the

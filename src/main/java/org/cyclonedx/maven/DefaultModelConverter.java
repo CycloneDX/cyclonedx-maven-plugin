@@ -181,8 +181,8 @@ public class DefaultModelConverter implements ModelConverter {
             component.setBomRef(component.getPurl());
         }
         try {
-            final MavenProject project = getEffectiveMavenProject(artifact);
-            
+            final MavenProject project = getEffectiveMavenProject(artifact, skipArtifactDownload);
+
             if (project != null) {
                 String projectType = getPluginConfiguration(project, BaseCycloneDxMojo.PROJECT_TYPE);
                 if (projectType != null) {
@@ -278,13 +278,21 @@ public class DefaultModelConverter implements ModelConverter {
     /**
      * This method generates an 'effective pom' for an artifact.
      * @param artifact the artifact to generate an effective pom of
+     * @param skipArtifactDownload when {@code true}, force {@code resolveDependencies=false}
+     *        on the project building request so Maven does not fetch the transitive jars
+     *        of the artifact's own declared dependencies
      * @throws ProjectBuildingException if an error is encountered
      */
-    private MavenProject getEffectiveMavenProject(final Artifact artifact) throws ProjectBuildingException {
+    private MavenProject getEffectiveMavenProject(final Artifact artifact, final boolean skipArtifactDownload) throws ProjectBuildingException {
         final Artifact pomArtifact = repositorySystem.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
-        final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact,
-                session.getProjectBuildingRequest().setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL).setProcessPlugins(false)
-        );
+        final org.apache.maven.project.ProjectBuildingRequest request =
+                new org.apache.maven.project.DefaultProjectBuildingRequest(session.getProjectBuildingRequest())
+                        .setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
+                        .setProcessPlugins(false);
+        if (skipArtifactDownload) {
+            request.setResolveDependencies(false);
+        }
+        final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact, request);
         return build.getProject();
     }
 

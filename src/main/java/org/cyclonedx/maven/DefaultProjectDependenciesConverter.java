@@ -69,7 +69,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private MavenDependencyScopes include;
 
     @Override
-    public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
+    public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes, boolean skipArtifactDownload) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 
@@ -79,7 +79,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         final Map<String, Artifact> mavenArtifacts = new LinkedHashMap<>();
         final Map<String, Artifact> mavenDependencyArtifacts = new LinkedHashMap<>();
         try {
-            final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
+            final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem, skipArtifactDownload);
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
 
             final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);

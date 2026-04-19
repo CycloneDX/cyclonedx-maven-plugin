@@ -496,7 +496,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     protected BomDependencies extractBOMDependencies(MavenProject mavenProject) throws MojoExecutionException {
         ProjectDependenciesConverter.MavenDependencyScopes include = new ProjectDependenciesConverter.MavenDependencyScopes(includeCompileScope, includeProvidedScope, includeRuntimeScope, includeTestScope, includeSystemScope);
-        return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes);
+        return projectDependenciesConverter.extractBOMDependencies(mavenProject, include, excludeTypes, skipArtifactDownload);
     }
 
     /**

@@ -49,7 +49,25 @@ public interface ModelConverter {
      * @param includeLicenseText should license text be included in bom?
      * @return a CycloneDX component
      */
-    Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText);
+    default Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText) {
+        return convertMavenDependency(artifact, schemaVersion, includeLicenseText, false);
+    }
+
+    /**
+     * Converts a Maven artifact (dependency or transitive dependency) into a
+     * CycloneDX component. When {@code skipArtifactDownload} is {@code true},
+     * component hashes are omitted (no read of the artifact file on disk); all
+     * other metadata (purl, licenses, external references derived from the
+     * effective POM) is unaffected.
+     *
+     * @param artifact the artifact to convert
+     * @param schemaVersion the target CycloneDX schema version
+     * @param includeLicenseText should license text be included in bom?
+     * @param skipArtifactDownload when {@code true}, do not read {@code artifact.getFile()} to compute hashes
+     * @return a CycloneDX component
+     * @since 2.10.0
+     */
+    Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText, boolean skipArtifactDownload);
 
     /**
      * Converts a MavenProject into a CycloneDX Metadata object.

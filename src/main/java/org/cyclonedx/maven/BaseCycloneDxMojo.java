@@ -193,6 +193,21 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean skip = false;
 
     /**
+     * Skip reading dependency artifact files from disk. When {@code true}, component
+     * hashes are omitted for dependency components, so dependency jars do not need
+     * to have been downloaded. POM resolution (used for licenses, URLs, publisher,
+     * description) and the plugin self-hash in {@code metadata.tools} are unaffected.
+     *
+     * <p>Incompatible with {@code detectUnusedForOptionalScope=true} — the analyzer
+     * reads compiled classes from dependency jars. When both are set, the analyzer
+     * is force-disabled with a warning.
+     *
+     * @since 2.10.0
+     */
+    @Parameter(property = "cyclonedx.skipArtifactDownload", defaultValue = "false", required = false)
+    private boolean skipArtifactDownload = false;
+
+    /**
      * Don't attach bom.
      *
      * @since 2.1.0
@@ -287,7 +302,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Component convertMavenDependency(Artifact artifact) {
-        return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText);
+        return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText, skipArtifactDownload);
+    }
+
+    protected boolean isSkipArtifactDownload() {
+        return skipArtifactDownload;
     }
 
     /**
@@ -325,6 +344,11 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         if (!schemaVersion().getVersionString().equals(schemaVersion)) {
             getLog().warn("Invalid schemaVersion configured '" + schemaVersion +"', using " + effectiveSchemaVersion.getVersionString());
             schemaVersion = effectiveSchemaVersion.getVersionString();
+        }
+        if (skipArtifactDownload && detectUnusedForOptionalScope) {
+            getLog().warn("cyclonedx.skipArtifactDownload is true; disabling "
+                    + "detectUnusedForOptionalScope (analyzer requires compiled classes from dependency jars).");
+            detectUnusedForOptionalScope = false;
         }
         logParameters();
 
@@ -518,6 +542,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeLicenseText     : " + includeLicenseText);
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);
+            getLog().info("skipArtifactDownload   : " + skipArtifactDownload);
             logAdditionalParameters();
             getLog().info("------------------------------------------------------------------------");
         }

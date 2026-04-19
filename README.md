@@ -75,6 +75,25 @@ With `makeAggregateBom` goal, it is possible to exclude certain Maven reactor pr
 * Pass `-DexcludeArtifactId=comma separated id` to exclude based on artifactId
 * Pass `-DexcludeGroupId=comma separated id` to exclude based on groupId
 
+Skipping jar downloads (fast SBOM mode)
+-------------------
+Set `-Dcyclonedx.skipArtifactDownload=true` (or `<skipArtifactDownload>true</skipArtifactDownload>` in
+the plugin `<configuration>`) to generate an SBOM without reading dependency `.jar` files from disk.
+Component hashes are omitted for dependencies; all other metadata (purl, licenses, URLs, publisher,
+description, the dependency graph) is preserved because POMs are still resolved.
+
+Typical usage:
+
+```bash
+mvn org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -Dcyclonedx.skipArtifactDownload=true
+```
+
+Invoke the goal directly as above — or bind the plugin to a lifecycle phase before `compile` — if you
+want Maven's own lifecycle not to pull jars either. Incompatible with `detectUnusedForOptionalScope=true`,
+which is force-disabled with a warning when the flag is set.
+
+Available since 2.10.0.
+
 Goals
 -------------------
 The CycloneDX Maven plugin contains the following three goals:

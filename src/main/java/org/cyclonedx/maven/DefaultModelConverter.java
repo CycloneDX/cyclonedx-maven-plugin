@@ -158,18 +158,20 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText) {
+    public Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText, boolean skipArtifactDownload) {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
         component.setVersion(artifact.getBaseVersion());
         component.setType(Component.Type.LIBRARY);
-         
-        try {
-            logger.debug(BaseCycloneDxMojo.MESSAGE_CALCULATING_HASHES);
-            component.setHashes(BomUtils.calculateHashes(artifact.getFile(), schemaVersion));
-        } catch (IOException e) {
-            logger.error("Error encountered calculating hashes", e);
+
+        if (!skipArtifactDownload) {
+            try {
+                logger.debug(BaseCycloneDxMojo.MESSAGE_CALCULATING_HASHES);
+                component.setHashes(BomUtils.calculateHashes(artifact.getFile(), schemaVersion));
+            } catch (IOException e) {
+                logger.error("Error encountered calculating hashes", e);
+            }
         }
         if (Version.VERSION_10 == schemaVersion) {
             component.setModified(isModified(artifact));

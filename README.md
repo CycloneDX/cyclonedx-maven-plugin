@@ -1,5 +1,5 @@
 [![Build Status](https://github.com/CycloneDX/cyclonedx-maven-plugin/workflows/Maven%20CI/badge.svg)](https://github.com/CycloneDX/cyclonedx-maven-plugin/actions?workflow=Maven+CI)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.cyclonedx/cyclonedx-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.cyclonedx/cyclonedx-maven-plugin)
+[![Maven Central](https://maven-badges.sml.io/maven-central/org.cyclonedx/cyclonedx-maven-plugin/badge.svg)](https://maven-badges.sml.io/maven-central/org.cyclonedx/cyclonedx-maven-plugin)
 [![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)][License]
 [![Website](https://img.shields.io/badge/https://-cyclonedx.org-blue.svg)](https://cyclonedx.org/)
 [![Slack Invite](https://img.shields.io/badge/Slack-Join-blue?logo=slack&labelColor=393939)](https://cyclonedx.org/slack/invite)

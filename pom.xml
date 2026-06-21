@@ -74,9 +74,9 @@
     </properties>
 
     <scm>
-        <connection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</connection>
-        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin.git</url>
-        <developerConnection>scm:git:git@github.com:CycloneDX/cyclonedx-maven-plugin.git</developerConnection>
+        <connection>scm:git:https://github.com/CycloneDX/cyclonedx-maven-plugin.git</connection>
+        <url>https://github.com/CycloneDX/cyclonedx-maven-plugin/tree/${project.scm.tag}</url>
+        <developerConnection>scm:git:https://github.com/CycloneDX/cyclonedx-maven-plugin.git</developerConnection>
         <tag>master</tag>
     </scm>
 

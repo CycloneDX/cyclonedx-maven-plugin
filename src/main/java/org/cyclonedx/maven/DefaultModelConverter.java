@@ -27,9 +27,11 @@ import org.apache.maven.artifact.handler.DefaultArtifactHandler;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.MailingList;
 import org.apache.maven.model.building.ModelBuildingRequest;
+import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuilder;
 import org.apache.maven.project.ProjectBuildingException;
+import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.repository.RepositorySystem;
 import org.cyclonedx.Version;
@@ -56,8 +58,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Plugin;
@@ -442,5 +446,131 @@ public class DefaultModelConverter implements ModelConverter {
 
     private static boolean isLicenseBlank(org.apache.maven.model.License license) {
         return isBlank(license.getName()) && isBlank(license.getUrl());
+    }
+
+    @Override
+    public boolean hasParentPom(Artifact artifact) {
+        try {
+            final Artifact pomArtifact = repositorySystem.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+            final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact,
+                    session.getProjectBuildingRequest()
+                        .setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
+                        .setProcessPlugins(false)
+                        .setResolveDependencies(false)
+            );
+            final MavenProject project = build.getProject();
+            return project.hasParent() && project.getParent() != null;
+        } catch (ProjectBuildingException e) {
+            logger.debug("Unable to check parent for " + artifact.getId(), e);
+            return false;
+        }
+    }
+
+    @Override
+    public Artifact getParentArtifact(Artifact artifact) {
+        try {
+            final Artifact pomArtifact = repositorySystem.createProjectArtifact(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion());
+            final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact,
+                    session.getProjectBuildingRequest()
+                        .setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL)
+                        .setProcessPlugins(false)
+                        .setResolveDependencies(false)
+            );
+            final MavenProject project = build.getProject();
+            if (project.hasParent() && project.getParent() != null) {
+                final MavenProject parent = project.getParent();
+                // Create an artifact for the parent POM
+                return new DefaultArtifact(
+                    parent.getGroupId(),
+                    parent.getArtifactId(),
+                    parent.getVersion(),
+                    null, // scope
+                    "pom", // type
+                    null, // classifier
+                    new DefaultArtifactHandler("pom")
+                );
+            }
+        } catch (ProjectBuildingException e) {
+            logger.debug("Unable to get parent for " + artifact.getId(), e);
+        }
+        return null;
+    }
+
+    @Override
+    public Set<String> getDirectDependencyPurls(Artifact artifact) {
+        final Set<String> directDeps = new HashSet<>();
+        
+        try {
+            // Build the artifact's POM to get its model
+            final DefaultArtifact pomArtifact = new DefaultArtifact(
+                artifact.getGroupId(),
+                artifact.getArtifactId(),
+                artifact.getVersion(),
+                null,  // scope
+                "pom",
+                null,  // classifier
+                new DefaultArtifactHandler("pom")
+            );
+
+            final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
+            buildingRequest.setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL);
+            buildingRequest.setResolveDependencies(false);
+            buildingRequest.setProcessPlugins(false);
+
+            final ProjectBuildingResult build = mavenProjectBuilder.build(pomArtifact, buildingRequest);
+            final MavenProject project = build.getProject();
+
+            // Get dependencies from the original model
+            if (project.getOriginalModel() != null && project.getOriginalModel().getDependencies() != null) {
+                for (org.apache.maven.model.Dependency dep : project.getOriginalModel().getDependencies()) {
+                    try {
+                        // Skip if essential coordinates are missing
+                        if (dep.getGroupId() == null || dep.getArtifactId() == null) {
+                            continue;
+                        }
+                        
+                        // Version might be null if inherited from dependencyManagement
+                        String version = dep.getVersion();
+                        if (version == null) {
+                            // Try to find the version from the effective dependencies
+                            for (org.apache.maven.model.Dependency effectiveDep : project.getDependencies()) {
+                                if (dep.getGroupId().equals(effectiveDep.getGroupId()) && 
+                                    dep.getArtifactId().equals(effectiveDep.getArtifactId())) {
+                                    version = effectiveDep.getVersion();
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If we still don't have a version, skip this dependency
+                        if (version == null) {
+                            logger.debug("Skipping dependency without version: " + dep.getGroupId() + ":" + dep.getArtifactId());
+                            continue;
+                        }
+                        
+                        // Create an artifact to generate the pURL
+                        final DefaultArtifact depArtifact = new DefaultArtifact(
+                            dep.getGroupId(),
+                            dep.getArtifactId(),
+                            version,
+                            dep.getScope(),
+                            dep.getType() != null ? dep.getType() : "jar",
+                            dep.getClassifier(),
+                            new DefaultArtifactHandler(dep.getType() != null ? dep.getType() : "jar")
+                        );
+                        final String purl = generatePackageUrl(depArtifact);
+                        if (purl != null) {
+                            directDeps.add(purl);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Error processing dependency " + dep.getGroupId() + ":" + dep.getArtifactId(), e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Error loading POM for artifact " + artifact.getId(), e);
+        }
+        
+        return directDeps;
     }
 }

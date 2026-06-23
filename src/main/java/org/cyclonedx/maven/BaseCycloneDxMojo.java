@@ -18,8 +18,11 @@
  */
 package org.cyclonedx.maven;
 
+import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Developer;
+import org.apache.maven.model.Organization;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
@@ -42,6 +45,8 @@ import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.LifecycleChoice;
 import org.cyclonedx.model.Lifecycles;
 import org.cyclonedx.model.Metadata;
+import org.cyclonedx.model.OrganizationalContact;
+import org.cyclonedx.model.OrganizationalEntity;
 import org.cyclonedx.model.Property;
 import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
@@ -355,11 +360,91 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
             final Component rootComponent = metadata.getComponent();
             componentMap.remove(rootComponent.getPurl());
+            setManufacturer(project, rootComponent);
 
             projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
 
             generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
         }
+    }
+
+    protected void setManufacturer(MavenProject mavenProject, Component projectBomComponent) {
+        getLog().debug("setManufacturer for " + mavenProject.getGroupId() + ":" +
+            mavenProject.getArtifactId() + ":" + mavenProject.getVersion());
+        List<Developer> developers = mavenProject.getDevelopers();
+        Organization organization = mavenProject.getOrganization();
+        if (organization != null || (developers != null && !developers.isEmpty())) {
+            projectBomComponent.setManufacturer(createManufacturer(organization, developers));
+        }
+    }
+
+    OrganizationalEntity createManufacturer(Organization organization, List<Developer> developers) {
+        OrganizationalEntity manufacturer = new OrganizationalEntity();
+        if (organization != null) {
+            if (isNotNullOrEmpty(organization.getName())) {
+                manufacturer.setName(organization.getName());
+            }
+            if (isNotNullOrEmpty(organization.getUrl())) {
+                addUrl(manufacturer, organization.getUrl());
+            }
+        }
+        if (developers != null) {
+            DeveloperInformation information = createListOfContacts(developers);
+            if (!information.getContacts().isEmpty()) {
+                manufacturer.setContacts(information.getContacts());
+            }
+            if (manufacturer.getName() == null) {
+                manufacturer.setName(information.getOrganization());
+            }
+            for (String url : information.getUrls()) {
+                addUrl(manufacturer, url);
+            }
+        }
+        getLog().debug("Set manufacturer information name=" + manufacturer.getName());
+        return manufacturer;
+    }
+
+    DeveloperInformation createListOfContacts(List<Developer> developers) {
+        DeveloperInformation developerInformation = new DeveloperInformation();
+        for (Developer developer : developers) {
+            OrganizationalContact contact = new OrganizationalContact();
+            if (isNotNullOrEmpty(developer.getName())) {
+                contact.setName(developer.getName());
+            }
+            if (isNotNullOrEmpty(developer.getEmail())) {
+                contact.setEmail(developer.getEmail());
+            }
+            developerInformation.addOrganizationalContact(contact);
+            developerInformation.setOrganization(developer.getOrganization());
+            developerInformation.addUrl(developer.getOrganizationUrl());
+            developerInformation.addUrl(developer.getUrl());
+        }
+        return developerInformation;
+    }
+
+    void addUrl(OrganizationalEntity manufacturer, String url) {
+        List<String> urls = manufacturer.getUrls();
+        if (urls == null) {
+            urls = new ArrayList<>();
+        }
+        urls.add(url);
+        manufacturer.setUrls(urls);
+    }
+
+    /**
+     * @param text Some text
+     * @return {@code true} if there is any text
+     */
+    boolean isNotNullOrEmpty(String text) {
+        return text != null && !text.trim().isEmpty();
+    }
+
+    /**
+     * @param text Some text
+     * @return {@code true} if there is any text
+     */
+    boolean isNullOrEmpty(String text) {
+        return !isNotNullOrEmpty(text);
     }
 
     private Property newProperty(String name, String value) {

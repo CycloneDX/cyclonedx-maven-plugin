@@ -95,6 +95,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private String outputFormat;
 
     /**
+     * Whether the CycloneDX output should be pretty printed (the historical default) or not.  If SBOMs are only
+     * intended for tool/machine consumption disabling pretty printing will reduce the size of the SBOMs by
+     * not including non-functional whitespace that is only of value to human consumers.
+     *
+     * @since 2.9.3
+     */
+    @Parameter(property = "prettyPrint", defaultValue = "true", required = false)
+    private boolean prettyPrint;
+
+    /**
      * The CycloneDX output file name (without extension) that should be generated (in {@code outputDirectory} directory).
      *
      * @since 2.2.0
@@ -441,15 +451,15 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             MojoExecutionException {
         if ("all".equalsIgnoreCase(outputFormat) || "xml".equalsIgnoreCase(outputFormat)) {
             final BomXmlGenerator bomGenerator = BomGeneratorFactory.createXml(schemaVersion(), bom);
-            //bomGenerator.generate();
 
-            final String bomString = bomGenerator.toXmlString();
+            // TODO Overload that exposes prettyPrint flag not exposed in public API currently
+            final String bomString = bomGenerator.toXmlString(/*prettyPrint*/);
             saveBomToFile(bomString, "xml", new XmlParser());
         }
         if ("all".equalsIgnoreCase(outputFormat) || "json".equalsIgnoreCase(outputFormat)) {
             final BomJsonGenerator bomGenerator = BomGeneratorFactory.createJson(schemaVersion(), bom);
 
-            final String bomString = bomGenerator.toJsonString();
+            final String bomString = bomGenerator.toJsonString(prettyPrint);
             saveBomToFile(bomString, "json", new JsonParser());
         }
     }

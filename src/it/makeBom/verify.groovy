@@ -10,7 +10,7 @@ assert bomFileXml.text.contains('<reference type="website">\n' +
 
 assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
 
-assert bomFileJson.text.contains('"specVersion" : "1.6"')
+assert bomFileJson.text.contains('"specVersion" : "1.7"')
 
 // Reproducible Builds
 assert !bomFileJson.text.contains('"timestamp"')
@@ -28,3 +28,6 @@ assert bomAggregateFileXml.exists()
 assert bomAggregateFileJson.exists()
 
 assert ! new File(basedir, "build.log").text.contains('[INFO] CycloneDX: Parameters')
+
+// regression for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/564
+assert ! new File(basedir, "build.log").text.contains('Unknown keyword')

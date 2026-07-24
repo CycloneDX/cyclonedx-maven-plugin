@@ -83,7 +83,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      *
      * @since 2.1.0
      */
-    @Parameter(property = "schemaVersion", defaultValue = "1.6", required = false)
+    @Parameter(property = "schemaVersion", defaultValue = "1.7", required = false)
     private String schemaVersion;
     private Version effectiveSchemaVersion = null;
 
@@ -495,8 +495,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 effectiveSchemaVersion = Version.VERSION_14;
             } else if ("1.5".equals(schemaVersion)) {
                 effectiveSchemaVersion = Version.VERSION_15;
-            } else {
+            } else if ("1.6".equals(schemaVersion)) {
                 effectiveSchemaVersion = Version.VERSION_16;
+            } else {
+                effectiveSchemaVersion = Version.VERSION_17;
             }
         }
         return effectiveSchemaVersion;

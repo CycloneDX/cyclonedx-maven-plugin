@@ -70,7 +70,9 @@ class DelegatingRepositorySystem implements RepositorySystem {
                     try {
                         final ArtifactResult resolveArtifact = resolveArtifact(session, new ArtifactRequest(node));
                         node.setArtifact(resolveArtifact.getArtifact());
-                    } catch (ArtifactResolutionException e) {} // ignored
+                    } catch (ArtifactResolutionException e) { // ignored
+                    } catch (IllegalArgumentException e) { // ignored: Maven 4 NoRepository compatibility (issue #671)
+                    }
                 }
                 return true;
             }

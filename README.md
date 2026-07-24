@@ -45,7 +45,7 @@ Default Values
         <artifactId>cyclonedx-maven-plugin</artifactId>
         <configuration>
             <projectType>library</projectType>
-            <schemaVersion>1.6</schemaVersion>
+            <schemaVersion>1.7</schemaVersion>
             <includeBomSerialNumber>true</includeBomSerialNumber>
             <includeCompileScope>true</includeCompileScope>
             <includeProvidedScope>true</includeProvidedScope>
@@ -99,6 +99,7 @@ the CycloneDX version supported by the target system.
 
 | Version | Schema Version | Format(s) |
 |---------|----------------| --------- |
+| 2.10.x  | CycloneDX v1.7 | XML/JSON |
 | 2.9.x   | CycloneDX v1.6 | XML/JSON |
 | 2.8.x   | CycloneDX v1.5 | XML/JSON |
 | 2.6.x   | CycloneDX v1.4 | XML/JSON |

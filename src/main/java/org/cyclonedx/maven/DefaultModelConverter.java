@@ -338,7 +338,7 @@ public class DefaultModelConverter implements ModelConverter {
             if (artifactLicense.getName() != null && !resolved) {
                 final License license = new License();
                 license.setName(artifactLicense.getName().trim());
-                if (StringUtils.isNotBlank(artifactLicense.getUrl())) {
+                if (StringUtils.isNotBlank(artifactLicense.getUrl()) && Version.VERSION_10 != schemaVersion) {
                     try {
                         final URI uri = new URI(artifactLicense.getUrl().trim());
                         license.setUrl(uri.toString());
@@ -355,7 +355,12 @@ public class DefaultModelConverter implements ModelConverter {
     private boolean resolveLicenseInfo(final LicenseChoice licenseChoice, final LicenseChoice licenseChoiceToResolve, final Version schemaVersion) {
         if (licenseChoiceToResolve != null) {
             if (licenseChoiceToResolve.getLicenses() != null && !licenseChoiceToResolve.getLicenses().isEmpty()) {
-                licenseChoice.addLicense(licenseChoiceToResolve.getLicenses().get(0));
+                final License license = licenseChoiceToResolve.getLicenses().get(0);
+                if (Version.VERSION_10 == schemaVersion) {
+                    // CycloneDX 1.0 does not support the license url element
+                    license.setUrl(null);
+                }
+                licenseChoice.addLicense(license);
                 return true;
             }
             else if (licenseChoiceToResolve.getExpression() != null && Version.VERSION_10 != schemaVersion) {

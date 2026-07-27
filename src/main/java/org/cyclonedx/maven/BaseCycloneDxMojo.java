@@ -47,6 +47,7 @@ import org.cyclonedx.parsers.JsonParser;
 import org.cyclonedx.parsers.Parser;
 import org.cyclonedx.parsers.XmlParser;
 
+import javax.inject.Inject;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
@@ -247,13 +248,13 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Parameter
     private ExternalReference[] externalReferences;
 
-    @org.apache.maven.plugins.annotations.Component
+    @Inject
     private MavenProjectHelper mavenProjectHelper;
 
-    @org.apache.maven.plugins.annotations.Component
+    @Inject
     private ModelConverter modelConverter;
 
-    @org.apache.maven.plugins.annotations.Component
+    @Inject
     private ProjectDependenciesConverter projectDependenciesConverter;
 
     /**

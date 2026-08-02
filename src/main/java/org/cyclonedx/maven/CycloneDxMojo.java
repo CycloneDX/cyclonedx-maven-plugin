@@ -32,6 +32,7 @@ import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 
+import javax.inject.Inject;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +70,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     @Parameter(property = "analyzer", defaultValue = "default")
     private String analyzer; // https://github.com/CycloneDX/cyclonedx-maven-plugin/pull/65
 
-    @org.apache.maven.plugins.annotations.Component
+    @Inject
     private PlexusContainer plexusContainer;
 
     /**

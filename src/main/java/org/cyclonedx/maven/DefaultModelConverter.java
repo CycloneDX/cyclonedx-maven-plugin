@@ -226,7 +226,7 @@ public class DefaultModelConverter implements ModelConverter {
         }
         try {
             final MavenProject project = getEffectiveMavenProject(artifact);
-            
+
             if (project != null) {
                 String projectType = getPluginConfiguration(project, BaseCycloneDxMojo.PROJECT_TYPE);
                 if (projectType != null) {
@@ -235,6 +235,15 @@ public class DefaultModelConverter implements ModelConverter {
                 extractComponentMetadata(project, component, schemaVersion, includeLicenseText);
             }
         } catch (ProjectBuildingException e) {
+            if (logger.isDebugEnabled()) {
+                logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
+            } else {
+                logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.");
+            }
+        } catch (IllegalArgumentException e) {
+            // Maven 4 introduces ArtifactResult$NoRepository which may not be handled
+            // by all Maven API implementations, causing IllegalArgumentException.
+            // See https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/671
             if (logger.isDebugEnabled()) {
                 logger.warn("Unable to create Maven project for " + artifact.getId() + " from repository.", e);
             } else {

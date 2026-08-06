@@ -40,6 +40,7 @@ import org.cyclonedx.model.License;
 import org.cyclonedx.model.LicenseChoice;
 import org.cyclonedx.model.Metadata;
 import org.cyclonedx.model.Tool;
+import org.cyclonedx.model.VersionFilter;
 import org.cyclonedx.model.metadata.ToolInformation;
 import org.cyclonedx.util.BomUtils;
 import org.cyclonedx.util.LicenseResolver;
@@ -54,8 +55,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.TreeMap;
@@ -82,6 +86,48 @@ public class DefaultModelConverter implements ModelConverter {
      */
     @Inject
     private ProjectBuilder mavenProjectBuilder;
+
+    /**
+     * Hash algorithms supported by the current JVM: for example, SHA3 algorithms are not available
+     * on Java 8, and BLAKE/STREEBOG algorithms require a third party security provider.
+     */
+    private static final List<Hash.Algorithm> JVM_SUPPORTED_HASH_ALGORITHMS = jvmSupportedHashAlgorithms();
+
+    private static List<Hash.Algorithm> jvmSupportedHashAlgorithms() {
+        final List<Hash.Algorithm> algorithms = new LinkedList<>();
+        for (Hash.Algorithm algorithm : Hash.Algorithm.values()) {
+            try {
+                MessageDigest.getInstance(algorithm.getSpec());
+                algorithms.add(algorithm);
+            } catch (NoSuchAlgorithmException e) {
+                // algorithm not supported by this JVM, skip it
+            }
+        }
+        return algorithms;
+    }
+
+    private static boolean isAllowedForSchemaVersion(final Hash.Algorithm algorithm, final Version schemaVersion) {
+        try {
+            final VersionFilter filter = Hash.Algorithm.class.getField(algorithm.name()).getAnnotation(VersionFilter.class);
+            return filter == null || schemaVersion.getVersion() >= filter.value().getVersion();
+        } catch (NoSuchFieldException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Calculates the hashes of the given file, using all hash algorithms supported by both
+     * the current JVM and the target schema version.
+     */
+    private static List<Hash> calculateHashes(final File file, final Version schemaVersion) throws IOException {
+        final List<Hash.Algorithm> algorithms = new LinkedList<>();
+        for (Hash.Algorithm algorithm : JVM_SUPPORTED_HASH_ALGORITHMS) {
+            if (isAllowedForSchemaVersion(algorithm, schemaVersion)) {
+                algorithms.add(algorithm);
+            }
+        }
+        return BomUtils.calculateHashes(file, schemaVersion, algorithms);
+    }
 
     public DefaultModelConverter() {
     }
@@ -167,7 +213,7 @@ public class DefaultModelConverter implements ModelConverter {
          
         try {
             logger.debug(BaseCycloneDxMojo.MESSAGE_CALCULATING_HASHES);
-            component.setHashes(BomUtils.calculateHashes(artifact.getFile(), schemaVersion));
+            component.setHashes(calculateHashes(artifact.getFile(), schemaVersion));
         } catch (IOException e) {
             logger.error("Error encountered calculating hashes", e);
         }
@@ -338,7 +384,7 @@ public class DefaultModelConverter implements ModelConverter {
             if (artifactLicense.getName() != null && !resolved) {
                 final License license = new License();
                 license.setName(artifactLicense.getName().trim());
-                if (StringUtils.isNotBlank(artifactLicense.getUrl())) {
+                if (StringUtils.isNotBlank(artifactLicense.getUrl()) && Version.VERSION_10 != schemaVersion) {
                     try {
                         final URI uri = new URI(artifactLicense.getUrl().trim());
                         license.setUrl(uri.toString());
@@ -355,7 +401,12 @@ public class DefaultModelConverter implements ModelConverter {
     private boolean resolveLicenseInfo(final LicenseChoice licenseChoice, final LicenseChoice licenseChoiceToResolve, final Version schemaVersion) {
         if (licenseChoiceToResolve != null) {
             if (licenseChoiceToResolve.getLicenses() != null && !licenseChoiceToResolve.getLicenses().isEmpty()) {
-                licenseChoice.addLicense(licenseChoiceToResolve.getLicenses().get(0));
+                final License license = licenseChoiceToResolve.getLicenses().get(0);
+                if (Version.VERSION_10 == schemaVersion) {
+                    // CycloneDX 1.0 does not support the license url element
+                    license.setUrl(null);
+                }
+                licenseChoice.addLicense(license);
                 return true;
             }
             else if (licenseChoiceToResolve.getExpression() != null && Version.VERSION_10 != schemaVersion) {
@@ -379,7 +430,7 @@ public class DefaultModelConverter implements ModelConverter {
         if (resolved != null) {
             try {
                 resolved.setFile(new File(resolved.getFile() + ".jar"));
-                hashes = BomUtils.calculateHashes(resolved.getFile(), schemaVersion);
+                hashes = calculateHashes(resolved.getFile(), schemaVersion);
             } catch (IOException e) {
                 logger.warn("Unable to calculate hashes of self", e);
             }

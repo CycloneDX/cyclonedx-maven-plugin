@@ -70,6 +70,11 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
 
     @Override
     public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes) throws MojoExecutionException {
+        return extractBOMDependencies(mavenProject, include, excludeTypes, false);
+    }
+
+    @Override
+    public BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludeTypes, boolean preserveParentReferences) throws MojoExecutionException {
         this.include = include;
         excludeTypesSet = new HashSet<>(Arrays.asList(excludeTypes));
 
@@ -95,6 +100,11 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             final Set<String> loggedFilteredArtifacts = new HashSet<>();
 
             buildDependencyGraphNode(dependencies, root, null, null, loggedFilteredArtifacts);
+
+            // Add parent POM as a dependency if preserveParentReferences is enabled
+            if (preserveParentReferences) {
+                addParentDependency(mavenProject, dependencies, mavenArtifacts);
+            }
         } catch (DependencyCollectorBuilderException e) {
             // When executing makeAggregateBom, some projects may not yet be built. Workaround is to warn on this
             // rather than throwing an exception https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/55
@@ -269,5 +279,181 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
                 logger.warn("Dependency missing component entry: " + dependencyRef);
             }
         }
+    }
+
+    /**
+     * Adds the parent POM as a direct dependency if it exists, and reorganizes dependencies
+     * to show which dependencies come from the parent vs. directly from the project.
+     * This method recursively processes the entire parent chain.
+     *
+     * @param mavenProject the current Maven project
+     * @param dependencies the dependencies map to update
+     * @param mavenArtifacts the artifacts map to update
+     */
+    private void addParentDependency(MavenProject mavenProject, Map<String, Dependency> dependencies, Map<String, Artifact> mavenArtifacts) {
+        final Artifact projectArtifact = mavenProject.getArtifact();
+        
+        if (projectArtifact == null) {
+            logger.debug("Project artifact is null, skipping parent dependency processing");
+            return;
+        }
+        
+        // Process parent chain recursively
+        addParentDependencyRecursive(projectArtifact, mavenProject, dependencies, mavenArtifacts, true);
+    }
+    
+    /**
+     * Recursively adds parent dependencies for an artifact and its parent chain.
+     *
+     * @param childArtifact the artifact whose parent to add
+     * @param mavenProject the Maven project (for getting direct dependencies of the main project)
+     * @param dependencies the dependencies map to update
+     * @param mavenArtifacts the artifacts map to update
+     * @param isMainProject whether this is the main project artifact (vs a parent in the chain)
+     */
+    private void addParentDependencyRecursive(Artifact childArtifact, MavenProject mavenProject, 
+                                              Map<String, Dependency> dependencies, Map<String, Artifact> mavenArtifacts,
+                                              boolean isMainProject) {
+        if (!modelConverter.hasParentPom(childArtifact)) {
+            return;
+        }
+        
+        final Artifact parentArtifact = modelConverter.getParentArtifact(childArtifact);
+        if (parentArtifact == null) {
+            return;
+        }
+        
+        final String parentPurl = modelConverter.generatePackageUrl(parentArtifact);
+        final String childPurl = modelConverter.generatePackageUrl(childArtifact);
+        
+        if (parentPurl == null || childPurl == null) {
+            logger.debug("Could not generate pURL for parent or child, skipping");
+            return;
+        }
+        
+        // Add parent to artifacts map
+        mavenArtifacts.putIfAbsent(parentPurl, parentArtifact);
+        
+        // Create dependency entry for parent if it doesn't exist
+        Dependency parentDependency = dependencies.get(parentPurl);
+        if (parentDependency == null) {
+            parentDependency = new Dependency(parentPurl);
+            dependencies.put(parentPurl, parentDependency);
+        }
+        
+        // Get or create the child's dependency entry
+        Dependency childDependency = dependencies.get(childPurl);
+        if (childDependency == null) {
+            childDependency = new Dependency(childPurl);
+            dependencies.put(childPurl, childDependency);
+        }
+        
+        // Only reorganize dependencies for the main project artifact
+        if (isMainProject) {
+            // Get the directly declared dependencies from the original (non-effective) POM
+            final Set<String> directDependencies = getDirectDependencies(mavenProject);
+            
+            // Reorganize dependencies: move inherited dependencies under parent
+            if (childDependency.getDependencies() != null) {
+                final List<Dependency> childDeps = new ArrayList<>(childDependency.getDependencies());
+                childDependency.getDependencies().clear();
+                
+                for (Dependency dep : childDeps) {
+                    final String depRef = dep.getRef();
+                    if (directDependencies.contains(depRef)) {
+                        // This is a direct dependency - keep it under the child
+                        childDependency.addDependency(dep);
+                    } else {
+                        // This is an inherited dependency - move it under the parent
+                        parentDependency.addDependency(dep);
+                    }
+                }
+            }
+        } else {
+            // For parent POMs (not the main project), populate with their declared dependencies
+            final Set<String> parentDirectDeps = getDirectDependenciesFromArtifact(parentArtifact);
+            for (String depPurl : parentDirectDeps) {
+                parentDependency.addDependency(new Dependency(depPurl));
+            }
+        }
+        
+        // Add parent as a direct dependency of the child
+        childDependency.addDependency(new Dependency(parentPurl));
+        
+        logger.debug("Added parent POM dependency: " + parentPurl + " for artifact: " + childPurl);
+        
+        // Recursively process the parent's parent (grandparent, etc.)
+        addParentDependencyRecursive(parentArtifact, mavenProject, dependencies, mavenArtifacts, false);
+    }
+
+    /**
+     * Gets the set of direct dependencies declared in the original (non-effective) POM.
+     *
+     * @param mavenProject the Maven project
+     * @return set of package URLs for direct dependencies
+     */
+    private Set<String> getDirectDependencies(MavenProject mavenProject) {
+        final Set<String> directDeps = new HashSet<>();
+        
+        // Get dependencies from the original model (not the effective model)
+        if (mavenProject.getOriginalModel() != null && mavenProject.getOriginalModel().getDependencies() != null) {
+            for (org.apache.maven.model.Dependency dep : mavenProject.getOriginalModel().getDependencies()) {
+                try {
+                    // Skip if essential coordinates are missing
+                    if (dep.getGroupId() == null || dep.getArtifactId() == null) {
+                        continue;
+                    }
+                    
+                    // Version might be null if inherited from dependencyManagement
+                    // We need to resolve it from the effective model
+                    String version = dep.getVersion();
+                    if (version == null) {
+                        // Try to find the version from the effective dependencies
+                        for (org.apache.maven.model.Dependency effectiveDep : mavenProject.getDependencies()) {
+                            if (dep.getGroupId().equals(effectiveDep.getGroupId()) && 
+                                dep.getArtifactId().equals(effectiveDep.getArtifactId())) {
+                                version = effectiveDep.getVersion();
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // If we still don't have a version, skip this dependency
+                    if (version == null) {
+                        logger.debug("Skipping dependency without version: " + dep.getGroupId() + ":" + dep.getArtifactId());
+                        continue;
+                    }
+                    
+                    // Create an artifact to generate the pURL
+                    final org.apache.maven.artifact.DefaultArtifact artifact = new org.apache.maven.artifact.DefaultArtifact(
+                        dep.getGroupId(),
+                        dep.getArtifactId(),
+                        version,
+                        dep.getScope(),
+                        dep.getType() != null ? dep.getType() : "jar",
+                        dep.getClassifier(),
+                        new org.apache.maven.artifact.handler.DefaultArtifactHandler(dep.getType() != null ? dep.getType() : "jar")
+                    );
+                    final String purl = modelConverter.generatePackageUrl(artifact);
+                    if (purl != null) {
+                        directDeps.add(purl);
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error processing dependency " + dep.getGroupId() + ":" + dep.getArtifactId(), e);
+                }
+            }
+        }
+        
+        return directDeps;
+    }
+
+    /**
+     * Gets the set of direct dependencies declared in a parent artifact's POM.
+     *
+     * @param artifact the artifact whose dependencies to extract
+     * @return set of package URLs for direct dependencies
+     */
+    private Set<String> getDirectDependenciesFromArtifact(org.apache.maven.artifact.Artifact artifact) {
+        return modelConverter.getDirectDependencyPurls(artifact);
     }
 }

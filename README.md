@@ -58,6 +58,8 @@ Default Values
             <outputName>bom</outputName>
             <outputDirectory>${project.build.directory}</outputDirectory><!-- usually target, if not redefined in pom.xml -->
             <verbose>false</verbose><!-- = ${cyclonedx.verbose} -->
+            <preserveParentReferences>false</preserveParentReferences>
+            <includeParentsAsComponents>true</includeParentsAsComponents>
         </configuration>
     </plugin>
 </plugins>
@@ -66,6 +68,33 @@ Default Values
 `<projectType>` default value is `library` but there are [more choices defined in the CycloneDX specification](https://cyclonedx.org/docs/1.6/json/#metadata_component_type).
 
 See also [External References](https://cyclonedx.github.io/cyclonedx-maven-plugin/external-references.html) documentation for details on this topic.
+
+Parent POM Preservation
+-------------------
+By default, the plugin flattens the Maven effective POM model, merging all dependencies from parent POMs into a single list. When `preserveParentReferences` is enabled, the plugin preserves the parent POM hierarchy:
+
+* **`preserveParentReferences`**: Enable parent POM preservation (default: `false`)
+  * When `true`, parent POMs become direct dependencies of the component that references them
+  * Walks the entire parent chain recursively (child ? parent ? grandparent ? ...)
+  * Dependencies inherited from parent POMs are reorganized to depend on their introducing parent
+
+* **`includeParentsAsComponents`**: Include parent POMs in the components section (default: `true`)
+  * When `true`, parent POMs appear as components in the BOM
+  * When `false`, parent POMs are referenced only in the dependency graph but not listed as components
+
+Example configuration to preserve parent POM references:
+
+```xml
+<configuration>
+    <preserveParentReferences>true</preserveParentReferences>
+    <includeParentsAsComponents>true</includeParentsAsComponents>
+</configuration>
+```
+
+This is useful for:
+* Understanding the complete project structure including parent POMs
+* Tracking which parent POM introduces specific dependencies
+* Maintaining visibility of the full Maven inheritance hierarchy
 
 Excluding Projects
 -------------------

@@ -69,7 +69,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.build.outputTimestamp>2026-07-30T20:56:12Z</project.build.outputTimestamp>
         <junit.version>4.13.2</junit.version>
-        <junit5.version>5.11.2</junit5.version>
+        <junit5.version>5.14.4</junit5.version>
         <plugin-tools.version>3.15.2</plugin-tools.version>
     </properties>
 
@@ -94,7 +94,7 @@
         <dependency>
             <groupId>org.cyclonedx</groupId>
             <artifactId>cyclonedx-core-java</artifactId>
-            <version>13.1.0</version>
+            <version>13.2.0</version>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
@@ -107,12 +107,18 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.22.0</version>
+            <version>1.22.1</version>
+        </dependency>
+        <!-- Used directly (FileUtils); no longer provided transitively by cyclonedx-core-java 13.2.0+ -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.22.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.19.0</version>
+            <version>3.20.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -221,7 +227,7 @@
             <plugin><!-- https://github.com/takari/takari-plugin-testing-project/blob/master/testproperties.md -->
                 <groupId>io.takari.maven.plugins</groupId>
                 <artifactId>takari-lifecycle-plugin</artifactId>
-                <version>2.0.8</version>
+                <version>2.0.8</version><!-- 2.0.9+ requires Java 11; CI builds on JDK 8 -->
                 <extensions>true</extensions>
                 <executions>
                     <execution>
@@ -241,7 +247,7 @@
             <plugin>
                 <groupId>org.eclipse.sisu</groupId>
                 <artifactId>sisu-maven-plugin</artifactId>
-                <version>1.0.0</version>
+                <version>1.1.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -278,7 +284,7 @@
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>2.8.0</version>
+                <version>2.9.3</version>
                 <executions>
                     <execution>
                         <id>cyclonedx-makeBom</id>
@@ -315,7 +321,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>3.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -462,7 +468,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-artifact-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

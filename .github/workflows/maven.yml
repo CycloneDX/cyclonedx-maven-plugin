@@ -7,6 +7,9 @@ permissions: {}
 jobs:
   build:
 
+    permissions:
+      # write permission is required to push the documentation to the gh-pages branch
+      contents: write
     runs-on: ubuntu-latest
 
     steps:

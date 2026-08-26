@@ -68,9 +68,38 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.build.outputTimestamp>2026-07-30T20:56:12Z</project.build.outputTimestamp>
+
         <junit.version>4.13.2</junit.version>
         <junit5.version>5.14.4</junit5.version>
         <plugin-tools.version>3.15.2</plugin-tools.version>
+        <cyclonedx-core-java.version>13.2.0</cyclonedx-core-java.version>
+        <javax-inject.version>1</javax-inject.version>
+        <commons-codec.version>1.22.1</commons-codec.version>
+        <commons-io.version>2.22.0</commons-io.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
+        <maven.version>3.8.7</maven.version>
+        <maven-dependency-tree.version>3.3.0</maven-dependency-tree.version>
+        <maven-dependency-analyzer.version>1.17.1</maven-dependency-analyzer.version>
+        <takari-plugin-testing.version>3.1.1</takari-plugin-testing.version>
+        <!-- takari-lifecycle-plugin 2.0.9+ requires Java 11; CI builds on JDK 8 -->
+        <takari-lifecycle-plugin.version>2.0.8</takari-lifecycle-plugin.version>
+        <json-unit.version>2.40.1</json-unit.version>
+        <cyclonedx-maven-plugin.version>2.9.3</cyclonedx-maven-plugin.version>
+        <sisu-maven-plugin.version>1.1.0</sisu-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
+        <maven-antrun-plugin.version>3.2.0</maven-antrun-plugin.version>
+        <maven-artifact-plugin.version>3.6.1</maven-artifact-plugin.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+        <maven-invoker-plugin.version>3.10.1</maven-invoker-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-project-info-reports-plugin.version>3.9.0</maven-project-info-reports-plugin.version>
+        <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
+        <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+        <maven-site-plugin.version>3.22.0</maven-site-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
     </properties>
 
     <scm>
@@ -94,12 +123,12 @@
         <dependency>
             <groupId>org.cyclonedx</groupId>
             <artifactId>cyclonedx-core-java</artifactId>
-            <version>13.2.0</version>
+            <version>${cyclonedx-core-java.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
-            <version>1</version>
+            <version>${javax-inject.version}</version>
             <scope>provided</scope>
         </dependency>
         <!-- This is already a dependency of CycloneDX Java Core, but due to some Maven configurations,
@@ -107,40 +136,40 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.22.1</version>
+            <version>${commons-codec.version}</version>
         </dependency>
         <!-- Used directly (FileUtils); no longer provided transitively by cyclonedx-core-java 13.2.0+ -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.22.0</version>
+            <version>${commons-io.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.20.0</version>
+            <version>${commons-lang3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
-            <version>3.8.7</version>
+            <version>${maven.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.8.7</version>
+            <version>${maven.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.shared</groupId>
             <artifactId>maven-dependency-tree</artifactId>
-            <version>3.3.0</version>
+            <version>${maven-dependency-tree.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.shared</groupId>
             <artifactId>maven-dependency-analyzer</artifactId>
-            <version>1.17.1</version>
+            <version>${maven-dependency-analyzer.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.maven</groupId>
@@ -168,14 +197,14 @@
             <artifactId>takari-plugin-integration-testing</artifactId>
             <type>pom</type>
             <scope>test</scope>
-            <version>3.1.1</version>
+            <version>${takari-plugin-testing.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.takari.maven.plugins</groupId>
             <artifactId>takari-plugin-testing</artifactId>
             <scope>test</scope>
-            <version>3.1.1</version>
+            <version>${takari-plugin-testing.version}</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -201,7 +230,7 @@
         <dependency>
             <groupId>net.javacrumbs.json-unit</groupId>
             <artifactId>json-unit-assertj</artifactId>
-            <version>2.40.1</version>
+            <version>${json-unit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -227,7 +256,7 @@
             <plugin><!-- https://github.com/takari/takari-plugin-testing-project/blob/master/testproperties.md -->
                 <groupId>io.takari.maven.plugins</groupId>
                 <artifactId>takari-lifecycle-plugin</artifactId>
-                <version>2.0.8</version><!-- 2.0.9+ requires Java 11; CI builds on JDK 8 -->
+                <version>${takari-lifecycle-plugin.version}</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>
@@ -247,7 +276,7 @@
             <plugin>
                 <groupId>org.eclipse.sisu</groupId>
                 <artifactId>sisu-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>${sisu-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -259,7 +288,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-invoker-plugin</artifactId>
-                <version>3.10.1</version>
+                <version>${maven-invoker-plugin.version}</version>
                 <configuration>
                     <preBuildHookScript>setup</preBuildHookScript>
                     <postBuildHookScript>verify</postBuildHookScript>
@@ -284,7 +313,7 @@
             <plugin>
                 <groupId>org.cyclonedx</groupId>
                 <artifactId>cyclonedx-maven-plugin</artifactId>
-                <version>2.9.3</version>
+                <version>${cyclonedx-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>cyclonedx-makeBom</id>
@@ -300,7 +329,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>${maven-antrun-plugin.version}</version>
                 <executions>
                     <execution>
                         <phase>pre-site</phase>
@@ -321,17 +350,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.5.1</version>
+                    <version>${maven-jar-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.15.0</version>
+                    <version>${maven-compiler-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>3.3.1</version>
+                    <version>${maven-release-plugin.version}</version>
                     <configuration>
                         <releaseProfiles>release</releaseProfiles>
                     </configuration>
@@ -339,22 +368,22 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.12.0</version>
+                    <version>${maven-javadoc-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-site-plugin</artifactId>
-                    <version>3.22.0</version>
+                    <version>${maven-site-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-project-info-reports-plugin</artifactId>
-                    <version>3.9.0</version>
+                    <version>${maven-project-info-reports-plugin.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-resources-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>${maven-resources-plugin.version}</version>
                     <configuration>
                         <!-- https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html -->
                         <propertiesEncoding>UTF-8</propertiesEncoding>
@@ -388,7 +417,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-enforcer-plugin</artifactId>
-                        <version>3.6.3</version>
+                        <version>${maven-enforcer-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>enforce-java</id>
@@ -408,7 +437,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.8</version>
+                        <version>${maven-gpg-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -422,7 +451,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>3.4.0</version>
+                        <version>${maven-source-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -447,7 +476,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.11.0</version>
+                        <version>${central-publishing-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
@@ -468,7 +497,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-artifact-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>${maven-artifact-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

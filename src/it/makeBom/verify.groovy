@@ -10,6 +10,7 @@ assert bomFileXml.text.contains('<reference type="website">\n' +
 
 assert !bomFileXml.text.contains('<property name="maven.optional.unused">')
 
+// check default schema version
 assert bomFileJson.text.contains('"specVersion" : "1.7"')
 
 // Reproducible Builds

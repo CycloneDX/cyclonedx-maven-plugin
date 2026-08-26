@@ -4,12 +4,31 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      # Combine minor and patch updates into a single PR
+      maven-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       # JsonUnit `2.x` is the last Java 8 compatible major release
       - dependency-name: "net.javacrumbs.json-unit:*"
+        update-types: ["version-update:semver-major"]
+      # JUnit 6.x requires Java 17
+      - dependency-name: "org.junit:junit-bom"
+        update-types: ["version-update:semver-major"]
+      # takari-lifecycle-plugin 2.0.9+ ships Java 11 bytecode
+      - dependency-name: "io.takari.maven.plugins:takari-lifecycle-plugin"
+      # Maven 4.x moves off the 3.x plugin API baseline
+      - dependency-name: "org.apache.maven:*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      # Combine all action bumps into a single PR
+      github-actions:
+        patterns:
+          - "*"

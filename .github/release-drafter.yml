@@ -1,16 +1,30 @@
-# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
-name-template: $NEXT_PATCH_VERSION
-tag-template: cyclonedx-maven-plugin-$NEXT_MINOR_VERSION
+# Configuration for Release Drafter: https://github.com/release-drafter/release-drafter
+name-template: $RESOLVED_VERSION
+tag-template: cyclonedx-maven-plugin-$RESOLVED_VERSION
 version-template: $MAJOR.$MINOR.$PATCH
 
-# Emoji reference: https://gitmoji.carloscuesta.me/
+# Bump the version based on the labels of the merged pull requests
+version-resolver:
+  major:
+    labels:
+      - breaking
+  minor:
+    labels:
+      - major-enhancement
+      - major-rfe
+      - enhancement
+      - feature
+      - rfe
+  default: patch
+
 categories:
-  - title: ":boom: Breaking changes"
-    labels: 
+  - title: 💥 Breaking changes
+    labels:
       - breaking
   - title: 🚨 Removed
-    label: removed
-  - title: ":tada: Major features and improvements"
+    labels:
+      - removed
+  - title: 🎉 Major features and improvements
     labels:
       - major-enhancement
       - major-rfe
@@ -18,7 +32,8 @@ categories:
     labels:
       - major-bug
   - title: ⚠️ Deprecated
-    label: deprecated
+    labels:
+      - deprecated
   - title: 🚀 New features and improvements
     labels:
       - enhancement
@@ -30,9 +45,9 @@ categories:
       - fix
       - bugfix
       - regression
-  - title: ":construction_worker: Changes for plugin developers"
+  - title: 👷 Changes for plugin developers
     labels:
-      - developer 
+      - developer
   # Default label used by Dependabot
   - title: 📦 Dependency updates
     labels:
@@ -40,23 +55,41 @@ categories:
       - dependency
       - dependency-upgrade
   - title: 📝 Documentation updates
-    label: documentation
+    labels:
+      - documentation
   - title: 👻 Maintenance
-    labels: 
+    labels:
       - chore
       - internal
       - maintenance
   - title: 🔧 Build
-    label: build           
+    labels:
+      - build
   - title: 🚦 Tests
-    labels: 
+    labels:
       - test
       - tests
+
 exclude-labels:
   - reverted
   - no-changelog
   - skip-changelog
   - invalid
+
+# Label pull requests automatically based on the files they touch
+autolabeler:
+  - label: documentation
+    files:
+      - '**/*.md'
+      - 'src/site/**'
+  - label: tests
+    files:
+      - 'src/test/**'
+      - 'src/it/**'
+  - label: build
+    files:
+      - '.github/**'
+      - 'release.sh'
 
 change-template: '- $TITLE ([#$NUMBER]($URL)) @$AUTHOR'
 

@@ -1,30 +1,50 @@
 name: Maven CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 jobs:
   build:
-
-    permissions:
-      # write permission is required to push the documentation to the gh-pages branch
-      contents: write
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - name: Set up JDK 1.8
-      uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
       with:
-        distribution: 'adopt'
+        persist-credentials: false
+    - name: Set up JDK 8
+      uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+      with:
+        distribution: 'temurin'
         java-version: '8'
+        cache: 'maven'
     - name: Build with Maven
       run: mvn --no-transfer-progress verify site
-    - name: Deploy documentation
+    - name: Upload documentation
       if: ${{ github.ref == 'refs/heads/master' }}
-      uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
       with:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        BRANCH: gh-pages
-        FOLDER: target/site
+        path: target/site
+
+  deploy-docs:
+    if: ${{ github.ref == 'refs/heads/master' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      # id-token is required for OIDC authentication of the Pages deployment
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Deploy documentation
+      id: deployment
+      uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

@@ -32,7 +32,7 @@
         <dependency>
             <groupId>org.cyclonedx</groupId>
             <artifactId>cyclonedx-core-java</artifactId>
-            <version>9.0.5</version>
+            <version>13.2.0</version>
         </dependency>
     </dependencies>
     

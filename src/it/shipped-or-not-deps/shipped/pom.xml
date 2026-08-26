@@ -31,6 +31,9 @@
 
     <modules>
         <module>war</module>
+        <module>springboot</module>
+        <module>springboot-jetty</module>
+        <module>springboot-undertow</module>
         <!--module>assembly</module>
         <module>excludes</module>
         <module>shade-full</module>

@@ -23,20 +23,18 @@
 
     <parent>
         <groupId>org.cyclonedx.its</groupId>
-        <artifactId>shipped-or-not-deps</artifactId>
+        <artifactId>shipped</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>shipped</artifactId>
+    <artifactId>shade</artifactId>
     <packaging>pom</packaging>
 
+    <name>shipped dependencies: maven-shade-plugin examples</name>
+    <description>Examples of maven-shade-plugin usage showing different shading strategies.</description>
+
     <modules>
-        <module>war</module>
-        <module>springboot</module>
-        <module>springboot-jetty</module>
-        <module>springboot-undertow</module>
-        <module>shade</module>
-        <!--module>assembly</module>
-        <module>excludes</module>
-        <module>executable</module-->
+        <module>fatjar-replace</module>
+        <module>fatjar-attach</module>
+        <module>partial-shade</module>
     </modules>
 </project>

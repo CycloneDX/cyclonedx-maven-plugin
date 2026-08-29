@@ -298,7 +298,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * @param topLevelComponents the PURLs for all top level components
      * @param components the components map to fill
      * @param dependencies the dependencies map to fill
-     * @return the name of the analysis done to store as a BOM, or {@code null} to not save result.
+     * @return the name of the goal done to extract the BOM to save, or {@code null} to not save result.
      * @throws MojoExecutionException something weird happened...
      */
     protected abstract String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException;
@@ -335,33 +335,37 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         final Map<String, Component> componentMap = new LinkedHashMap<>();
         final Map<String, Dependency> dependencyMap = new LinkedHashMap<>();
 
-        String analysis = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
-        if (analysis != null) {
-            final Metadata metadata = modelConverter.convertMavenProject(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
-
-            if (schemaVersion().getVersion() >= 1.3) {
-                metadata.addProperty(newProperty("maven.goal", analysis));
-
-                List<String> scopes = new ArrayList<>();
-                if (includeCompileScope) scopes.add("compile");
-                if (includeProvidedScope) scopes.add("provided");
-                if (includeRuntimeScope) scopes.add("runtime");
-                if (includeSystemScope) scopes.add("system");
-                if (includeTestScope) scopes.add("test");
-                metadata.addProperty(newProperty("maven.scopes", String.join(",", scopes)));
-
-                if (detectUnusedForOptionalScope) {
-                    metadata.addProperty(newProperty("maven.optional.unused", Boolean.toString(detectUnusedForOptionalScope)));
-                }
-            }
-
-            final Component rootComponent = metadata.getComponent();
-            componentMap.remove(rootComponent.getPurl());
-
-            projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
-
-            generateBom(analysis, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
+        String goal = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
+        if (goal == null) {
+            // just ignore result, no need to save.
+            return;
         }
+
+        final Metadata metadata = modelConverter.convertMavenProject(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
+
+        if (schemaVersion().getVersion() >= 1.3) {
+            // add metadata properties to describe generated content
+            metadata.addProperty(newProperty("maven.goal", goal));
+
+            List<String> scopes = new ArrayList<>();
+            if (includeCompileScope) scopes.add("compile");
+            if (includeProvidedScope) scopes.add("provided");
+            if (includeRuntimeScope) scopes.add("runtime");
+            if (includeSystemScope) scopes.add("system");
+            if (includeTestScope) scopes.add("test");
+            metadata.addProperty(newProperty("maven.scopes", String.join(",", scopes)));
+
+            if (detectUnusedForOptionalScope) {
+                metadata.addProperty(newProperty("maven.optional.unused", Boolean.toString(detectUnusedForOptionalScope)));
+            }
+        }
+
+        final Component rootComponent = metadata.getComponent();
+        componentMap.remove(rootComponent.getPurl());
+
+        projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
+
+        generateBom(goal, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
     }
 
     private Property newProperty(String name, String value) {
@@ -483,21 +487,8 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     protected Version schemaVersion() {
         if (effectiveSchemaVersion == null) {
-            if ("1.0".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_10;
-            } else if ("1.1".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_11;
-            } else if ("1.2".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_12;
-            } else if ("1.3".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_13;
-            } else if ("1.4".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_14;
-            } else if ("1.5".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_15;
-            } else if ("1.6".equals(schemaVersion)) {
-                effectiveSchemaVersion = Version.VERSION_16;
-            } else {
+            effectiveSchemaVersion = Version.fromVersionString(schemaVersion);
+            if (effectiveSchemaVersion == null) {
                 effectiveSchemaVersion = Version.VERSION_17;
             }
         }

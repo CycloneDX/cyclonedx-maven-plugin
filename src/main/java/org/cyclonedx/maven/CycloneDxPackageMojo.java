@@ -54,7 +54,7 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
         return Arrays.asList(new String[]{"war", "ear"}).contains(mavenProject.getPackaging());
     }
 
-    protected String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException {
+    protected String extractComponentsAndDependencies(Set<String> reactorComponents, Map<String, Component> aggregatedComponents, Map<String, Dependency> dependencies) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
         for (final MavenProject mavenProject : reactorProjects) {
@@ -67,10 +67,13 @@ public class CycloneDxPackageMojo extends BaseCycloneDxMojo {
             final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
             final Component projectBomComponent = convertMavenDependency(mavenProject.getArtifact());
-            components.put(projectBomComponent.getPurl(), projectBomComponent);
-            topLevelComponents.add(projectBomComponent.getPurl());
+            aggregatedComponents.put(projectBomComponent.getPurl(), projectBomComponent);
+            reactorComponents.add(projectBomComponent.getPurl());
 
-            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), null);
+            final Map<String, Component> components = populateComponents(reactorComponents, aggregatedComponents, bomDependencies.getArtifacts(), null);
+
+            // TODO manage aggregate that reuses a component already used in a different context
+            transformBom(projectBomComponent, components);
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

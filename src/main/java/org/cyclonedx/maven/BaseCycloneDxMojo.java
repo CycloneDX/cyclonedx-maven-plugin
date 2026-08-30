@@ -20,9 +20,12 @@ package org.cyclonedx.maven;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.lifecycle.LifecycleExecutor;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -52,21 +55,17 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public abstract class BaseCycloneDxMojo extends AbstractMojo {
     static final String CYCLONEDX_PLUGIN_KEY = "org.cyclonedx:cyclonedx-maven-plugin";
     static final String PROJECT_TYPE = "projectType";
 
-    @Parameter(property = "project", readonly = true, required = true)
+    @Inject
     private MavenProject project;
+
+    @Inject
+    private MavenSession session;
 
     /**
      * The component type associated to the SBOM metadata. See
@@ -257,6 +256,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     @Inject
     private ProjectDependenciesConverter projectDependenciesConverter;
 
+    @Inject
+    Map<String, BomTransformer> transformers;
+
+    @Inject
+    private LifecycleExecutor lifecycleExecutor;
+
     /**
      * Various messages sent to console.
      */
@@ -293,15 +298,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
-     * Analyze the current Maven project to extract the BOM components list and their dependencies.
+     * Analyze the current Maven project to extract its BOM components list and their dependencies and add to the
+     * global maps.
      *
-     * @param topLevelComponents the PURLs for all top level components
+     * @param reactorComponents the PURLs for all reactor components
      * @param components the components map to fill
      * @param dependencies the dependencies map to fill
      * @return the name of the goal done to extract the BOM to save, or {@code null} to not save result.
      * @throws MojoExecutionException something weird happened...
      */
-    protected abstract String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException;
+    protected abstract String extractComponentsAndDependencies(Set<String> reactorComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException;
 
     /**
      * @return {@literal true} if the execution should be skipped.
@@ -330,12 +336,12 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
         logParameters();
 
-        // top level components do not currently set their scope, we track these to prevent merging of scopes
-        final Set<String> topLevelComponents = new LinkedHashSet<>();
+        // reactor components do not currently set their scope as they are not dependencies, we track these to prevent merging of scopes
+        final Set<String> reactorComponents = new LinkedHashSet<>();
         final Map<String, Component> componentMap = new LinkedHashMap<>();
         final Map<String, Dependency> dependencyMap = new LinkedHashMap<>();
 
-        String goal = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
+        String goal = extractComponentsAndDependencies(reactorComponents, componentMap, dependencyMap);
         if (goal == null) {
             // just ignore result, no need to save.
             return;
@@ -414,6 +420,17 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
                 Lifecycles lifecycles = new Lifecycles();
                 lifecycles.setLifecycleChoice(Collections.singletonList(build));
                 metadata.setLifecycles(lifecycles);
+            }
+
+            if (schemaVersion().getVersion() >= 1.7) {
+                // cleanup version vs versionRange based on isExternal
+                components.forEach(c -> {
+                    if (c.getIsExternal() != null && c.getIsExternal()) {
+                        c.setVersion(null);
+                    } else {
+                        c.setVersionRange(null);
+                    }
+                });
             }
 
             if ("all".equalsIgnoreCase(outputFormat)
@@ -518,20 +535,24 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         }
     }
 
-    protected void populateComponents(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Artifact> artifacts, final ProjectDependencyAnalysis dependencyAnalysis) {
+    protected Map<String, Component> populateComponents(final Set<String> topLevelComponents, final Map<String, Component> aggregatedComponents, final Map<String, Artifact> artifacts, final ProjectDependencyAnalysis dependencyAnalysis) {
+        final Map<String, Component> components = new HashMap<>();
         for (Map.Entry<String, Artifact> entry: artifacts.entrySet()) {
             final String purl = entry.getKey();
             final Artifact artifact = entry.getValue();
             final Component.Scope artifactScope = getComponentScope(artifact, dependencyAnalysis);
-            final Component component = components.get(purl);
+            final Component component = aggregatedComponents.get(purl);
             if (component == null) {
                 final Component newComponent = convertMavenDependency(artifact);
                 newComponent.setScope(artifactScope);
+                aggregatedComponents.put(purl, newComponent);
                 components.put(purl, newComponent);
             } else if (!topLevelComponents.contains(purl)) {
                 component.setScope(mergeScopes(component.getScope(), artifactScope));
+                components.put(purl, component);
             }
         }
+        return components;
     }
 
     /**
@@ -636,5 +657,26 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             }
         }
         return false;
+    }
+
+    /**
+     * Transform Bom content based on plugins goals executions bound to Maven build lifecycle of the current project.
+     */
+    protected void transformBom(final Component metadataComponent, final Map<String, Component> components) throws MojoExecutionException {
+        for(MojoExecution execution: calculateExecutionPlan()) {
+            BomTransformer transformer = transformers.get(execution.getPlugin().getKey() + ':' + execution.getGoal());
+            if (transformer != null) {
+                transformer.transform(execution, metadataComponent, components);
+            }
+        }
+    }
+
+    private List<MojoExecution> calculateExecutionPlan() throws MojoExecutionException {
+        try {
+            return lifecycleExecutor.calculateExecutionPlan(session, "verify").getMojoExecutions();
+        } catch (Exception e) {
+            throw new MojoExecutionException(
+                    String.format("Cannot calculate Maven execution plan, caused by: %s", e.getMessage()), e);
+        }
     }
 }

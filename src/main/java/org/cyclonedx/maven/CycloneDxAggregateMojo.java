@@ -105,11 +105,11 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
     }
 
     @Override
-    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
+    protected String extractComponentsAndDependencies(final Set<String> reactorComponents, final Map<String, Component> aggregatedComponents, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         if (! getProject().isExecutionRoot()) {
             // non-root project: let parent class create a module-only BOM?
             if (outputReactorProjects) {
-                return super.extractComponentsAndDependencies(topLevelComponents, components, dependencies);
+                return super.extractComponentsAndDependencies(reactorComponents, aggregatedComponents, dependencies);
             }
             getLog().info("Skipping CycloneDX on non-execution root");
             return null;
@@ -129,10 +129,13 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
             final Component projectBomComponent = convertMavenDependency(mavenProject.getArtifact());
-            components.put(projectBomComponent.getPurl(), projectBomComponent);
-            topLevelComponents.add(projectBomComponent.getPurl());
+            aggregatedComponents.put(projectBomComponent.getPurl(), projectBomComponent);
+            reactorComponents.add(projectBomComponent.getPurl());
 
-            populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
+            final Map<String, Component> components = populateComponents(reactorComponents, aggregatedComponents, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
+
+            // TODO manage aggregate that reuses a component already used in a different context
+            transformBom(projectBomComponent, components);
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

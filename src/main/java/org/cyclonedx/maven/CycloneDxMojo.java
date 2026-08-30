@@ -18,6 +18,8 @@
  */
 package org.cyclonedx.maven;
 
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.lifecycle.LifecycleExecutor;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -112,17 +114,20 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return "module skips deploy";
     }
 
-    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
+    protected String extractComponentsAndDependencies(final Set<String> reactorComponents, final Map<String, Component> aggregatedComponents, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
         final BomDependencies bomDependencies = extractBOMDependencies(getProject());
         final Map<String, Dependency> projectDependencies = bomDependencies.getDependencies();
 
         final Component projectBomComponent = convertMavenDependency(getProject().getArtifact());
-        components.put(projectBomComponent.getPurl(), projectBomComponent);
-        topLevelComponents.add(projectBomComponent.getPurl());
+        aggregatedComponents.put(projectBomComponent.getPurl(), projectBomComponent);
+        reactorComponents.add(projectBomComponent.getPurl());
 
-        populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(getProject(), bomDependencies));
+        final Map<String, Component> components = populateComponents(reactorComponents, aggregatedComponents, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(getProject(), bomDependencies));
+
+        // TODO manage aggregate that reuses a component already used in a different context
+        transformBom(projectBomComponent, components);
 
         projectDependencies.forEach(dependencies::putIfAbsent);
 

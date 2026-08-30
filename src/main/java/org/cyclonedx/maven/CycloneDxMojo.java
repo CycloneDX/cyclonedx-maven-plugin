@@ -26,8 +26,6 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalysis;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzer;
 import org.apache.maven.shared.dependency.analyzer.ProjectDependencyAnalyzerException;
-import org.codehaus.plexus.PlexusContainer;
-import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
@@ -71,23 +69,19 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
     private String analyzer; // https://github.com/CycloneDX/cyclonedx-maven-plugin/pull/65
 
     @Inject
-    private PlexusContainer plexusContainer;
-
-    /**
-     * Maven ProjectDependencyAnalyzer analyzes a Maven project's declared dependencies and effective classes used to find which artifacts are
-     * used and declared, used but not declared, not used but declared.
-     */
-    protected ProjectDependencyAnalyzer dependencyAnalyzer;
+    private Map<String, ProjectDependencyAnalyzer>  projectDependencyAnalyzers;
 
     private ProjectDependencyAnalyzer getProjectDependencyAnalyzer() throws MojoExecutionException {
-        if (dependencyAnalyzer == null) {
-            try {
-                dependencyAnalyzer = (ProjectDependencyAnalyzer) plexusContainer.lookup(ProjectDependencyAnalyzer.class, analyzer);
-            } catch (ComponentLookupException cle) {
-                throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role-hint " + analyzer, cle);
+        try {
+            ProjectDependencyAnalyzer result = projectDependencyAnalyzers.get(analyzer);
+            if (result == null) {
+                throw new MojoExecutionException("Unknown ProjectDependencyAnalyser with role-hint " + analyzer);
             }
+            return result;
+        } catch (Exception e) {
+            // any exception during provisioning of the component
+            throw new MojoExecutionException("Failed to instantiate ProjectDependencyAnalyser with role-hint " + analyzer);
         }
-        return dependencyAnalyzer;
     }
 
     protected ProjectDependencyAnalysis doProjectDependencyAnalysis(final MavenProject mavenProject, final BomDependencies bomDependencies) throws MojoExecutionException {

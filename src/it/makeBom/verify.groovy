@@ -28,7 +28,11 @@ File bomAggregateFileJson = new File(basedir, "target/bom-makeAggregateBom.json"
 assert bomAggregateFileXml.exists()
 assert bomAggregateFileJson.exists()
 
-assert ! new File(basedir, "build.log").text.contains('[INFO] CycloneDX: Parameters')
+String buildLog = new File(basedir, "build.log").text
+assert ! buildLog.contains('[INFO] CycloneDX: Parameters')
+
+assert buildLog.contains('[INFO]            attaching as makeBom-1.0-SNAPSHOT.cdx.xml')
+assert buildLog.contains('[INFO]            attaching as makeBom-1.0-SNAPSHOT.cdx.json')
 
 // regression for https://github.com/CycloneDX/cyclonedx-maven-plugin/issues/564
-assert ! new File(basedir, "build.log").text.contains('Unknown keyword')
+assert ! buildLog.contains('Unknown keyword')

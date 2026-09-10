@@ -663,12 +663,33 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      * Transform Bom content based on plugins goals executions bound to Maven build lifecycle of the supplied project.
      */
     protected void transformBom(final MavenProject mavenProject, final Component metadataComponent, final Map<String, Component> components) throws MojoExecutionException {
+        final Component.Type configuredProjectType = getConfiguredProjectType(mavenProject, metadataComponent);
+
         for(MojoExecution execution: calculateExecutionPlan(mavenProject)) {
             BomTransformer transformer = transformers.get(execution.getPlugin().getKey() + ':' + execution.getGoal());
             if (transformer != null) {
                 transformer.transform(execution, metadataComponent, components);
             }
         }
+
+        if (configuredProjectType != null) {
+            metadataComponent.setType(configuredProjectType);
+        }
+    }
+
+    /**
+     * Keep an explicitly configured projectType authoritative over lifecycle-based type inference.
+     * The component has already been converted with the effective project configuration, so preserving
+     * its type here avoids making every transformer aware of CycloneDX plugin configuration.
+     */
+    private Component.Type getConfiguredProjectType(final MavenProject mavenProject, final Component metadataComponent) {
+        final Plugin plugin = mavenProject.getPlugin(CYCLONEDX_PLUGIN_KEY);
+        if (plugin == null || !(plugin.getConfiguration() instanceof Xpp3Dom)) {
+            return null;
+        }
+
+        final Xpp3Dom configuration = (Xpp3Dom) plugin.getConfiguration();
+        return configuration.getChild(PROJECT_TYPE) == null ? null : metadataComponent.getType();
     }
 
     private List<MojoExecution> calculateExecutionPlan(final MavenProject mavenProject) throws MojoExecutionException {

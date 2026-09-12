@@ -21,6 +21,7 @@ package org.cyclonedx.maven;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
+import org.cyclonedx.Version;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
@@ -34,6 +35,13 @@ import java.util.Map;
 public interface ProjectDependenciesConverter {
 
     BomDependencies extractBOMDependencies(MavenProject mavenProject, MavenDependencyScopes include, String[] excludes) throws MojoExecutionException;
+
+    void extractMavenPluginDependencies(
+            MavenProject mavenProject,
+            Version schemaVersion,
+            boolean includeLicenseText,
+            Map<String, Component> components,
+            Map<String, Dependency> dependencies) throws MojoExecutionException;
 
     /**
      * Check consistency between BOM components and BOM dependencies, and cleanup: drop components found while walking the

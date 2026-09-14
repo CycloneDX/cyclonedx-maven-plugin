@@ -135,6 +135,8 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
 
             projectDependencies.forEach(dependencies::putIfAbsent);
+
+            extractMavenPluginDependencies(mavenProject, components, dependencies);
         }
 
         excludedProjects.stream().sorted(String.CASE_INSENSITIVE_ORDER).forEach(excluded -> getLog().info("Excluding " + excluded));

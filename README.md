@@ -52,6 +52,7 @@ Default Values
             <includeRuntimeScope>true</includeRuntimeScope>
             <includeSystemScope>true</includeSystemScope>
             <includeTestScope>false</includeTestScope>
+            <includeMavenPlugins>false</includeMavenPlugins>
             <includeLicenseText>false</includeLicenseText>
             <outputReactorProjects>true</outputReactorProjects>
             <outputFormat>all</outputFormat>

@@ -126,6 +126,8 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
 
         projectDependencies.forEach(dependencies::putIfAbsent);
 
+        extractMavenPluginDependencies(getProject(), components, dependencies);
+
         return "makeBom";
     }
 }

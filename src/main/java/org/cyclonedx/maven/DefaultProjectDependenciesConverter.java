@@ -18,9 +18,17 @@
  */
 package org.cyclonedx.maven;
 
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Plugin;
+import org.apache.maven.model.ReportPlugin;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.PluginResolutionException;
+import org.apache.maven.plugin.internal.PluginDependenciesResolver;
+import org.apache.maven.plugin.version.DefaultPluginVersionRequest;
+import org.apache.maven.plugin.version.PluginVersionResolutionException;
+import org.apache.maven.plugin.version.PluginVersionResolver;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuildingRequest;
@@ -28,6 +36,7 @@ import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilder;
 import org.apache.maven.shared.dependency.graph.DependencyCollectorBuilderException;
 import org.apache.maven.shared.dependency.graph.internal.ConflictData;
 import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollectorBuilder;
+import org.cyclonedx.Version;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
@@ -35,6 +44,7 @@ import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.ArtifactProperties;
 import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.util.graph.transformer.ConflictResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -64,6 +75,12 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
 
     @Inject
     private RepositorySystem aetherRepositorySystem;
+
+    @Inject
+    private PluginDependenciesResolver pluginDependenciesResolver;
+
+    @Inject
+    private PluginVersionResolver pluginVersionResolver;
 
     private Set<String> excludeTypesSet;
     private MavenDependencyScopes include;
@@ -101,6 +118,181 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
             logger.warn("An error occurred building dependency graph: " + e.getMessage());
         }
         return new BomDependencies(dependencies, mavenArtifacts, mavenDependencyArtifacts);
+    }
+
+    @Override
+    public void extractMavenPluginDependencies(
+            final MavenProject mavenProject,
+            final Version schemaVersion,
+            final boolean includeLicenseText,
+            final Map<String, Component> components,
+            final Map<String, Dependency> dependencies) throws MojoExecutionException {
+
+        final Map<String, Plugin> plugins = new HashMap<>();
+        // include pluginManagement/plugins
+        if (mavenProject.getPluginManagement() != null) {
+            for (final Plugin plugin : mavenProject.getPluginManagement().getPlugins()) {
+                normalizePlugin(plugin);
+                plugins.put(plugin.getKey(), plugin);
+            }
+        }
+        // include build/plugins
+        for (final Plugin plugin : mavenProject.getBuildPlugins()) {
+            addPlugin(plugin, plugins);
+        }
+        // include reporting/plugins
+        for (final ReportPlugin reportPlugin : mavenProject.getReportPlugins()) {
+            final Plugin plugin = new Plugin();
+            plugin.setGroupId(reportPlugin.getGroupId());
+            plugin.setArtifactId(reportPlugin.getArtifactId());
+            plugin.setVersion(reportPlugin.getVersion());
+            addPlugin(plugin, plugins);
+        }
+        // resolve plugins without a version
+        for (final Plugin plugin : plugins.values()) {
+            if (!hasVersion(plugin)) {
+                resolvePluginVersion(plugin, mavenProject);
+            }
+        }
+        final String projectRef =
+                modelConverter.generatePackageUrl(mavenProject.getArtifact());
+        final Dependency projectDependency =
+                dependencies.computeIfAbsent(projectRef, Dependency::new);
+        final List<RemoteRepository> repositories =
+                mavenProject.getRemotePluginRepositories();
+        for (final Plugin plugin : plugins.values()) {
+            try {
+                final DependencyNode root =
+                        pluginDependenciesResolver.resolve(
+                                plugin,
+                                null,
+                                null,
+                                repositories,
+                                session.getRepositorySession());
+                final String pluginRef = buildPluginDependencyGraph(
+                        root,
+                        null,
+                        components,
+                        dependencies,
+                        schemaVersion,
+                        includeLicenseText,
+                        new HashSet<String>());
+                if (pluginRef != null && !containsDependency(projectDependency, pluginRef)) {
+                    projectDependency.addDependency(new Dependency(pluginRef));
+                }
+            } catch (PluginResolutionException e) {
+                throw new MojoExecutionException(
+                        "failed to resolve Maven plugin "
+                                + plugin.getKey() + ":" + plugin.getVersion()
+                                + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private static void addPlugin(Plugin plugin, Map<String, Plugin> plugins) {
+        normalizePlugin(plugin);
+        final String key = plugin.getKey();
+        final Plugin existingPlugin = plugins.get(key);
+        if (!hasVersion(plugin)) {
+            if (null == existingPlugin) {
+                plugins.put(key, plugin);
+            }
+        } else {
+            if (null != existingPlugin) {
+                existingPlugin.setVersion(plugin.getVersion());
+            } else {
+                plugins.put(key, plugin);
+            }
+        }
+    }
+
+    private void resolvePluginVersion(
+            final Plugin plugin,
+            final MavenProject mavenProject) throws MojoExecutionException {
+        try {
+            final DefaultPluginVersionRequest request =
+                    new DefaultPluginVersionRequest(
+                            plugin,
+                            session.getRepositorySession(),
+                            mavenProject.getRemotePluginRepositories());
+
+            plugin.setVersion(pluginVersionResolver.resolve(request).getVersion());
+        } catch (PluginVersionResolutionException e) {
+            throw new MojoExecutionException(
+                    "failed to resolve Maven plugin " + plugin.getKey()
+                            + ": " + e.getMessage(),
+                    e);
+        }
+    }
+
+    private static boolean hasVersion(Plugin plugin) {
+        return plugin.getVersion() != null && !plugin.getVersion().trim().isEmpty();
+    }
+
+    private static void normalizePlugin(final Plugin plugin) {
+        if (plugin.getGroupId() == null || plugin.getGroupId().trim().isEmpty()) {
+            plugin.setGroupId("org.apache.maven.plugins");
+        }
+    }
+
+    private String buildPluginDependencyGraph(
+            final DependencyNode node,
+            final Dependency parent,
+            final Map<String, Component> components,
+            final Map<String, Dependency> dependencies,
+            final Version schemaVersion,
+            final boolean includeLicenseText,
+            final Set<String> visiting) {
+        if (node == null || node.getArtifact() == null) {
+            return null;
+        }
+        final String purl = modelConverter.generatePackageUrl(node.getArtifact());
+        if (purl == null) {
+            return null;
+        }
+        if (!components.containsKey(purl)) {
+            final Artifact artifact = RepositoryUtils.toArtifact(node.getArtifact());
+            components.put(
+                    purl,
+                    modelConverter.convertMavenDependency(
+                            artifact,
+                            schemaVersion,
+                            includeLicenseText));
+        }
+        final Dependency current =
+                dependencies.computeIfAbsent(purl, Dependency::new);
+        if (parent != null && !containsDependency(parent, purl)) {
+            parent.addDependency(new Dependency(purl));
+        }
+        if (!visiting.add(purl)) {
+            return purl;
+        }
+        for (final DependencyNode child : node.getChildren()) {
+            buildPluginDependencyGraph(
+                    child,
+                    current,
+                    components,
+                    dependencies,
+                    schemaVersion,
+                    includeLicenseText,
+                    visiting);
+        }
+        visiting.remove(purl);
+        return purl;
+    }
+
+    private static boolean containsDependency(
+            final Dependency dependency,
+            final String ref) {
+        if (dependency.getDependencies() == null) {
+            return false;
+        }
+        for (final Dependency child : dependency.getDependencies()) {
+            if (ref.equals(child.getRef())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void populateArtifactMap(final Map<String, Artifact> artifactMap, final Map<String, Artifact> dependencyArtifactMap, final org.apache.maven.shared.dependency.graph.DependencyNode node, final int level) {

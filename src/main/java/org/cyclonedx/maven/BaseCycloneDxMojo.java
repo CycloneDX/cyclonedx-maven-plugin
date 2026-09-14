@@ -160,6 +160,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeSystemScope;
 
     /**
+     * Should Maven plugins and their dependencies be included in the bom?
+     *
+     * The Maven plugins are declared in
+     * <li>{@code build/pluginManagement}
+     * <li>{@code build/plugins}
+     * <li>{@code reporting/plugins}
+     *
+     * @since 2.10.0
+     */
+    @Parameter(property = "includeMavenPlugins", defaultValue = "false", required = false)
+    private boolean includeMavenPlugins;
+
+    /**
      * Should license text be included in bom?
      *
      * @since 2.1.0
@@ -290,6 +303,20 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
     protected Component convertMavenDependency(Artifact artifact) {
         return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText);
+    }
+
+    protected void extractMavenPluginDependencies(
+            final MavenProject mavenProject,
+            final Map<String, Component> components,
+            final Map<String, Dependency> dependencies) throws MojoExecutionException {
+        if (includeMavenPlugins) {
+            projectDependenciesConverter.extractMavenPluginDependencies(
+                    mavenProject,
+                    schemaVersion(),
+                    includeLicenseText,
+                    components,
+                    dependencies);
+        }
     }
 
     /**
@@ -510,6 +537,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeRuntimeScope    : " + includeRuntimeScope);
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
+            getLog().info("includeMavenPlugins    : " + includeMavenPlugins);
             getLog().info("includeLicenseText     : " + includeLicenseText);
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);

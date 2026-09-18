@@ -31,6 +31,12 @@ public class Issue521Test extends BaseMavenVerifier {
     @Test
     public void testBomJsonContent() throws Exception {
         File projDir = cleanAndBuild("issue-521", null);
+
+        // check SBOM for the app module, as configured in app/pom.xml
+        checkBomXml(projDir, "app/target/bom.xml", "issue-521-app", "application");
+        checkBomJson(projDir, "app/target/bom.json", "issue-521-app", "application");
+
+        // check aggregated SBOM for the multi-module project
         checkBomXml(projDir, "target/bom.xml", "issue-521-app", "application");
         checkBomJson(projDir, "target/bom.json", "issue-521-app", "application");
     }
@@ -46,9 +52,9 @@ public class Issue521Test extends BaseMavenVerifier {
         // Leggi il contenuto del file bom.json e verifica la presenza dei campi desiderati
         String bomContents = fileRead(bomJsonFile, true);
         assertTrue(bomContents.contains("\"name\" : \"" + expectedName + "\""), 
-            String.format("bom.json should contain a module with name '%s'", expectedName));
+            String.format(filePath + " should contain a module with name '%s'", expectedName));
         assertTrue(bomContents.contains("\"type\" : \"" + expectedType + "\""), 
-            String.format("bom.json should contain a module with type '%s'", expectedType));
+            String.format(filePath + " should contain a module with type '%s'", expectedType));
     }
 
     private void checkBomXml(File basedir, String filePath, String expectedName, String expectedType) throws Exception {
@@ -72,6 +78,6 @@ public class Issue521Test extends BaseMavenVerifier {
             }
         }
 
-        assertTrue(found, "Expected to find a component with name 'module1' and type 'application'");
+        assertTrue(found, "Expected to find a component with name 'module1' and type 'application' in " + filePath);
     }
 }

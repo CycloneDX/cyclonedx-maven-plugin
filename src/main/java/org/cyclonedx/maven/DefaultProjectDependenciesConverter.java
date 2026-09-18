@@ -31,6 +31,7 @@ import org.apache.maven.shared.dependency.graph.internal.DefaultDependencyCollec
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.Metadata;
+import org.eclipse.aether.DefaultRepositorySystemSession;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.ArtifactProperties;
 import org.eclipse.aether.collection.CollectResult;
@@ -79,7 +80,7 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
         final Map<String, Artifact> mavenArtifacts = new LinkedHashMap<>();
         final Map<String, Artifact> mavenDependencyArtifacts = new LinkedHashMap<>();
         try {
-            final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem);
+            final DelegatingRepositorySystem delegateRepositorySystem = new DelegatingRepositorySystem(aetherRepositorySystem, session.getProjects());
             final DependencyCollectorBuilder dependencyCollectorBuilder = new DefaultDependencyCollectorBuilder(delegateRepositorySystem);
 
             final org.apache.maven.shared.dependency.graph.DependencyNode mavenRoot = dependencyCollectorBuilder.collectDependencyGraph(buildingRequest, null);
@@ -229,6 +230,17 @@ public class DefaultProjectDependenciesConverter implements ProjectDependenciesC
     private ProjectBuildingRequest getProjectBuildingRequest(final MavenProject mavenProject) {
         final ProjectBuildingRequest buildingRequest = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
         buildingRequest.setProject(mavenProject);
+        // Aether resolves a -SNAPSHOT version by reading maven-metadata.xml from every configured
+        // repository, unless the workspace already answers for those coordinates. Maven's own
+        // ReactorReader only answers once a module has been packaged, and makeAggregateBom runs on
+        // the root project before any module is built, so every reactor module triggers a remote
+        // update check. The reactor is authoritative for its own coordinates, so answer for them
+        // here. Dependencies outside the reactor are untouched and keep their update policy.
+        final DefaultRepositorySystemSession bomSession =
+                new DefaultRepositorySystemSession(buildingRequest.getRepositorySession());
+        bomSession.setWorkspaceReader(
+                new ReactorWorkspaceReader(bomSession.getWorkspaceReader(), session.getProjects()));
+        buildingRequest.setRepositorySession(bomSession);
         return buildingRequest;
     }
 

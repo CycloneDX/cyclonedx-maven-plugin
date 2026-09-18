@@ -1,11 +1,17 @@
 package org.cyclonedx.maven;
 
+import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.maven.project.MavenProject;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.SyncContext;
+import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.collection.CollectResult;
 import org.eclipse.aether.collection.DependencyCollectionException;
@@ -47,10 +53,70 @@ import org.eclipse.aether.util.graph.visitor.TreeDependencyVisitor;
  */
 class DelegatingRepositorySystem implements RepositorySystem {
     private final RepositorySystem delegate;
+
+    /** Reactor modules of the current build, keyed by {@code groupId:artifactId:version}. */
+    private final Map<String, MavenProject> reactorProjects;
+
     private CollectResult collectResult;
 
     public DelegatingRepositorySystem(final RepositorySystem repositorySystem) {
+        this(repositorySystem, null);
+    }
+
+    public DelegatingRepositorySystem(final RepositorySystem repositorySystem, final List<MavenProject> reactorProjects) {
         this.delegate = repositorySystem;
+        this.reactorProjects = indexByGav(reactorProjects);
+    }
+
+    private static Map<String, MavenProject> indexByGav(final List<MavenProject> projects) {
+        if (projects == null || projects.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        final Map<String, MavenProject> index = new HashMap<>();
+        for (final MavenProject project : projects) {
+            index.put(gav(project.getGroupId(), project.getArtifactId(), project.getVersion()), project);
+        }
+        return index;
+    }
+
+    private static String gav(final String groupId, final String artifactId, final String version) {
+        return groupId + ':' + artifactId + ':' + version;
+    }
+
+    /**
+     * @return the reactor module matching the artifact coordinates, or {@code null} when the artifact
+     *         does not belong to the current build
+     */
+    private MavenProject findInReactor(final Artifact artifact) {
+        if (artifact == null || reactorProjects.isEmpty()) {
+            return null;
+        }
+        // For a SNAPSHOT already resolved to a timestamp, getVersion() holds the timestamped form
+        // while getBaseVersion() keeps the -SNAPSHOT form that MavenProject reports.
+        final MavenProject project =
+                reactorProjects.get(gav(artifact.getGroupId(), artifact.getArtifactId(), artifact.getBaseVersion()));
+        return (project != null)
+                ? project
+                : reactorProjects.get(gav(artifact.getGroupId(), artifact.getArtifactId(), artifact.getVersion()));
+    }
+
+    /**
+     * @return the file the reactor has already produced for this artifact, or {@code null} when the
+     *         module has not been packaged yet in this session
+     */
+    private static File reactorFile(final MavenProject project, final Artifact artifact) {
+        final String classifier = (artifact.getClassifier() == null) ? "" : artifact.getClassifier();
+        if (classifier.isEmpty()) {
+            final org.apache.maven.artifact.Artifact main = project.getArtifact();
+            return (main == null) ? null : main.getFile();
+        }
+        for (final org.apache.maven.artifact.Artifact attached : project.getAttachedArtifacts()) {
+            final String attachedClassifier = (attached.getClassifier() == null) ? "" : attached.getClassifier();
+            if (classifier.equals(attachedClassifier) && attached.getFile() != null) {
+                return attached.getFile();
+            }
+        }
+        return null;
     }
 
     public CollectResult getCollectResult() {
@@ -67,6 +133,21 @@ class DelegatingRepositorySystem implements RepositorySystem {
             public boolean visitEnter(final DependencyNode node)
             {
                 if (root != node) {
+                    final Artifact artifact = node.getArtifact();
+                    final MavenProject reactorProject = findInReactor(artifact);
+                    if (reactorProject != null) {
+                        // The reactor owns its own modules: never resolve them through the repository
+                        // system. makeAggregateBom is bound to the root project, which Maven builds
+                        // first, so the modules are typically not packaged yet and resolving fetches
+                        // the *previously published* artifact instead: one remote SNAPSHOT update
+                        // check per module, and a BOM carrying the previous build's hashes.
+                        // See issue #138 (slow builds) and issue #410 (wrong hashes).
+                        final File file = reactorFile(reactorProject, artifact);
+                        if (file != null) {
+                            node.setArtifact(artifact.setFile(file));
+                        }
+                        return true;
+                    }
                     try {
                         final ArtifactResult resolveArtifact = resolveArtifact(session, new ArtifactRequest(node));
                         node.setArtifact(resolveArtifact.getArtifact());

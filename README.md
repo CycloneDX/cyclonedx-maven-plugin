@@ -57,6 +57,7 @@ Default Values
             <outputFormat>all</outputFormat>
             <outputName>bom</outputName>
             <outputDirectory>${project.build.directory}</outputDirectory><!-- usually target, if not redefined in pom.xml -->
+            <prettyPrint>true</prettyPrint>
             <verbose>false</verbose><!-- = ${cyclonedx.verbose} -->
         </configuration>
     </plugin>

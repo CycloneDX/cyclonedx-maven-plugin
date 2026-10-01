@@ -112,7 +112,7 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         return "module skips deploy";
     }
 
-    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
+    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components,  final Map<String, Component> formulationComponents, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         getLog().info(MESSAGE_RESOLVING_DEPS);
 
         final BomDependencies bomDependencies = extractBOMDependencies(getProject());
@@ -123,6 +123,8 @@ public class CycloneDxMojo extends BaseCycloneDxMojo {
         topLevelComponents.add(projectBomComponent.getPurl());
 
         populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(getProject(), bomDependencies));
+
+        populateFormulationComponents(getProject(), formulationComponents, dependencies);
 
         projectDependencies.forEach(dependencies::putIfAbsent);
 

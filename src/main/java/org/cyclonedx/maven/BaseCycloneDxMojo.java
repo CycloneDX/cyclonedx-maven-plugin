@@ -37,6 +37,8 @@ import org.cyclonedx.generators.xml.BomXmlGenerator;
 import org.cyclonedx.maven.ProjectDependenciesConverter.BomDependencies;
 import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
+import org.cyclonedx.model.formulation.Formula;
+import org.cyclonedx.model.formulation.FormulationCommon;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.ExternalReference;
 import org.cyclonedx.model.LifecycleChoice;
@@ -158,6 +160,19 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
      */
     @Parameter(property = "includeSystemScope", defaultValue = "true", required = false)
     private boolean includeSystemScope;
+
+    /**
+     * Should Maven plugins and their dependencies be included in the bom?
+     *
+     * The Maven plugins are declared in
+     * <li>{@code build/pluginManagement}
+     * <li>{@code build/plugins}
+     * <li>{@code reporting/plugins}
+     *
+     * @since 2.10.0
+     */
+    @Parameter(property = "includeFormulation", defaultValue = "false", required = false)
+    private boolean includeFormulation;
 
     /**
      * Should license text be included in bom?
@@ -292,16 +307,31 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText);
     }
 
+    protected void populateFormulationComponents(
+            final MavenProject mavenProject,
+            final Map<String, Component> formulationComponents,
+            final Map<String, Dependency> dependencies) throws MojoExecutionException {
+        if (includeFormulation) {
+            projectDependenciesConverter.extractMavenPluginDependencies(
+                    mavenProject,
+                    schemaVersion(),
+                    includeLicenseText,
+                    formulationComponents,
+                    dependencies);
+        }
+    }
+
     /**
      * Analyze the current Maven project to extract the BOM components list and their dependencies.
      *
      * @param topLevelComponents the PURLs for all top level components
      * @param components the components map to fill
+     * @param formulationComponents the formulation components map to fill
      * @param dependencies the dependencies map to fill
      * @return the name of the goal done to extract the BOM to save, or {@code null} to not save result.
      * @throws MojoExecutionException something weird happened...
      */
-    protected abstract String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Dependency> dependencies) throws MojoExecutionException;
+    protected abstract String extractComponentsAndDependencies(Set<String> topLevelComponents, Map<String, Component> components, Map<String, Component> formulationComponents, Map<String, Dependency> dependencies) throws MojoExecutionException;
 
     /**
      * @return {@literal true} if the execution should be skipped.
@@ -333,9 +363,10 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         // top level components do not currently set their scope, we track these to prevent merging of scopes
         final Set<String> topLevelComponents = new LinkedHashSet<>();
         final Map<String, Component> componentMap = new LinkedHashMap<>();
+        final Map<String, Component> formulationComponentMap = new LinkedHashMap<>();
         final Map<String, Dependency> dependencyMap = new LinkedHashMap<>();
 
-        String goal = extractComponentsAndDependencies(topLevelComponents, componentMap, dependencyMap);
+        String goal = extractComponentsAndDependencies(topLevelComponents, componentMap, formulationComponentMap, dependencyMap);
         if (goal == null) {
             // just ignore result, no need to save.
             return;
@@ -365,7 +396,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
 
         projectDependenciesConverter.cleanupBomDependencies(metadata, componentMap, dependencyMap);
 
-        generateBom(goal, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(dependencyMap.values()));
+        generateBom(goal, metadata, new ArrayList<>(componentMap.values()), new ArrayList<>(formulationComponentMap.values()), new ArrayList<>(dependencyMap.values()));
     }
 
     private Property newProperty(String name, String value) {
@@ -375,11 +406,16 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
         return property;
     }
 
-    private void generateBom(String analysis, Metadata metadata, List<Component> components, List<Dependency> dependencies) throws MojoExecutionException {
+    private void generateBom(String analysis, Metadata metadata, List<Component> components, List<Component> formulationComponents, List<Dependency> dependencies) throws MojoExecutionException {
         try {
             getLog().info(String.format(MESSAGE_CREATING_BOM, schemaVersion, components.size()));
             final Bom bom = new Bom();
             bom.setComponents(components);
+            if (!formulationComponents.isEmpty()) {
+                final Formula formula = new Formula();
+                formula.setComponents(formulationComponents);
+                bom.setFormulation(Collections.singletonList(formula));
+            }
 
             if (outputTimestamp != null) {
                 // activate Reproducible Builds mode
@@ -510,6 +546,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeRuntimeScope    : " + includeRuntimeScope);
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
+            getLog().info("includeFormulation     : " + includeFormulation);
             getLog().info("includeLicenseText     : " + includeLicenseText);
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);

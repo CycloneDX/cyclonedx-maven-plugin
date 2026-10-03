@@ -105,11 +105,11 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
     }
 
     @Override
-    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Dependency> dependencies) throws MojoExecutionException {
+    protected String extractComponentsAndDependencies(final Set<String> topLevelComponents, final Map<String, Component> components, final Map<String, Component> formulationComponents, final Map<String, Dependency> dependencies) throws MojoExecutionException {
         if (! getProject().isExecutionRoot()) {
             // non-root project: let parent class create a module-only BOM?
             if (outputReactorProjects) {
-                return super.extractComponentsAndDependencies(topLevelComponents, components, dependencies);
+                return super.extractComponentsAndDependencies(topLevelComponents, components, formulationComponents, dependencies);
             }
             getLog().info("Skipping CycloneDX on non-execution root");
             return null;
@@ -133,6 +133,8 @@ public class CycloneDxAggregateMojo extends CycloneDxMojo {
             topLevelComponents.add(projectBomComponent.getPurl());
 
             populateComponents(topLevelComponents, components, bomDependencies.getArtifacts(), doProjectDependencyAnalysis(mavenProject, bomDependencies));
+
+            populateFormulationComponents(mavenProject, formulationComponents, dependencies);
 
             projectDependencies.forEach(dependencies::putIfAbsent);
         }

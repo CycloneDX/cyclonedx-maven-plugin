@@ -39,6 +39,7 @@ import org.cyclonedx.model.Bom;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.Dependency;
 import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.Hash;
 import org.cyclonedx.model.LifecycleChoice;
 import org.cyclonedx.model.Lifecycles;
 import org.cyclonedx.model.Metadata;
@@ -168,6 +169,18 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     private boolean includeLicenseText;
 
     /**
+     * Hash algorithms to calculate for each component, using their CycloneDX names, for example
+     * <code>SHA-256</code> and <code>SHA-512</code>. By default, all algorithms supported by both
+     * the JVM and the schema version are calculated.
+     *
+     * @since 2.10.0
+     */
+    @Parameter(property = "hashAlgorithms", required = false)
+    private String[] hashAlgorithms;
+
+    private Set<Hash.Algorithm> effectiveHashAlgorithms;
+
+    /**
      * Excluded types.
      *
      * @since 2.1.0
@@ -289,7 +302,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     protected Component convertMavenDependency(Artifact artifact) {
-        return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText);
+        return modelConverter.convertMavenDependency(artifact, schemaVersion(), includeLicenseText, effectiveHashAlgorithms);
     }
 
     /**
@@ -328,6 +341,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().warn("Invalid schemaVersion configured '" + schemaVersion +"', using " + effectiveSchemaVersion.getVersionString());
             schemaVersion = effectiveSchemaVersion.getVersionString();
         }
+        effectiveHashAlgorithms = resolveHashAlgorithms(hashAlgorithms);
         logParameters();
 
         // top level components do not currently set their scope, we track these to prevent merging of scopes
@@ -341,7 +355,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             return;
         }
 
-        final Metadata metadata = modelConverter.convertMavenProject(project, projectType, schemaVersion(), includeLicenseText, externalReferences);
+        final Metadata metadata = modelConverter.convertMavenProject(project, projectType, schemaVersion(), includeLicenseText, effectiveHashAlgorithms, externalReferences);
 
         if (schemaVersion().getVersion() >= 1.3) {
             // add metadata properties to describe generated content
@@ -482,6 +496,36 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
     }
 
     /**
+     * Resolves the configured hash algorithm names.
+     * @param names the configured names, may be <code>null</code>
+     * @return the hash algorithms to calculate, or <code>null</code> to calculate all supported algorithms
+     * @throws MojoExecutionException if a name is not a CycloneDX hash algorithm
+     */
+    static Set<Hash.Algorithm> resolveHashAlgorithms(final String[] names) throws MojoExecutionException {
+        if (names == null || names.length == 0) {
+            return null;
+        }
+        final Set<Hash.Algorithm> algorithms = new LinkedHashSet<>();
+        for (String name : names) {
+            Hash.Algorithm found = null;
+            for (Hash.Algorithm algorithm : Hash.Algorithm.values()) {
+                if (algorithm.getSpec().equalsIgnoreCase(name.trim())) {
+                    found = algorithm;
+                }
+            }
+            if (found == null) {
+                final List<String> known = new ArrayList<>();
+                for (Hash.Algorithm algorithm : Hash.Algorithm.values()) {
+                    known.add(algorithm.getSpec());
+                }
+                throw new MojoExecutionException("Unknown hash algorithm '" + name + "', expected one of " + known);
+            }
+            algorithms.add(found);
+        }
+        return algorithms;
+    }
+
+    /**
      * Resolves the CycloneDX schema the mojo has been requested to use.
      * @return the CycloneDX schema to use
      */
@@ -511,6 +555,7 @@ public abstract class BaseCycloneDxMojo extends AbstractMojo {
             getLog().info("includeTestScope       : " + includeTestScope);
             getLog().info("includeSystemScope     : " + includeSystemScope);
             getLog().info("includeLicenseText     : " + includeLicenseText);
+            getLog().info("hashAlgorithms         : " + (effectiveHashAlgorithms == null ? "all" : effectiveHashAlgorithms));
             getLog().info("outputFormat           : " + outputFormat);
             getLog().info("outputName             : " + outputName);
             logAdditionalParameters();

@@ -62,6 +62,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.apache.maven.model.Plugin;
@@ -116,13 +117,13 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     /**
-     * Calculates the hashes of the given file, using all hash algorithms supported by both
-     * the current JVM and the target schema version.
+     * Calculates the hashes of the given file, using the requested hash algorithms (all if
+     * <code>null</code>) that are supported by both the current JVM and the target schema version.
      */
-    private static List<Hash> calculateHashes(final File file, final Version schemaVersion) throws IOException {
+    private static List<Hash> calculateHashes(final File file, final Version schemaVersion, final Set<Hash.Algorithm> hashAlgorithms) throws IOException {
         final List<Hash.Algorithm> algorithms = new LinkedList<>();
         for (Hash.Algorithm algorithm : JVM_SUPPORTED_HASH_ALGORITHMS) {
-            if (isAllowedForSchemaVersion(algorithm, schemaVersion)) {
+            if ((hashAlgorithms == null || hashAlgorithms.contains(algorithm)) && isAllowedForSchemaVersion(algorithm, schemaVersion)) {
                 algorithms.add(algorithm);
             }
         }
@@ -204,7 +205,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText) {
+    public Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText, Set<Hash.Algorithm> hashAlgorithms) {
         final Component component = new Component();
         component.setGroup(artifact.getGroupId());
         component.setName(artifact.getArtifactId());
@@ -213,7 +214,7 @@ public class DefaultModelConverter implements ModelConverter {
          
         try {
             logger.debug(BaseCycloneDxMojo.MESSAGE_CALCULATING_HASHES);
-            component.setHashes(calculateHashes(artifact.getFile(), schemaVersion));
+            component.setHashes(calculateHashes(artifact.getFile(), schemaVersion, hashAlgorithms));
         } catch (IOException e) {
             logger.error("Error encountered calculating hashes", e);
         }
@@ -418,7 +419,7 @@ public class DefaultModelConverter implements ModelConverter {
     }
 
     @Override
-    public Metadata convertMavenProject(final MavenProject project, String projectType, Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences) {
+    public Metadata convertMavenProject(final MavenProject project, String projectType, Version schemaVersion, boolean includeLicenseText, Set<Hash.Algorithm> hashAlgorithms, ExternalReference[] externalReferences) {
         final Metadata metadata = new Metadata();
 
         // prepare properties and hash values from the current mojo
@@ -430,7 +431,7 @@ public class DefaultModelConverter implements ModelConverter {
         if (resolved != null) {
             try {
                 resolved.setFile(new File(resolved.getFile() + ".jar"));
-                hashes = calculateHashes(resolved.getFile(), schemaVersion);
+                hashes = calculateHashes(resolved.getFile(), schemaVersion, hashAlgorithms);
             } catch (IOException e) {
                 logger.warn("Unable to calculate hashes of self", e);
             }

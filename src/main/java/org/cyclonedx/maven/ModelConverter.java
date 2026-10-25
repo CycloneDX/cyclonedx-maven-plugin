@@ -23,7 +23,10 @@ import org.apache.maven.project.MavenProject;
 import org.cyclonedx.Version;
 import org.cyclonedx.model.Component;
 import org.cyclonedx.model.ExternalReference;
+import org.cyclonedx.model.Hash;
 import org.cyclonedx.model.Metadata;
+
+import java.util.Set;
 
 /**
  * Model converter from Maven concepts (dependency Artifact + MavenProject) to CycloneDX ones
@@ -47,9 +50,11 @@ public interface ModelConverter {
      * @param artifact the artifact to convert
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
+     * @param hashAlgorithms the hash algorithms to calculate, or <code>null</code> for all algorithms
+     *        supported by the JVM and the schema version
      * @return a CycloneDX component
      */
-    Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText);
+    Component convertMavenDependency(Artifact artifact, Version schemaVersion, boolean includeLicenseText, Set<Hash.Algorithm> hashAlgorithms);
 
     /**
      * Converts a MavenProject into a CycloneDX Metadata object.
@@ -58,9 +63,11 @@ public interface ModelConverter {
      * @param projectType the target CycloneDX component type
      * @param schemaVersion the target CycloneDX schema version
      * @param includeLicenseText should license text be included in bom?
+     * @param hashAlgorithms the hash algorithms to calculate, or <code>null</code> for all algorithms
+     *        supported by the JVM and the schema version
      * @param externalReferences the external references
      * @return a CycloneDX Metadata object
      */
-    Metadata convertMavenProject(MavenProject project, String projectType, Version schemaVersion, boolean includeLicenseText, ExternalReference[] externalReferences);
+    Metadata convertMavenProject(MavenProject project, String projectType, Version schemaVersion, boolean includeLicenseText, Set<Hash.Algorithm> hashAlgorithms, ExternalReference[] externalReferences);
 
 }

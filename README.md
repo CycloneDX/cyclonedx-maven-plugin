@@ -65,6 +65,20 @@ Default Values
 
 `<projectType>` default value is `library` but there are [more choices defined in the CycloneDX specification](https://cyclonedx.org/docs/1.6/json/#metadata_component_type).
 
+By default, every component gets a hash for each algorithm supported by both the JVM and the schema version
+(MD5, SHA-1, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384 and SHA3-512 on a current JVM). To calculate only some of them,
+for example to keep a BOM that is embedded in a published artifact small, list them with `<hashAlgorithms>`
+(or `-DhashAlgorithms=SHA-256,SHA-512`):
+
+```xml
+<configuration>
+    <hashAlgorithms>
+        <hashAlgorithm>SHA-256</hashAlgorithm>
+        <hashAlgorithm>SHA-512</hashAlgorithm>
+    </hashAlgorithms>
+</configuration>
+```
+
 See also [External References](https://cyclonedx.github.io/cyclonedx-maven-plugin/external-references.html) documentation for details on this topic.
 
 Excluding Projects

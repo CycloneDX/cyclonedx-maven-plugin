@@ -1,0 +1,171 @@
+{
+  "bomFormat" : "CycloneDX",
+  "specVersion" : "1.7",
+  "serialNumber" : "urn:uuid:3e383c4c-ef61-3eba-8214-3ecd46c4bbee",
+  "version" : 1,
+  "metadata" : {
+    "lifecycles" : [
+      {
+        "phase" : "build"
+      }
+    ],
+    "tools" : {
+      "components" : [
+        {
+          "type" : "library",
+          "author" : "OWASP Foundation",
+          "group" : "org.cyclonedx",
+          "name" : "cyclonedx-maven-plugin",
+          "version" : "2.10.0",
+          "description" : "CycloneDX Maven plugin"
+        }
+      ]
+    },
+    "component" : {
+      "type" : "application",
+      "bom-ref" : "pkg:maven/com.example/demo-app@1.0.0?type=jar",
+      "group" : "com.example",
+      "name" : "demo-app",
+      "version" : "1.0.0",
+      "purl" : "pkg:maven/com.example/demo-app@1.0.0?type=jar"
+    },
+    "properties" : [
+      {
+        "name" : "maven.goal",
+        "value" : "makeBom"
+      },
+      {
+        "name" : "maven.scopes",
+        "value" : "compile,provided,runtime,system"
+      },
+      {
+        "name" : "cdx:reproducible",
+        "value" : "enabled"
+      }
+    ]
+  },
+  "components" : [
+    {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/org.apache.commons/commons-text@1.12.0?type=jar",
+      "publisher" : "The Apache Software Foundation",
+      "group" : "org.apache.commons",
+      "name" : "commons-text",
+      "version" : "1.12.0",
+      "description" : "Apache Commons Text is a library focused on algorithms working on strings.",
+      "scope" : "required",
+      "hashes" : [
+        {
+          "alg" : "SHA-1",
+          "content" : "66aa90dc099701c4d3b14bd256c328f592bc8ac6"
+        },
+        {
+          "alg" : "SHA-256",
+          "content" : "de023e1cb9fb2a2ea4ab0f3d3de4b5c0b4e2ef1fb39c8e3e4fd26d1e2a3e7f0a"
+        }
+      ],
+      "licenses" : [
+        {
+          "license" : {
+            "id" : "Apache-2.0"
+          }
+        }
+      ],
+      "purl" : "pkg:maven/org.apache.commons/commons-text@1.12.0?type=jar",
+      "externalReferences" : [
+        {
+          "type" : "website",
+          "url" : "https://commons.apache.org/proper/commons-text"
+        },
+        {
+          "type" : "vcs",
+          "url" : "https://gitbox.apache.org/repos/asf?p=commons-text.git"
+        }
+      ]
+    },
+    {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/org.apache.commons/commons-lang3@3.14.0?type=jar",
+      "group" : "org.apache.commons",
+      "name" : "commons-lang3",
+      "version" : "3.14.0",
+      "scope" : "required",
+      "licenses" : [
+        {
+          "license" : {
+            "id" : "Apache-2.0"
+          }
+        }
+      ],
+      "purl" : "pkg:maven/org.apache.commons/commons-lang3@3.14.0?type=jar"
+    },
+    {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/com.example/odd-lib@2.0?type=jar",
+      "group" : "com.example",
+      "name" : "odd-lib",
+      "versionRange" : "vers:maven/*",
+      "isExternal" : true,
+      "description" : "Uses {braces}, 'quotes', ${expressions} and <b>markup</b>",
+      "scope" : "optional",
+      "licenses" : [
+        {
+          "license" : {
+            "name" : "Custom 'License' {v2}",
+            "url" : "javascript:alert(1)"
+          }
+        }
+      ],
+      "purl" : "pkg:maven/com.example/odd-lib@2.0?type=jar",
+      "externalReferences" : [
+        {
+          "type" : "website",
+          "url" : "javascript:alert(2)",
+          "comment" : "not a web link"
+        }
+      ]
+    },
+    {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/com.example/dual@1.0?classifier=all&type=jar",
+      "group" : "com.example",
+      "name" : "dual",
+      "version" : "1.0",
+      "scope" : "required",
+      "licenses" : [
+        {
+          "expression" : "EPL-2.0 OR GPL-2.0-with-classpath-exception"
+        }
+      ],
+      "purl" : "pkg:maven/com.example/dual@1.0?classifier=all&type=jar"
+    }
+  ],
+  "dependencies" : [
+    {
+      "ref" : "pkg:maven/com.example/demo-app@1.0.0?type=jar",
+      "dependsOn" : [
+        "pkg:maven/org.apache.commons/commons-text@1.12.0?type=jar",
+        "pkg:maven/com.example/odd-lib@2.0?type=jar",
+        "pkg:maven/com.example/dual@1.0?classifier=all&type=jar"
+      ]
+    },
+    {
+      "ref" : "pkg:maven/org.apache.commons/commons-text@1.12.0?type=jar",
+      "dependsOn" : [
+        "pkg:maven/org.apache.commons/commons-lang3@3.14.0?type=jar"
+      ]
+    },
+    {
+      "ref" : "pkg:maven/org.apache.commons/commons-lang3@3.14.0?type=jar"
+    },
+    {
+      "ref" : "pkg:maven/com.example/odd-lib@2.0?type=jar",
+      "dependsOn" : [
+        "pkg:maven/org.apache.commons/commons-lang3@3.14.0?type=jar"
+      ]
+    },
+    {
+      "ref" : "pkg:maven/com.example/dual@1.0?classifier=all&type=jar"
+    }
+  ]
+}

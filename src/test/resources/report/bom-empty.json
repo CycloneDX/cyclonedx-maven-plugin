@@ -1,0 +1,22 @@
+{
+  "bomFormat" : "CycloneDX",
+  "specVersion" : "1.6",
+  "serialNumber" : "urn:uuid:0d4b5f0e-6f0a-3c1d-9a3e-2d1c0b7a6e5f",
+  "version" : 1,
+  "metadata" : {
+    "timestamp" : "2024-05-06T07:08:09Z",
+    "component" : {
+      "type" : "library",
+      "bom-ref" : "pkg:maven/com.example/standalone@1.0?type=jar",
+      "group" : "com.example",
+      "name" : "standalone",
+      "version" : "1.0",
+      "purl" : "pkg:maven/com.example/standalone@1.0?type=jar"
+    }
+  },
+  "dependencies" : [
+    {
+      "ref" : "pkg:maven/com.example/standalone@1.0?type=jar"
+    }
+  ]
+}

@@ -77,10 +77,11 @@ With `makeAggregateBom` goal, it is possible to exclude certain Maven reactor pr
 
 Goals
 -------------------
-The CycloneDX Maven plugin contains the following three goals:
+The CycloneDX Maven plugin contains the following four goals:
 * `makeBom`: creates a BOM for each Maven module with its dependencies,
 * `makeAggregateBom`: creates an aggregate BOM at build root (with dependencies from the whole multi-modules build), and eventually a BOM for each module,
-* `makePackageBom`: creates a BOM for each Maven module with `war` or `ear` packaging.
+* `makePackageBom`: creates a BOM for each Maven module with `war` or `ear` packaging,
+* `report`: renders the BOM created by one of the previous goals as a page of the Maven site (see "Maven Site Report" below).
 
 By default, the BOM(s) will be attached as an additional artifacts with `cyclonedx` classifier (can be customized by setting `cyclonedx.classifier`) and `xml` or `json` extension during a Maven `install` or `deploy`:
 
@@ -90,6 +91,31 @@ By default, the BOM(s) will be attached as an additional artifacts with `cyclone
 This may be switched off by setting `cyclonedx.skipAttach` to `true`.
 
 Every goal can optionally be skipped completely by setting `cyclonedx.skip` to `true`.
+
+Maven Site Report
+-------------------
+The `report` goal adds a "CycloneDX SBOM" page to the [Maven site](https://maven.apache.org/plugins/maven-site-plugin/):
+BOM metadata, components with their package URL, licenses and hashes, and the dependency graph (what each component
+depends on, and what requires it). The BOM file is also copied next to the page, to be downloaded in its machine-readable form.
+
+```xml
+<reporting>
+    <plugins>
+        <plugin>
+            <groupId>org.cyclonedx</groupId>
+            <artifactId>cyclonedx-maven-plugin</artifactId>
+        </plugin>
+    </plugins>
+</reporting>
+```
+
+The report does not create the BOM: it renders the file written by `makeBom`, `makeAggregateBom` or `makePackageBom`,
+so these goals need to run before the site, for example with `mvn package site`. The file is found where these goals
+write it, as configured in the project (`outputDirectory`, `outputName` and `outputFormat`, including the configuration
+provided by `spring-boot-starter-parent`), or can be set explicitly with the `bomFile` parameter (`cyclonedx.report.bomFile`
+property). When no BOM file is found, the report is skipped.
+
+The report requires Maven Site Plugin 3.20.0 or later.
 
 ## CycloneDX Schema Support
 

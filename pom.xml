@@ -80,6 +80,10 @@
         <maven.version>3.8.7</maven.version>
         <maven-dependency-tree.version>3.3.0</maven-dependency-tree.version>
         <maven-dependency-analyzer.version>1.17.2</maven-dependency-analyzer.version>
+        <!-- report goal: Doxia 2.0.0 and Maven Reporting 4.0.0 are the baseline of maven-site-plugin 3.20.0+, do not require newer ones -->
+        <maven-reporting-api.version>4.0.0</maven-reporting-api.version>
+        <maven-reporting-impl.version>4.0.0</maven-reporting-impl.version>
+        <doxia.version>2.0.0</doxia.version>
         <takari-plugin-testing.version>3.1.1</takari-plugin-testing.version>
         <!-- takari-lifecycle-plugin 2.0.9+ requires Java 11; CI builds on JDK 8 -->
         <takari-lifecycle-plugin.version>2.0.8</takari-lifecycle-plugin.version>
@@ -184,6 +188,41 @@
                     <artifactId>maven-model</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.reporting</groupId>
+            <artifactId>maven-reporting-api</artifactId>
+            <version>${maven-reporting-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.reporting</groupId>
+            <artifactId>maven-reporting-impl</artifactId>
+            <version>${maven-reporting-impl.version}</version>
+            <exclusions>
+                <!-- maven-archiver is only used to parse project.build.outputTimestamp: archive compression codecs are not needed -->
+                <exclusion>
+                    <groupId>com.github.luben</groupId>
+                    <artifactId>zstd-jni</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.tukaani</groupId>
+                    <artifactId>xz</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.iq80.snappy</groupId>
+                    <artifactId>snappy</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.doxia</groupId>
+            <artifactId>doxia-sink-api</artifactId>
+            <version>${doxia.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.doxia</groupId>
+            <artifactId>doxia-core</artifactId>
+            <version>${doxia.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>

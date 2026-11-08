@@ -37,6 +37,7 @@
               <item name="cyclonedx:makeAggregateBom" href="makeAggregateBom-mojo.html"/>
               <item name="cyclonedx:makeBom" href="makeBom-mojo.html"/>
               <item name="cyclonedx:makePackageBom" href="makePackageBom-mojo.html"/>
+              <item name="cyclonedx:report" href="report-mojo.html"/>
           </item>
           <!-- item name="Usage" href="usage.html"/>
           <item name="FAQ" href="faq.html"/ -->

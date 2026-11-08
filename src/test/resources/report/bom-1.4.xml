@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.4" serialNumber="urn:uuid:af111a48-2091-3e2e-ad2e-60b1975b651d" version="1">
+  <metadata>
+    <timestamp>2024-01-02T03:04:05Z</timestamp>
+    <tools>
+      <tool>
+        <vendor>OWASP Foundation</vendor>
+        <name>CycloneDX Maven plugin</name>
+        <version>2.7.9</version>
+      </tool>
+    </tools>
+    <component type="library" bom-ref="pkg:maven/com.example/legacy@1.0?type=jar">
+      <group>com.example</group>
+      <name>legacy</name>
+      <version>1.0</version>
+      <purl>pkg:maven/com.example/legacy@1.0?type=jar</purl>
+    </component>
+  </metadata>
+  <components>
+    <component type="library" bom-ref="pkg:maven/junit/junit@4.13.2?type=jar">
+      <group>junit</group>
+      <name>junit</name>
+      <version>4.13.2</version>
+      <scope>required</scope>
+      <hashes>
+        <hash alg="SHA-1">8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12</hash>
+      </hashes>
+      <licenses>
+        <license>
+          <name>Eclipse Public License 1.0</name>
+          <url>http://www.eclipse.org/legal/epl-v10.html</url>
+        </license>
+      </licenses>
+      <purl>pkg:maven/junit/junit@4.13.2?type=jar</purl>
+    </component>
+  </components>
+  <dependencies>
+    <dependency ref="pkg:maven/com.example/legacy@1.0?type=jar">
+      <dependency ref="pkg:maven/junit/junit@4.13.2?type=jar"/>
+    </dependency>
+    <dependency ref="pkg:maven/junit/junit@4.13.2?type=jar"/>
+  </dependencies>
+</bom>
